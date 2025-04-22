@@ -1,0 +1,218 @@
+import numpy as np
+
+
+def parse_k_file(fpath: str):
+    """Load FE model from file and extract arrays for nodes and elements
+
+    Args:
+        fpath (str): filepath to the model to load
+
+    Returns:
+        ect_array (np.array): (12,n) array of PID, EID, 10 node numbers
+        node_array (np.array): (4,n) array of NID, xyz coordinates
+    """
+
+    # load .k file
+    data = []
+    with open(fpath, "r") as file:
+        fcontent = file.read()
+    lines = fcontent.split("\n")
+
+    # read elements
+    i = 0
+    while i < len(lines):
+        if lines[i].startswith("$#   eid     pid") and not lines[
+            i + 1
+        ].startswith("$#   eid     pid"):
+            eid_pid = list(map(int, lines[i + 1].strip().split()))
+            i += 2
+
+            n_values = list(map(int, lines[i + 1].strip().split()))
+
+            combined = eid_pid + n_values
+            data.append(combined)
+
+        i += 1
+
+    ect_array = np.array(data)
+
+    # read nodes
+    nodes_lines = fcontent.split("*NODE\n")[-1].split("\n")
+
+    data = []
+    for i, line in enumerate(nodes_lines):
+        data.append(list(map(float, line.strip().split())))
+
+    node_array = np.array(data[:-1])
+
+    return ect_array, node_array
+
+
+def element_centroids(elnodes, node_coords):
+    """Calculate the centroid of an element
+
+    Args:
+        elnodes (np.array): 1D array containing EID, PID, and connected nodes for arbitrary 10-node element
+        node_coords (np.array): 2D array containing NID, xyz coordinates
+
+    Returns:
+        centroid (np.array): (1,3) array containing average coordinate of the element
+    """
+    node_connections = elnodes[2:6]
+    node_coords_subset = node_coords[node_connections - 1, :]
+    centroid = np.mean(node_coords_subset[:, 1:], axis=0)
+
+    return centroid
+
+
+def write_head_k_file(ect: np.ndarray, nodecoords: np.ndarray, fpath: str):
+    """Write nodes and ect to an output file
+
+    Args:
+        ect (np.ndarray): Element connectivity table in LS-DYNA 10-node format
+        nodecoords (np.ndarray): node ids and xyz coordinates
+        fpath (str): Filepath to write output file to
+    """
+
+    # format inputs
+    k_file_boilerplate = [
+        "*KEYWORD",
+        "*ELEMENT_SOLID_TET4TOTET10",
+        "$#   eid     pid",
+        "$#    n1      n2      n3      n4      n5      n6      n7      n8      n9      n10",
+        "*NODE",
+        "#$ nid                x                y               z",
+        "*END",
+    ]
+
+    eid_pid = ect[:, 0:2]
+    nodeconn = ect[:, 2:]
+
+    NID = nodecoords[:, 0]
+    NXYZ = nodecoords[:, 1:]
+
+    # define string templates
+    eid_pid_widths = [8, 8]
+    eid_pid_format_string = "".join(
+        [f"{{:>{width}d}}" for width in eid_pid_widths]
+    )
+
+    nid_widths = [8, 8, 8, 8, 8, 8, 8, 8]
+    nid_format_string = "".join([f"{{:>{width}d}}" for width in nid_widths])
+
+    node_widths = [17, 17, 16]
+    node_format_string = "".join([f"{{:>{width}f}}" for width in node_widths])
+
+    # open the output file
+    with open(fpath, "w") as file:
+        # write starting boilerplate
+        file.write(k_file_boilerplate[0] + "\n")
+
+        # write ect
+        file.write(k_file_boilerplate[1] + "\n")
+        file.write(k_file_boilerplate[2] + "\n")
+        file.write(eid_pid_format_string.format(*eid_pid[0, :]) + "\n")
+        file.write(k_file_boilerplate[3] + "\n")
+        file.write(nid_format_string.format(*nodeconn[0, :]) + "\n")
+
+        for i in range(1, ect.shape[0]):
+            file.write(eid_pid_format_string.format(*eid_pid[i, :]) + "\n")
+            file.write(nid_format_string.format(*nodeconn[i, :]) + "\n")
+
+        # write nodes
+        file.write(k_file_boilerplate[4] + "\n")
+        # file.write(k_file_boilerplate[6] + "\n")
+
+        for i in range(nodecoords.shape[0]):
+            file.write(
+                f"{int(NID[i]):>6d}"
+                + node_format_string.format(*NXYZ[i, :])
+                + "\n"
+            )
+
+        # write footer
+        file.write(k_file_boilerplate[6] + "\n")
+
+
+def edit_control_keyword(
+    template: str,
+    fpath: str,
+    matprops: dict,
+    includepath: str,
+    title: str = None,
+):
+    """Create control keyword from template using a dictionary provided and save output
+
+    Args:
+        template (string): filepath to control keyword template .k file
+        fpath (string): filepath to output the completed control keyword
+        matprops (dict): dictionary of prony series constants for each desired model (G_inf, G1, Tau)
+        includepath (string): filepath to the k file for the model to include
+        title (string, optional): title for .k file if desired
+
+    """
+
+    entries = {}
+    entries["include"] = includepath
+
+    if title is not None:
+        entries["title"] = title
+    else:
+        entries["title"] = ""
+
+    n_segs = len(matprops["G1"])
+
+    for i in range(1, n_segs + 1):
+        entries[f"brain{i}G0"] = f"{matprops['Ginf'][i - 1]:>10.6f}"
+        entries[f"brain{i}G1"] = f"{matprops['G1'][i - 1]:>10.6f}"
+        entries[f"brain{i}ta"] = f"{matprops['Tau'][i - 1]:>10.6f}"
+
+    for i in range(n_segs + 1, 10):
+        entries[f"brain{i}G0"] = f"{0.0:>10.6f}"
+        entries[f"brain{i}G1"] = f"{0.0:>10.6f}"
+        entries[f"brain{i}ta"] = f"{0.0:>10.6f}"
+
+    with open(template, "r") as fin:
+        template = fin.read()
+
+    template_filled = template.format(**entries)
+
+    with open(fpath, "w") as fout:
+        fout.write(template_filled)
+
+
+if __name__ == "__main__":
+    inpath = (
+        "t:/LSDYNA/brainwebworkflow/brainwebFE\BrainWeb_Subject04_updated.k"
+    )
+    print("processing k file...")
+
+    ect_array, node_array = parse_k_file(inpath)
+    print(ect_array)
+
+    print("calculating centroids...")
+    centroids = np.apply_along_axis(
+        element_centroids, 1, ect_array, node_array
+    )
+    print(centroids.shape)
+
+    print("writing output...")
+    outpath = inpath[:-2] + "_test.k"
+    write_head_k_file(ect_array, node_array, outpath)
+
+    test_mat_props = {
+        "Ginf": [1.0, 2.0, 3.0, 4.0, 5.0],
+        "G1": [1.1, 2.1, 3.1, 4.1, 5.1],
+        "Tau": [6.0, 7.0, 8.0, 9.0, 10.0],
+    }
+
+    print("editing control template...")
+    template_path = "t:/LSDYNA/brainwebworkflow/control_k/control_template.k"
+
+    edit_control_keyword(
+        template_path,
+        template_path[:-2] + "_test.k",
+        test_mat_props,
+        outpath,
+        "Testy testy",
+    )
