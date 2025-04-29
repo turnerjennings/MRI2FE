@@ -1,46 +1,11 @@
 import numpy as np
 import ants
 import scipy.spatial as sp
-from .k_file_operations import parse_k_file, element_centroids
+from ..k_file_operations import parse_k_file, element_centroids
 from .MRE_coregistration import coregister_MRE
-from .utilities import COM_align, ants_affine
+from ..utilities import COM_align, spatial_map
 
 import datetime
-
-
-def spatial_map(infile: ants.core.ants_image.ANTsImage):
-    """Convert data from NIFTI file to (4,n) array of x,y,z,voxel value in physical space
-
-    Args:
-        infile (nb.nifti1): NIFTI file to convert
-
-    Returns:
-        coordinates_and_values (np.ndarray): array of x,y,z coordinates in physical space with the corresponding voxel value
-    """
-    # extract data from NIFTI
-    image_data = infile.numpy()
-    affine = ants_affine(infile)
-    dimensions = image_data.shape
-
-    # create coordinates in voxel space
-    x = np.arange(dimensions[0])
-    y = np.arange(dimensions[1])
-    z = np.arange(dimensions[2])
-    xv, yv, zv = np.meshgrid(x, y, z, indexing="ij")
-
-    voxel_coords = np.vstack([xv.ravel(), yv.ravel(), zv.ravel()]).T
-    voxel_coords_homogeneous = np.hstack(
-        [voxel_coords, np.ones((voxel_coords.shape[0], 1))]
-    )
-
-    # map voxel coordinates to physical space
-    physical_coords = voxel_coords_homogeneous @ affine.T
-    voxel_values = np.round(image_data.ravel())
-    coordinates_and_values = np.hstack(
-        [physical_coords[:, :3], voxel_values[:, np.newaxis]]
-    )
-
-    return coordinates_and_values
 
 
 def map_MRE_to_mesh(

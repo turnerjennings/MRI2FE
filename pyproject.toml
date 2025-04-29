@@ -21,7 +21,7 @@ classifiers = [
 ]
 
 requires-python = ">=3.8.1"
-dependencies = ["numpy", "matplotlib","antspyx"]
+dependencies = ["numpy", "matplotlib","antspyx","lasso-python","scipy","julia"]
 
 [project.optional-dependencies]
 dev = ["pytest", "ruff"]

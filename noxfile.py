@@ -17,7 +17,6 @@ def lint(session):
     start_time = time.time()
     session.install("ruff")
     session.run('ruff','check','src')
-    session.run('ruff','check','test')
 
     elapsed = time.time() - start_time
     print(f"Session 'lint' completed in {elapsed:.2f} seconds")

@@ -42,7 +42,7 @@ def calculate_prony(mu: float, xi: float, w: float, tol=1.00e-3):
 
     # add the Julia optimization script
 
-    Main.include("src\\dynaMRI\\shear_lsr.jl")
+    Main.include("shear_lsr.jl")
 
     OptModel = Main.OptModel
 

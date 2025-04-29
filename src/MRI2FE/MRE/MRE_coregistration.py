@@ -1,6 +1,6 @@
 import ants
 import numpy as np
-from calculate_prony import calculate_prony
+from .calculate_prony import calculate_prony
 
 from datetime import datetime
 

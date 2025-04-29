@@ -284,8 +284,72 @@ def ants_affine(img: ants.core.ants_image.ANTsImage):
     return affine_matrix
 
 
-if __name__ == "__main__":
-    eigout_path = "kmeans/eigout"
+def check_xyz(
+    a: ants.core.ants_image.ANTsImage,
+    b: ants.core.ants_image.ANTsImage,
+    c: ants.core.ants_image.ANTsImage,
+) -> bool:
+    # Check if any of the shapes differ
+    if not (a.shape == b.shape and b.shape == c.shape):
+        return True
 
-    freqs = parse_eigout(eigout_path)
-    print(freqs)
+    # Check if any directions differ
+    # Use np.array_equal for comparing arrays
+    if not (
+        np.array_equal(a.direction, b.direction)
+        and np.array_equal(b.direction, c.direction)
+    ):
+        return True
+
+    # Check if any spacings differ
+    # Convert to tuples if they're numpy arrays
+    a_spacing = (
+        tuple(a.spacing) if isinstance(a.spacing, np.ndarray) else a.spacing
+    )
+    b_spacing = (
+        tuple(b.spacing) if isinstance(b.spacing, np.ndarray) else b.spacing
+    )
+    c_spacing = (
+        tuple(c.spacing) if isinstance(c.spacing, np.ndarray) else c.spacing
+    )
+
+    if not (a_spacing == b_spacing and b_spacing == c_spacing):
+        return True
+
+    # If we get here, none of the conditions for being different were met
+    return False
+
+
+def spatial_map(infile: ants.core.ants_image.ANTsImage):
+    """Convert data from NIFTI file to (4,n) array of x,y,z,voxel value in physical space
+
+    Args:
+        infile (nb.nifti1): NIFTI file to convert
+
+    Returns:
+        coordinates_and_values (np.ndarray): array of x,y,z coordinates in physical space with the corresponding voxel value
+    """
+    # extract data from NIFTI
+    image_data = infile.numpy()
+    affine = ants_affine(infile)
+    dimensions = image_data.shape
+
+    # create coordinates in voxel space
+    x = np.arange(dimensions[0])
+    y = np.arange(dimensions[1])
+    z = np.arange(dimensions[2])
+    xv, yv, zv = np.meshgrid(x, y, z, indexing="ij")
+
+    voxel_coords = np.vstack([xv.ravel(), yv.ravel(), zv.ravel()]).T
+    voxel_coords_homogeneous = np.hstack(
+        [voxel_coords, np.ones((voxel_coords.shape[0], 1))]
+    )
+
+    # map voxel coordinates to physical space
+    physical_coords = voxel_coords_homogeneous @ affine.T
+    voxel_values = np.round(image_data.ravel())
+    coordinates_and_values = np.hstack(
+        [physical_coords[:, :3], voxel_values[:, np.newaxis]]
+    )
+
+    return coordinates_and_values
