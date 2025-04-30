@@ -1,7 +1,9 @@
 from lasso.dyna import D3plot
 import numpy as np
 from scipy.interpolate import griddata
-import ants
+from ants.core.ants_image import ANTsImage
+from ants import from_numpy, apply_transforms, image_write
+
 from typing import Tuple
 
 
@@ -99,9 +101,7 @@ def cloud_to_grid(
     return data_out
 
 
-def grid_to_nifti(
-    datagrid: np.ndarray, template: ants.core.ants_image.ANTsImage
-) -> ants.core.ants_image.ANTsImage:
+def grid_to_nifti(datagrid: np.ndarray, template: ANTsImage) -> ANTsImage:
     """Convert an input numpy array voxel grid to a nifti file based on a template input nifti
 
     Args:
@@ -116,7 +116,7 @@ def grid_to_nifti(
     direction = template.direction
     origin = template.origin
 
-    new_plot = ants.from_numpy(
+    new_plot = from_numpy(
         data=datagrid, origin=origin, spacing=spacing, direction=direction
     )
 
@@ -126,8 +126,8 @@ def grid_to_nifti(
 def save_field_variable(
     coordinates: np.ndarray,
     field_variable: np.ndarray,
-    template: ants.core.ants_image.ANTsImage,
-    icbm: ants.core.ants_image.ANTsImage,
+    template: ANTsImage,
+    icbm: ANTsImage,
     tx: str,
     fname: str,
     step: int = 0,
@@ -169,18 +169,13 @@ def save_field_variable(
 
     # check if scalar field or 4d field
 
-    fv_ants_warped = ants.apply_transforms(
+    fv_ants_warped = apply_transforms(
         fixed=icbm, moving=fv_nifti, transformlist=tx, imagetype=0
     )
 
     # ants.plot(icbm,overlay=fv_ants_warped,overlay_alpha=0.7,overlay_cmap='viridis',axis=0)
 
     if save_plot:
-        ants.image_write(fv_ants_warped, fname)
+        image_write(fv_ants_warped, fname)
 
     return fv_ants_warped
-
-
-if __name__ == "__main__":
-    niftipath = "t:\\LSDYNA\\brainwebworkflow\\transforms\\0.nii"
-    plotpath = "t:\\LSDYNA\\brainwebworkflow\\test_output\\d3eigv"

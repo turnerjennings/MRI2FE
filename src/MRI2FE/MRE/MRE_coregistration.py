@@ -1,4 +1,12 @@
-import ants
+from ants import (
+    image_read,
+    resample_image,
+    threshold_image,
+    mask_image,
+    registration,
+    plot,
+)
+from ants import kmeans_segmentation
 import numpy as np
 from .calculate_prony import calculate_prony
 
@@ -27,28 +35,28 @@ def coregister_MRE(
 
     # convert to ants format and resample
     print(f"{datetime.now()}\t\tConverting to ANTS format...")
-    DR_ants = ants.image_read(DR)
+    DR_ants = image_read(DR)
 
-    SS_ants = ants.image_read(SS)
+    SS_ants = image_read(SS)
 
-    bw_ants = ants.image_read(geom)
-    bw_ants = ants.resample_image(bw_ants, SS_ants.shape, True)
+    bw_ants = image_read(geom)
+    bw_ants = resample_image(bw_ants, SS_ants.shape, True)
 
     # segment MRI model using SS
     print(f"{datetime.now()}\t\tSegmenting models...")
-    MRE_ants_segmented = ants.kmeans.kmeans_segmentation(SS_ants, n_segs)
+    MRE_ants_segmented = kmeans_segmentation(SS_ants, n_segs)
 
     # calculate average values for SS and DR in each region
     print(f"{datetime.now()}\t\tCalculating segment means...")
     ROI_means = {"index": [], "Ginf": [], "G1": [], "Tau": []}
 
     for i in range(1, n_segs + 1):
-        threshold = ants.threshold_image(
+        threshold = threshold_image(
             MRE_ants_segmented["segmentation"], low_thresh=i, high_thresh=i + 1
         )
 
-        SS_ROI = ants.mask_image(SS_ants, threshold)
-        DR_ROI = ants.mask_image(DR_ants, threshold)
+        SS_ROI = mask_image(SS_ants, threshold)
+        DR_ROI = mask_image(DR_ants, threshold)
 
         SS_roi_np = SS_ROI.numpy()
         SS_roi_np_nonzero = SS_roi_np[SS_roi_np > 0.0]
@@ -78,11 +86,11 @@ def coregister_MRE(
 
     mi = MRE_ants_segmented["segmentation"]
 
-    tx = ants.registration(fixed=fi, moving=mi, type_of_transform="Elastic")
+    tx = registration(fixed=fi, moving=mi, type_of_transform="Elastic")
 
     # create plot outcome if requested
     if imgout is not None:
-        ants.plot(
+        plot(
             fi,
             overlay=mi,
             overlay_cmap="Dark2",
@@ -90,7 +98,7 @@ def coregister_MRE(
             filename=imgout + "_sagittal.jpg",
             axis=0,
         )
-        ants.plot(
+        plot(
             fi,
             overlay=mi,
             overlay_cmap="Dark2",
@@ -98,7 +106,7 @@ def coregister_MRE(
             filename=imgout + "_coronal.jpg",
             axis=1,
         )
-        ants.plot(
+        plot(
             fi,
             overlay=mi,
             overlay_cmap="Dark2",
@@ -110,66 +118,3 @@ def coregister_MRE(
     tx_output = tx["warpedmovout"]
 
     return tx_output, ROI_means
-
-
-if __name__ == "__main__":
-    BW_path = "ICBM/"
-    BW_fname = "mni_icbm152_t1_tal_nlin_sym_09a.nii"
-
-    mres = [
-        5,
-        37,
-        49,
-        51,
-        61,
-        67,
-        78,
-        91,
-        93,
-        124,
-        10,
-        17,
-        20,
-        28,
-        66,
-        75,
-        81,
-        89,
-        99,
-        128,
-    ]
-    ginf = []
-    g1 = []
-    tau = []
-    mre_string = []
-
-    for i in mres:
-        MRE_path = "T:/LSDYNA/brainwebworkflow/MRE134"
-        MRE_DR_fname = f"{i:03d}DR_warped.nii"
-        MRE_SS_fname = f"{i:03d}Stiffness_warped.nii"
-
-        imgout_path = "coregistration_verify"
-        imgout_fname = (
-            imgout_path + "/" + BW_fname[:-4] + "_" + MRE_DR_fname[0:3]
-        )
-
-        mapping, means = coregister_MRE(
-            BW_path + "/" + BW_fname,
-            MRE_path + "/" + MRE_DR_fname,
-            MRE_path + "/" + MRE_SS_fname,
-            imgout=imgout_fname,
-        )
-
-        # print(f"Ginf = {means['Ginf']}, G1={means['G1']}")
-        ginf.append(means["Ginf"])
-        g1.append(means["G1"])
-        tau.append(means["Tau"])
-
-    combined_data = np.column_stack((mres, ginf, g1, tau))
-    header = "MRENo,Ginf1,Ginf2,Ginf3,Ginf4,Ginf5,G11,G12,G13,G14,G15,tau1,tau2,tau3,tau4,tau5"
-    np.savetxt(
-        "kmeans/MRE_stiffnesses.csv",
-        combined_data,
-        delimiter=",",
-        header=header,
-    )

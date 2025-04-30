@@ -1,13 +1,26 @@
-import ants
+from ants.core.ants_image import ANTsImage
+from ants import from_numpy
+
 import numpy as np
 from ..utilities import check_xyz
 
 
 def MRI_strain(
-    img_1: ants.core.ants_image.ANTsImage,
-    img_2: ants.core.ants_image.ANTsImage,
-    img_3: ants.core.ants_image.ANTsImage,
-) -> ants.core.ants_image.ANTsImage:
+    img_1: ANTsImage,
+    img_2: ANTsImage,
+    img_3: ANTsImage,
+) -> ANTsImage:
+    """Calculate the strain field for an MRI object given displacement in three principal directions
+
+    Args:
+        img_1 (ANTsImage): Displacement field in first principal direction, shape (l,m,n)
+        img_2 (ANTsImage): Displacement field in second principal direction, shape (l,m,n)
+        img_3 (ANTsImage): Displacement field in third principal direction, shape (l,m,n)
+
+    Returns:
+        AntsImage: Strain field image, shape (l,m,n,6) with strain ordered e_11, e_22, e_33, e_12, e_13, e_23
+    """
+
     # check shape and spacing
     if check_xyz(img_1, img_2, img_3):
         raise ValueError(
@@ -42,7 +55,7 @@ def MRI_strain(
 
     e_out = np.stack([e11, e22, e33, e12, e13, e23], axis=-1)
 
-    strain_img = ants.from_numpy(
+    strain_img = from_numpy(
         data=e_out,
         spacing=img_1.spacing,
         direction=img_1.direction,

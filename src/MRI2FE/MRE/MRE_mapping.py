@@ -1,15 +1,13 @@
 import numpy as np
-import ants
+from ants.core.ants_image import ANTsImage
 import scipy.spatial as sp
-from ..k_file_operations import parse_k_file, element_centroids
-from .MRE_coregistration import coregister_MRE
 from ..utilities import COM_align, spatial_map
 
 import datetime
 
 
 def map_MRE_to_mesh(
-    map: ants.core.ants_image.ANTsImage,
+    map: ANTsImage,
     elcentroids: np.ndarray,
     ect: np.ndarray,
     offset: int = 3,
@@ -102,35 +100,3 @@ def map_MRE_to_mesh(
     ect[query_mask, 1] = new_pids
 
     return ect
-
-
-if __name__ == "__main__":
-    # load and map MRI data
-    BW_path = "T:/LSDYNA/brainwebworkflow/brainwebmri"
-    BW_fname = "subject04_crisp_v.mnc"
-
-    MRE_path = "T:/LSDYNA/brainwebworkflow/MRE134"
-    MRE_DR_fname = "001DR_warped.nii"
-    MRE_SS_fname = "001Stiffness_warped.nii"
-
-    mapping, means = coregister_MRE(
-        BW_path + "/" + BW_fname,
-        MRE_path + "/" + MRE_DR_fname,
-        MRE_path + "/" + MRE_SS_fname,
-    )
-
-    # load and process k file
-    fepath = "brainwebFE/BrainWeb_Subject04_updated.k"
-    print("processing k file...")
-    ect_array, node_array = parse_k_file(fepath)
-
-    print(
-        f"FE model: min/max x=({np.min(node_array[:, 1])},{np.max(node_array[:, 1])}), y=({np.min(node_array[:, 2])},{np.max(node_array[:, 2])}), z=({np.min(node_array[:, 3])},{np.max(node_array[:, 3])})"
-    )
-    print("calculating centroids...")
-    centroids = np.apply_along_axis(
-        element_centroids, 1, ect_array, node_array
-    )
-
-    print("Mapping MRE to mesh...")
-    ect_array_mapped = map_MRE_to_mesh(mapping, centroids, ect_array)

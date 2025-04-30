@@ -1,6 +1,8 @@
 import nox
 import time
 
+nox.options.reuse_venv = "yes"  # or "yes"
+
 @nox.session(name="test")
 def tests(session):
     start_time = time.time()

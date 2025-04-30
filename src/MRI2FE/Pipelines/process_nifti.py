@@ -1,6 +1,16 @@
 from lasso.dyna import D3plot
 import numpy as np
-import ants
+
+from ants.core.ants_image import ANTsImage
+from ants import (
+    threshold_image,
+    registration,
+    image_write,
+    from_numpy,
+    apply_transforms,
+)
+
+
 from ..output.k_file_operations import parse_k_file, element_centroids
 from ..Postprocess.calculate_strain import MRI_strain
 from ..Postprocess.d3_to_nifti import (
@@ -15,10 +25,10 @@ import datetime
 
 
 def process_nifti(
-    icbm: ants.core.ants_image.ANTsImage,
+    icbm: ANTsImage,
     d3: D3plot,
     mdl: str,
-    template: ants.core.ants_image.ANTsImage,
+    template: ANTsImage,
     outpath: str,
     outname: str,
     output_type: Literal["displacement", "strain"] = "displacement",
@@ -93,12 +103,12 @@ def process_nifti(
 
     # ants.plot(icbm,overlay=pid_plot)
 
-    mi = ants.threshold_image(pid_plot, low_thresh=3.0)
-    fi = ants.threshold_image(icbm, low_thresh=65, high_thresh=100)
-    tx = ants.registration(fixed=fi, moving=mi, type_of_transform="SyN")
+    mi = threshold_image(pid_plot, low_thresh=3.0)
+    fi = threshold_image(icbm, low_thresh=65, high_thresh=100)
+    tx = registration(fixed=fi, moving=mi, type_of_transform="SyN")
 
     # ants.plot(icbm,overlay=tx["warpedmovout"])
-    ants.image_write(tx["warpedmovout"], outpath + outname + "_pids.nii")
+    image_write(tx["warpedmovout"], outpath + outname + "_pids.nii")
 
     transform = tx["fwdtransforms"]
 
@@ -208,7 +218,7 @@ def process_nifti(
 
             ux_grid = cloud_to_grid(ux, dims=template.shape, lims=lims)
 
-            ux_img = ants.from_numpy(
+            ux_img = from_numpy(
                 ux_grid,
                 origin=template.origin,
                 spacing=template.spacing,
@@ -222,7 +232,7 @@ def process_nifti(
 
             uy_grid = cloud_to_grid(uy, dims=template.shape, lims=lims)
 
-            uy_img = ants.from_numpy(
+            uy_img = from_numpy(
                 uy_grid,
                 origin=template.origin,
                 spacing=template.spacing,
@@ -235,7 +245,7 @@ def process_nifti(
             )
 
             uz_grid = cloud_to_grid(uz, dims=template.shape, lims=lims)
-            uz_img = ants.from_numpy(
+            uz_img = from_numpy(
                 uz_grid,
                 origin=template.origin,
                 spacing=template.spacing,
@@ -248,12 +258,12 @@ def process_nifti(
                 uz=uz_img,
             )
 
-            strain_field = ants.apply_transforms(
+            strain_field = apply_transforms(
                 fixed=icbm,
                 moving=strain_field,
                 transformlist=tx["fwdtransforms"],
                 imagetype=1,
             )
-            ants.image_write(
+            image_write(
                 strain_field, outpath + outname + f"_strainfield{i + 1}.nii"
             )

@@ -51,13 +51,3 @@ def calculate_prony(mu: float, xi: float, w: float, tol=1.00e-3):
     Ginf, G1, tau = OptModel.optimize_model(gp, gpp, float(w))
 
     return Ginf, G1, tau, gp, gpp
-
-
-if __name__ == "__main__":
-    mu = 1
-    xi = 1
-    w = 1
-
-    a = calculate_prony(mu, xi, w)
-
-    print(f"G_inf = {a}")
