@@ -13,16 +13,7 @@ from .output.k_file_operations import (
     edit_control_keyword,
 )
 
-from .utilities import (
-    create_title,
-    local_fpaths,
-    discovery_fpaths,
-    run_file_names,
-    COM_align,
-    find_keyword_includes,
-    clean_dir,
-    parse_eigout,
-)
+from .utilities import COM_align, point_cloud_spacing
 
 from . import Postprocess
 from . import MRE

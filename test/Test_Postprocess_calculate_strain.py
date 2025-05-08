@@ -5,7 +5,7 @@ import ants
 import numpy as np
 
 
-def test_MRI_strain():
+def image_setup():
     # generate test data
     # assuming u1=xy, u2=yz, u3=xz
 
@@ -21,6 +21,7 @@ def test_MRI_strain():
     u2 = j * k
     u3 = i * k
     print(f"data shape: {u1.shape}")
+
     # define output comparison
     e11 = j
     e22 = k
@@ -38,6 +39,38 @@ def test_MRI_strain():
 
     img_u3 = ants.from_numpy(data=u3, spacing=spac, direction=dr, origin=orgn)
 
-    e_out = MRI_strain(img_u1, img_u2, img_u3)
+    return img_u1, img_u2, img_u3, e_compare
 
-    np.testing.assert_almost_equal(e_out.numpy(), e_compare)
+
+class TestMRIStrain:
+    def test_MRI_strain(self):
+        img_u1, img_u2, img_u3, e_compare = image_setup()
+
+        e_out = MRI_strain(img_u1, img_u2, img_u3)
+
+        np.testing.assert_almost_equal(e_out.numpy(), e_compare)
+
+    def test_raises(self):
+        # check inconsistent spacing
+        img_u1, img_u2, img_u3, _ = image_setup()
+
+        img_u1.set_spacing((2.0, 1.0, 1.0))
+
+        with pytest.raises(ValueError):
+            e_out = MRI_strain(img_u1, img_u2, img_u3)
+
+        # check inconsistent origin
+        img_u1, img_u2, img_u3, _ = image_setup()
+
+        img_u1.set_origin((-1.0, -1.0, -1.0))
+
+        with pytest.raises(ValueError):
+            e_out = MRI_strain(img_u1, img_u2, img_u3)
+
+        # check inconsistent direction
+        img_u1, img_u2, img_u3, _ = image_setup()
+
+        img_u1.set_direction(np.array([[-1, 0, 0], [0, -1, 0], [0, 0, -1]]))
+
+        with pytest.raises(ValueError):
+            e_out = MRI_strain(img_u1, img_u2, img_u3)
