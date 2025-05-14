@@ -1,5 +1,6 @@
-import numpy as np
+from ..FEModel.femodel import FEModel
 
+import numpy as np
 
 def parse_k_file(fpath: str):
     """Load FE model from file and extract arrays for nodes and elements
@@ -65,7 +66,7 @@ def element_centroids(elnodes, node_coords):
     return centroid
 
 
-def write_head_k_file(ect: np.ndarray, nodecoords: np.ndarray, fpath: str):
+def write_head_k_file(fe_model: FEModel, fpath: str):
     """Write nodes and ect to an output file
 
     Args:
@@ -73,6 +74,9 @@ def write_head_k_file(ect: np.ndarray, nodecoords: np.ndarray, fpath: str):
         nodecoords (np.ndarray): node ids and xyz coordinates
         fpath (str): Filepath to write output file to
     """
+
+    node_table = fe_model.get_node_table()
+    element_table = fe_model.get_element_table()
 
     # format inputs
     k_file_boilerplate = [
@@ -85,11 +89,11 @@ def write_head_k_file(ect: np.ndarray, nodecoords: np.ndarray, fpath: str):
         "*END",
     ]
 
-    eid_pid = ect[:, 0:2]
-    nodeconn = ect[:, 2:]
+    eid_pid = element_table[:, 0:2]
+    nodeconn = element_table[:, 2:]
 
-    NID = nodecoords[:, 0]
-    NXYZ = nodecoords[:, 1:]
+    NID = node_table[:, 0]
+    NXYZ = node_table[:, 1:]
 
     # define string templates
     eid_pid_widths = [8, 8]
@@ -115,7 +119,7 @@ def write_head_k_file(ect: np.ndarray, nodecoords: np.ndarray, fpath: str):
         file.write(k_file_boilerplate[3] + "\n")
         file.write(nid_format_string.format(*nodeconn[0, :]) + "\n")
 
-        for i in range(1, ect.shape[0]):
+        for i in range(1, element_table.shape[0]):
             file.write(eid_pid_format_string.format(*eid_pid[i, :]) + "\n")
             file.write(nid_format_string.format(*nodeconn[i, :]) + "\n")
 
@@ -123,7 +127,7 @@ def write_head_k_file(ect: np.ndarray, nodecoords: np.ndarray, fpath: str):
         file.write(k_file_boilerplate[4] + "\n")
         # file.write(k_file_boilerplate[6] + "\n")
 
-        for i in range(nodecoords.shape[0]):
+        for i in range(node_table.shape[0]):
             file.write(
                 f"{int(NID[i]):>6d}"
                 + node_format_string.format(*NXYZ[i, :])

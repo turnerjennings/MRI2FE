@@ -2,11 +2,13 @@ import numpy as np
 from ants.core.ants_image import ANTsImage
 import scipy.spatial as sp
 from ..utilities import COM_align, spatial_map
+from ..FEModel.femodel import FEModel
 
 import datetime
 
 
 def map_MRE_to_mesh(
+    fe_model: FEModel,
     map: ANTsImage,
     elcentroids: np.ndarray,
     ect: np.ndarray,
@@ -99,4 +101,31 @@ def map_MRE_to_mesh(
 
     ect[query_mask, 1] = new_pids
 
-    return ect
+    # Update element connectivity table in FEModel
+    for element_id, centroid in enumerate(elcentroids):
+        part_id = map_to_part_id(centroid)
+        fe_model.add_element(
+            element_id=element_id + 1,
+            nodes=ect[element_id, 2:],
+            part_id=part_id
+        )
+
+    return fe_model
+
+def map_to_part_id(centroid: np.ndarray, physical_space_map: np.ndarray, offset: int = 3) -> int:
+    """Map an element centroid to a part ID based on the spatial map.
+
+    Args:
+        centroid (np.ndarray): A 1D array representing the (x, y, z) coordinates of the element centroid.
+        physical_space_map (np.ndarray): A 2D array where each row contains (x, y, z, part_id) for the spatial map.
+        offset (int, optional): Offset to adjust part IDs. Defaults to 3.
+
+    Returns:
+        int: The part ID corresponding to the centroid.
+    """
+    # Create a KD tree to find the nearest neighbors
+    physical_space_tree = sp.KDTree(physical_space_map[:, :3], leafsize=15)
+    _, index = physical_space_tree.query(centroid, k=1)
+    part_id = int(physical_space_map[index, 3]) + offset
+
+    return part_id
