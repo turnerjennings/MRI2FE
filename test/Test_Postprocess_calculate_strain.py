@@ -1,7 +1,7 @@
 import pytest
 from MRI2FE.Postprocess import MRI_strain
 
-import ants
+from ants import from_numpy
 import numpy as np
 
 
@@ -33,11 +33,11 @@ def image_setup():
     e_compare = np.stack([e11, e22, e33, e12, e13, e23], axis=-1)
 
     # create displacement images
-    img_u1 = ants.from_numpy(data=u1, spacing=spac, direction=dr, origin=orgn)
+    img_u1 = from_numpy(data=u1, spacing=spac, direction=dr, origin=orgn)
 
-    img_u2 = ants.from_numpy(data=u2, spacing=spac, direction=dr, origin=orgn)
+    img_u2 = from_numpy(data=u2, spacing=spac, direction=dr, origin=orgn)
 
-    img_u3 = ants.from_numpy(data=u3, spacing=spac, direction=dr, origin=orgn)
+    img_u3 = from_numpy(data=u3, spacing=spac, direction=dr, origin=orgn)
 
     return img_u1, img_u2, img_u3, e_compare
 
