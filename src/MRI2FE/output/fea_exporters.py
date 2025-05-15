@@ -93,24 +93,24 @@ def write_lsdyna(model: FEAModel, filename: str):
             mat_type = mat["type"].lower()
             props = mat["properties"]
 
-            E = props.get("E")
-            nu = props.get("nu")
+            youngs_modulus = props.get("E")
+            poisson_ratio = props.get("nu")
             density = props.get("density", 1.0)
 
             if mat_type == "kelvin_maxwell":
-                eta = props.get("eta", 0.0)
-                if E is None or nu is None:
+                viscosity_coefficient = props.get("eta", 0.0)
+                if youngs_modulus is None or poisson_ratio is None:
                     raise ValueError(f"Missing E or nu for material {mat_id}")
-                gk = E / (3 * (1 - 2 * nu))
+                gk = youngs_modulus / (3 * (1 - 2 * poisson_ratio))
 
                 f.write("\n*MAT_KELVIN_MAXWELL_VISCOELASTIC\n")
-                f.write(f"{mat_idx:8d}{density:10.4e}{E:10.4e}{nu:10.4e}{gk:10.4e}{eta:10.4e}\n")
+                f.write(f"{mat_idx:8d}{density:10.4e}{youngs_modulus:10.4e}{poisson_ratio:10.4e}{gk:10.4e}{viscosity_coefficient:10.4e}\n")
 
             elif mat_type == "elastic":
-                if E is None or nu is None:
+                if youngs_modulus is None or poisson_ratio is None:
                     raise ValueError(f"Missing E or nu for material {mat_id}")
                 f.write("\n*MAT_ELASTIC\n")
-                f.write(f"{mat_idx:8d}{density:10.4e}{E:10.4e}{nu:10.4e}\n")
+                f.write(f"{mat_idx:8d}{density:10.4e}{youngs_modulus:10.4e}{poisson_ratio:10.4e}\n")
 
             else:
                 raise NotImplementedError(f"Material type '{mat_type}' not supported.")
