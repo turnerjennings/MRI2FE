@@ -9,6 +9,7 @@ from ants import (
 from ants import kmeans_segmentation
 import numpy as np
 from .calculate_prony import calculate_prony
+from ..FEModel.femodel import FEModel
 
 from datetime import datetime
 
@@ -26,8 +27,7 @@ def coregister_MRE(
         imgout (string, optional): filepath to save output image of final coregistration for verification
 
     Returns:
-        tx_output (NiFTI1Image): MRE data co-registered onto geometry and segmented
-        ROI_means (dict): table of prony series values for each index in the segmented model
+        FEModel: An FEModel instance populated with part information.
     """
 
     # load MRI data
@@ -117,4 +117,12 @@ def coregister_MRE(
 
     tx_output = tx["warpedmovout"]
 
-    return tx_output, ROI_means
+    fe_model = FEModel(title="Brain FE Model", source="MRI and MRE Data")
+
+    # Add parts with material properties
+    for i, (Ginf, G1, Tau) in enumerate(zip(ROI_means["Ginf"], ROI_means["G1"], ROI_means["Tau"])):
+        fe_model.add_part(part_id=i + 1, material_constants={"Ginf": Ginf, "G1": G1, "Tau": Tau})
+
+    fe_model.metadata["tx_output"] = tx_output
+
+    return fe_model, tx_output
