@@ -1,6 +1,7 @@
 import meshio
 from dataclasses import dataclass
 
+
 @dataclass
 class FEAModel:
     """
@@ -12,10 +13,12 @@ class FEAModel:
         elements (dict): {part_id: {"type": str, "elements": list, "material": str}}
         materials (dict): {material_id: {"type": str, "properties": dict}}
     """
+
     title: str
     nodes: dict
     elements: dict
     materials: dict
+
 
 def write_abaqus(model: FEAModel, filename: str):
     """
@@ -27,10 +30,13 @@ def write_abaqus(model: FEAModel, filename: str):
     """
     mesh = meshio.Mesh(
         points=[coord for coord in model.nodes.values()],
-        cells={"hexahedron": [
-            elem for part in model.elements.values()
-            for elem in part["elements"]
-        ]}
+        cells={
+            "hexahedron": [
+                elem
+                for part in model.elements.values()
+                for elem in part["elements"]
+            ]
+        },
     )
     mesh.write(filename, file_format="abaqus")
 
@@ -46,8 +52,11 @@ def write_abaqus(model: FEAModel, filename: str):
                     f.write(f"{youngs_modulus}, {poisson_ratio}\n")
 
         for part_id, part in model.elements.items():
-            f.write(f"\n*SOLID SECTION, ELSET=part_{part_id}, MATERIAL={part['material']}\n")
+            f.write(
+                f"\n*SOLID SECTION, ELSET=part_{part_id}, MATERIAL={part['material']}\n"
+            )
             f.write("1.0\n")
+
 
 def write_lsdyna(model: FEAModel, filename: str):
     """
@@ -73,7 +82,10 @@ def write_lsdyna(model: FEAModel, filename: str):
                 nodes = "".join(f"{nid:8d}" for nid in elem)
                 f.write(f"{eid:8d}{part_id:8d}{nodes}\n")
 
-        material_id_map = {mat_id: idx for idx, mat_id in enumerate(model.materials.keys(), start=1)}
+        material_id_map = {
+            mat_id: idx
+            for idx, mat_id in enumerate(model.materials.keys(), start=1)
+        }
 
         # When writing parts
         f.write("\n*PART\n")
@@ -89,7 +101,9 @@ def write_lsdyna(model: FEAModel, filename: str):
             f.write(f"{part_id:8d}{elform:8d}{aet:8d}\n")
 
         # Write materials
-        for mat_idx, (mat_id, mat) in enumerate(model.materials.items(), start=1):
+        for mat_idx, (mat_id, mat) in enumerate(
+            model.materials.items(), start=1
+        ):
             mat_type = mat["type"].lower()
             props = mat["properties"]
 
@@ -104,16 +118,22 @@ def write_lsdyna(model: FEAModel, filename: str):
                 gk = youngs_modulus / (3 * (1 - 2 * poisson_ratio))
 
                 f.write("\n*MAT_KELVIN_MAXWELL_VISCOELASTIC\n")
-                f.write(f"{mat_idx:8d}{density:10.4e}{youngs_modulus:10.4e}{poisson_ratio:10.4e}{gk:10.4e}{viscosity_coefficient:10.4e}\n")
+                f.write(
+                    f"{mat_idx:8d}{density:10.4e}{youngs_modulus:10.4e}{poisson_ratio:10.4e}{gk:10.4e}{viscosity_coefficient:10.4e}\n"
+                )
 
             elif mat_type == "elastic":
                 if youngs_modulus is None or poisson_ratio is None:
                     raise ValueError(f"Missing E or nu for material {mat_id}")
                 f.write("\n*MAT_ELASTIC\n")
-                f.write(f"{mat_idx:8d}{density:10.4e}{youngs_modulus:10.4e}{poisson_ratio:10.4e}\n")
+                f.write(
+                    f"{mat_idx:8d}{density:10.4e}{youngs_modulus:10.4e}{poisson_ratio:10.4e}\n"
+                )
 
             else:
-                raise NotImplementedError(f"Material type '{mat_type}' not supported.")
+                raise NotImplementedError(
+                    f"Material type '{mat_type}' not supported."
+                )
 
         # End of file
         f.write("\n*END\n")
