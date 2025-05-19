@@ -2,6 +2,7 @@ from ..FEModel.femodel import FEModel
 
 import numpy as np
 
+
 def parse_k_file(fpath: str):
     """Load FE model from file and extract arrays for nodes and elements
 

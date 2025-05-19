@@ -6,7 +6,7 @@ from ants import (
     registration,
     plot,
     kmeans_segmentation,
-    apply_transforms
+    apply_transforms,
 )
 from ants.core.ants_image import ANTsImage
 import numpy as np
@@ -14,13 +14,16 @@ from .calculate_prony import calculate_prony
 from datetime import datetime
 from typing import Union
 
-def coregister_MRE_images(geom: Union[str,ANTsImage],
-                          geom_mask: Union[str:ANTsImage] = None,
-                          gp: Union[str,ANTsImage] = None,
-                          gpp: Union[str,ANTsImage] = None,
-                          mu: Union[str,ANTsImage] = None, 
-                          xi: Union[str,ANTsImage] = None,
-                          imgout: str = None):
+
+def coregister_MRE_images(
+    geom: Union[str, ANTsImage],
+    geom_mask: Union[str:ANTsImage] = None,
+    gp: Union[str, ANTsImage] = None,
+    gpp: Union[str, ANTsImage] = None,
+    mu: Union[str, ANTsImage] = None,
+    xi: Union[str, ANTsImage] = None,
+    imgout: str = None,
+):
     """Coregister MRE images to MRI geometry.
 
     Args:
@@ -31,14 +34,14 @@ def coregister_MRE_images(geom: Union[str,ANTsImage],
         SS (str or ANTsImage): Image or filepath to the shear stiffness MRE file.
         imgout (str, optional): Filepath prefix to save visualization images.
 
-    
+
     Raises:
         ValueError: incorrect input formats
-    
+
     Returns:
         dict: Contains coregistered SS, DR images and transformation metadata.
     """
-    #check for valid input
+    # check for valid input
     first_set_valid = all(param is not None for param in [geom, gp, gpp])
     second_set_valid = all(param is not None for param in [geom, mu, xi])
     # Raise error if neither parameter set is complete
@@ -46,132 +49,161 @@ def coregister_MRE_images(geom: Union[str,ANTsImage],
         raise ValueError(
             "You must provide either (gp, gpp, w) or (mu, xi, w) as inputs"
         )
-    
-    #load geometry and mask (if applicable)
-    if type(geom) == str:
+
+    # load geometry and mask (if applicable)
+    if type(geom) is str:
         geom = image_read(geom)
 
-    if geom_mask is not None and type(geom_mask) == str:
+    if geom_mask is not None and type(geom_mask) is str:
         geom_mask = image_read(geom_mask)
-    
 
     # if complex shear modulus is provided
     if first_set_valid:
-
-        #load images       
-        if type(gp) == str:
+        # load images
+        if type(gp) is str:
             gp = image_read(gp)
-        
-        if type(gpp) == str:
+
+        if type(gpp) is str:
             gpp = image_read(gpp)
 
-        #find threshold limits and generate binary mask
+        # find threshold limits and generate binary mask
         gp_arr = np.nonzero(gp.numpy())
         gp_min = np.min(gp_arr)
         gp_max = np.max(gp_arr)
         gp_mask = threshold_image(gp, gp_min, gp_max)
 
+        # generate transformation
+        geom_ants = resample_image_to_target(geom, gp)
 
-        #generate transformation
-        geom_ants = resample_image_to_target(geom,gp)
-    
         if geom_mask is not None:
-            tx = registration(fixed=geom_ants,
-                              mask=geom_mask,
-                              moving=gp, 
+            tx = registration(
+                fixed=geom_ants,
+                mask=geom_mask,
+                moving=gp,
+                moving_mask=gp_mask,
+                type_of_transform="Elastic",
+            )
 
-                              type_of_transform="Elastic")
-            
         else:
-            tx = registration(fixed=geom_ants,
-                    moving=gp, 
+            tx = registration(
+                fixed=geom_ants,
+                moving=gp,
+                moving_mask=gp_mask,
+                type_of_transform="Elastic",
+            )
 
-                    type_of_transform="Elastic")
-            
         gp_out = tx["warpedmovout"]
 
         transform = tx["fwdtransforms"]
 
-        gpp_out = apply_transforms(fixed=geom,
-                                   moving=gpp,
-                                   transformlist=transform)
-        
-        out_dict = {
-            "gp": gp_out,
-            "gpp": gpp_out,
-            "transform":transform
-        }
+        gpp_out = apply_transforms(
+            fixed=geom, moving=gpp, transformlist=transform
+        )
 
-        #write images to file if requested
+        out_dict = {"gp": gp_out, "gpp": gpp_out, "transform": transform}
+
+        # write images to file if requested
         if imgout is not None:
-            plot(geom, overlay=gp_out, overlay_cmap="Dark2", overlay_alpha=0.8,
-                filename=imgout + "_sagittal.jpg", axis=0)
-            plot(geom, overlay=gp_out, overlay_cmap="Dark2", overlay_alpha=0.8,
-                filename=imgout + "_coronal.jpg", axis=1)
-            plot(geom, overlay=gp_out, overlay_cmap="Dark2", overlay_alpha=0.8,
-                filename=imgout + "_transverse.jpg", axis=2)
+            plot(
+                geom,
+                overlay=gp_out,
+                overlay_cmap="Dark2",
+                overlay_alpha=0.8,
+                filename=imgout + "_sagittal.jpg",
+                axis=0,
+            )
+            plot(
+                geom,
+                overlay=gp_out,
+                overlay_cmap="Dark2",
+                overlay_alpha=0.8,
+                filename=imgout + "_coronal.jpg",
+                axis=1,
+            )
+            plot(
+                geom,
+                overlay=gp_out,
+                overlay_cmap="Dark2",
+                overlay_alpha=0.8,
+                filename=imgout + "_transverse.jpg",
+                axis=2,
+            )
 
         return out_dict
-    
-    #if ss/dr is provided
+
+    # if ss/dr is provided
     else:
-        #load images       
-        if type(mu) == str:
+        # load images
+        if type(mu) is str:
             mu = image_read(mu)
-        
-        if type(xi) == str:
+
+        if type(xi) is str:
             xi = image_read(xi)
 
-        #find threshold limits and generate binary mask
+        # find threshold limits and generate binary mask
         mu_arr = np.nonzero(mu.numpy())
         mu_min = np.min(mu_arr)
         mu_max = np.max(mu_arr)
         mu_mask = threshold_image(mu, mu_min, mu_max)
 
-
-        #generate transformation
+        # generate transformation
         geom_ants = resample_image_to_target(geom, mu)
-        
 
         if geom_mask is not None:
-            tx = registration(fixed=geom_ants,
-                              mask=geom_mask,
-                              moving=mu, 
-                              type_of_transform="Elastic")
-            
+            tx = registration(
+                fixed=geom_ants,
+                mask=geom_mask,
+                moving=mu,
+                moving_mask=mu_mask,
+                type_of_transform="Elastic",
+            )
+
         else:
-            tx = registration(fixed=geom_ants,
-                    moving=mu, 
-                    type_of_transform="Elastic")
-            
+            tx = registration(
+                fixed=geom_ants,
+                moving=mu,
+                moving_mask=mu_mask,
+                type_of_transform="Elastic",
+            )
+
         mu_out = tx["warpedmovout"]
 
         transform = tx["fwdtransforms"]
 
-        xi_out = apply_transforms(fixed=geom,
-                                   moving=xi,
-                                   transformlist=transform)
-        
-        out_dict = {
-            "mu": mu_out,
-            "xi": xi_out,
-            "transform":transform
-        }
+        xi_out = apply_transforms(
+            fixed=geom, moving=xi, transformlist=transform
+        )
 
-        #write images to file if requested
+        out_dict = {"mu": mu_out, "xi": xi_out, "transform": transform}
+
+        # write images to file if requested
         if imgout is not None:
-            plot(geom, overlay=mu_out, overlay_cmap="Dark2", overlay_alpha=0.8,
-                filename=imgout + "_sagittal.jpg", axis=0)
-            plot(geom, overlay=mu_out, overlay_cmap="Dark2", overlay_alpha=0.8,
-                filename=imgout + "_coronal.jpg", axis=1)
-            plot(geom, overlay=mu_out, overlay_cmap="Dark2", overlay_alpha=0.8,
-                filename=imgout + "_transverse.jpg", axis=2)
+            plot(
+                geom,
+                overlay=mu_out,
+                overlay_cmap="Dark2",
+                overlay_alpha=0.8,
+                filename=imgout + "_sagittal.jpg",
+                axis=0,
+            )
+            plot(
+                geom,
+                overlay=mu_out,
+                overlay_cmap="Dark2",
+                overlay_alpha=0.8,
+                filename=imgout + "_coronal.jpg",
+                axis=1,
+            )
+            plot(
+                geom,
+                overlay=mu_out,
+                overlay_cmap="Dark2",
+                overlay_alpha=0.8,
+                filename=imgout + "_transverse.jpg",
+                axis=2,
+            )
 
         return out_dict
-
-
-
-
 
 
 def segment_MRE_regions(SS_img, DR_img, n_segs: int = 5):
@@ -202,7 +234,9 @@ def segment_MRE_regions(SS_img, DR_img, n_segs: int = 5):
         DR_mean = np.mean(DR_vals)
 
         Ginf, G1, tau, _, _ = calculate_prony(SS_mean, DR_mean, 50.0)
-        print(f"Segment {i}: SS={SS_mean:.3f}, DR={DR_mean:.3f}, Ginf={Ginf:.3f}, G1={G1:.3f}, tau={tau:.3f}")
+        print(
+            f"Segment {i}: SS={SS_mean:.3f}, DR={DR_mean:.3f}, Ginf={Ginf:.3f}, G1={G1:.3f}, tau={tau:.3f}"
+        )
 
         ROI_means["index"].append(i)
         ROI_means["Ginf"].append(Ginf / 1000)
@@ -210,6 +244,7 @@ def segment_MRE_regions(SS_img, DR_img, n_segs: int = 5):
         ROI_means["Tau"].append(tau)
 
     return ROI_means
+
 
 def run_MRE_pipeline(geom, DR, SS, n_segs=5, imgout=None):
     coreg = coregister_MRE_images(geom, DR, SS, imgout)

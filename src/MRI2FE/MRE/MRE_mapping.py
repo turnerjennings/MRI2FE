@@ -107,12 +107,15 @@ def map_MRE_to_mesh(
         fe_model.add_element(
             element_id=element_id + 1,
             nodes=ect[element_id, 2:],
-            part_id=part_id
+            part_id=part_id,
         )
 
     return fe_model
 
-def map_to_part_id(centroid: np.ndarray, physical_space_map: np.ndarray, offset: int = 3) -> int:
+
+def map_to_part_id(
+    centroid: np.ndarray, physical_space_map: np.ndarray, offset: int = 3
+) -> int:
     """Map an element centroid to a part ID based on the spatial map.
 
     Args:

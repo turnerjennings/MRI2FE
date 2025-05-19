@@ -1,5 +1,6 @@
 import numpy as np
 
+
 class FEModel:
     def __init__(self, title: str = "", source: str = ""):
         """Initialize the FEModel data structure."""
