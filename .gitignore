@@ -176,4 +176,5 @@ cython_debug/
 #project-specific
 .scratch/
 .benchmark/*
+.vscode/
 *.pptx
