@@ -175,4 +175,5 @@ cython_debug/
 
 #project-specific
 .scratch/
+.benchmark/*
 *.pptx
