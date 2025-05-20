@@ -5,14 +5,24 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 # Add Catch2 (assuming it's cloned into extern/Catch2)
-add_subdirectory(../Catch2 ${CMAKE_BINARY_DIR}/Catch2-build)
 
 INCLUDE_DIRECTORIES(include)
-INCLUDE_DIRECTORIES(eigen)
+
 
 #find the python extensions package
 find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
 find_package(pybind11 REQUIRED)
+find_package(Catch2 REQUIRED)
+find_package(CGAL CONFIG REQUIRED)
+find_package(Eigen3 CONFIG REQUIRED)
+find_package(GMP REQUIRED)
+find_package(MPFR REQUIRED)
+
+include(CGAL_Eigen3_support)
+if(NOT TARGET CGAL::Eigen3_support)
+  message("NOTICE: All examples require the Eigen3 library, and will not be compiled.")
+  return()
+endif()
 
 #include both the test files and the .cpp files that the tests are pulling from
 set(SRC_FILES
@@ -37,6 +47,8 @@ target_include_directories(test_util PRIVATE
 target_link_libraries(test_util PRIVATE 
     Catch2::Catch2WithMain
     pybind11::module
+    Eigen3::Eigen
+    CGAL::CGAL
 )
 
 #add catch2extras

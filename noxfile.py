@@ -9,11 +9,17 @@ def cpptest(session):
     import os    
     import shutil
     import sys
-
     start_time = time.time()
-    build_dir = "build/test"
 
-    shutil.rmtree(build_dir)
+    #define project directories
+    project_root = os.getcwd()
+    build_dir = "build/test"
+    vcpkg_toolchain = os.path.join(
+        project_root, "vcpkg/scripts/buildsystems/vcpkg.cmake")
+
+    #delete old build info
+    if os.path.exists(build_dir):
+        shutil.rmtree(build_dir)
 
     session.install("pybind11")
 
@@ -26,30 +32,15 @@ def cpptest(session):
         "cmake",
         "-S", "test",
         "-B", build_dir,
+        f"-DCMAKE_TOOLCHAIN_FILE={vcpkg_toolchain}",
         f"-DCMAKE_PREFIX_PATH={cmake_dir}",
+        f"-DVCPKG_MANIFEST_MODE=ON",
+        f"-DVCPKG_MANIFEST_DIR={project_root}",
         external=True
     )
 
     # Build the tests
     session.run("cmake", "--build", build_dir, external=True)
-
-    python_dir = os.path.dirname(sys.executable)
-    test_exe_dir = os.path.join(os.getcwd(), build_dir, "Debug")
-    
-    # Ensure the directory exists
-    os.makedirs(test_exe_dir, exist_ok=True)
-    
-    # Copy all DLLs from the Python directory
-    session.log(f"Copying Python DLLs from {python_dir} to {test_exe_dir}")
-    for file in os.listdir(python_dir):
-        if file.lower().endswith('.dll'):
-            src = os.path.join(python_dir, file)
-            dst = os.path.join(test_exe_dir, file)
-            try:
-                shutil.copy2(src, dst)
-                session.log(f"Copied {file}")
-            except Exception as e:
-                session.log(f"Error copying {file}: {e}")
     
     # Run the tests
     session.run("ctest", "--test-dir", build_dir, "-C", "Debug", "--output-on-failure", external=True)
@@ -60,9 +51,27 @@ def cpptest(session):
 @nox.session(name="test")
 def tests(session):
     start_time = time.time()
-    session.install("pytest")
+    import os    
+
+    project_root = os.path.normpath(os.path.abspath(os.getcwd()))
+    vcpkg_toolchain = os.path.normpath(os.path.join(project_root, "vcpkg", "scripts", "buildsystems", "vcpkg.cmake"))
+
     session.install("pybind11")
-    session.install(".")
+
+    # Get the CMake directory from pybind11
+    import pybind11
+    cmake_dir = pybind11.get_cmake_dir()
+
+    cmake_args = f'-DCMAKE_TOOLCHAIN_FILE="{vcpkg_toolchain}" '\
+        f'-DCMAKE_PREFIX_PATH="{cmake_dir}" ' \
+        f'-DVCPKG_MANIFEST_MODE=ON '\
+        f'-DVCPKG_MANIFEST_DIR="{project_root}" '
+  
+
+    os.environ["CMAKE_ARGS"] = cmake_args
+
+    session.install("scikit-build-core[pyproject]")
+    session.install("-v", ".")
     session.run("pytest")
 
     elapsed = time.time() - start_time

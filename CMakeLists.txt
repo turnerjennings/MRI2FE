@@ -12,16 +12,23 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 INCLUDE_DIRECTORIES(
     include
-    eigen
 )
-
-include(T:/codes/vcpkg/scripts/buildsystems/vcpkg.cmake)
 
 
 #find required extensions
 find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
 find_package(pybind11 REQUIRED)
-find_package(CGAL REQUIRED)
+find_package(CGAL CONFIG REQUIRED)
+find_package(Eigen3 CONFIG REQUIRED)
+find_package(GMP REQUIRED)
+find_package(MPFR REQUIRED)
+
+include(CGAL_Eigen3_support)
+if(NOT TARGET CGAL::Eigen3_support)
+  message("NOTICE: All examples require the Eigen3 library, and will not be compiled.")
+  return()
+endif()
+
 
 #define source c++ files
 set(SRC_FILES
@@ -31,7 +38,11 @@ src/cpp/meshing.cpp
 #link libraries
 pybind11_add_module(_MESHUTILS MODULE ${SRC_FILES})
 
-target_link_libraries(_MESHUTILS PRIVATE CGAL::CGAL pybind11::module)
+target_link_libraries(_MESHUTILS PRIVATE 
+    pybind11::module
+    Eigen3::Eigen
+    CGAL::CGAL
+)
 
 #compile and install
 target_compile_definitions(_MESHUTILS PRIVATE VERSION_INFO=${PROJECT_VERSION})
