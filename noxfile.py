@@ -61,6 +61,7 @@ def cpptest(session):
 def tests(session):
     start_time = time.time()
     session.install("pytest")
+    session.install("pybind11")
     session.install(".")
     session.run("pytest")
 
