@@ -6,13 +6,14 @@ nox.options.reuse_venv = "yes"  # or "yes"
 
 @nox.session(name="cpptest")
 def cpptest(session):
-    import time
-    import os
-    import sys
+    import os    
     import shutil
-    
+    import sys
+
     start_time = time.time()
     build_dir = "build/test"
+
+    shutil.rmtree(build_dir)
 
     session.install("pybind11")
 

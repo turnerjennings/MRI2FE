@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.11)
+cmake_minimum_required(VERSION 3.16)
 project(MyCatch2Tests)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -23,20 +23,26 @@ Test_meshing.cpp
 #create executable from source files defined above
 add_executable(test_util ${SRC_FILES})
 
+# Use precompiled headers for Catch2
+target_precompile_headers(test_util PRIVATE 
+    <catch2/catch_all.hpp>
+)
+
 #define include directory with headers in the root file
 target_include_directories(test_util PRIVATE 
     "${CMAKE_CURRENT_LIST_DIR}/../include"
     "${CMAKE_CURRENT_LIST_DIR}/../eigen")
-    
+
 #link catch2
 target_link_libraries(test_util PRIVATE 
     Catch2::Catch2WithMain
     pybind11::module
 )
 
-
+#add catch2extras
+list(APPEND CMAKE_MODULE_PATH "../Catch2/extras")
 
 #compile and create tests
 include(CTest)
-
-add_test(NAME "test_debug_add" COMMAND test_util)
+include(Catch)
+catch_discover_tests(test_util)
