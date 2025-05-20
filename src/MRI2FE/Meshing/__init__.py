@@ -1,1 +1,1 @@
-from .niftiToMesh import find_surface
+from .niftiToMesh import find_surface,mesh_between_surface
