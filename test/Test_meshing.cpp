@@ -50,3 +50,23 @@ TEST_CASE("load nifti") {
 
 
 }
+
+TEST_CASE("load nifti throws"){
+    std::string resource_dir = TEST_RESOURCE_DIR;
+    std::string fname = "zstat1.gz";
+
+    fs::path full_path = fs::path(resource_dir) / fname;
+    std::string fpath = full_path.string();
+
+    CAPTURE(fpath);
+
+    REQUIRE_THROWS(load_nifti(fpath));
+
+
+    fname = "zstat2.nii";
+
+    full_path = fs::path(resource_dir) / fname;
+    fpath = full_path.string();
+
+    REQUIRE_THROWS(load_nifti(fpath));
+}
