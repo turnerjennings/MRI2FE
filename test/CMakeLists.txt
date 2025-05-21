@@ -24,9 +24,10 @@ find_package(VTK REQUIRED COMPONENTS
     CommonCore
 )
 
+#check for Eigen3 support
 include(CGAL_Eigen3_support)
 if(NOT TARGET CGAL::Eigen3_support)
-  message("NOTICE: All examples require the Eigen3 library, and will not be compiled.")
+  message("NOTICE: Requires the Eigen3 Library")
   return()
 endif()
 
@@ -44,6 +45,8 @@ add_executable(test_util ${SRC_FILES})
 target_precompile_headers(test_util PRIVATE 
     <catch2/catch_all.hpp>
 )
+
+target_compile_definitions(test_util PUBLIC TEST_RESOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/test_data/")
 
 #define include directory with headers in the root file
 target_include_directories(test_util PRIVATE 

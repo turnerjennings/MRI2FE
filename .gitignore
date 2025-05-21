@@ -179,3 +179,4 @@ cython_debug/
 .vscode/
 *.pptx
 CMakeUserPresets.json
+test/test_data/*
