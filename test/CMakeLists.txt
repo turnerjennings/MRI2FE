@@ -17,6 +17,12 @@ find_package(CGAL CONFIG REQUIRED)
 find_package(Eigen3 CONFIG REQUIRED)
 find_package(GMP REQUIRED)
 find_package(MPFR REQUIRED)
+find_package(VTK REQUIRED COMPONENTS
+    IOImage
+    RenderingCore
+    InteractionStyle
+    CommonCore
+)
 
 include(CGAL_Eigen3_support)
 if(NOT TARGET CGAL::Eigen3_support)
@@ -27,6 +33,7 @@ endif()
 #include both the test files and the .cpp files that the tests are pulling from
 set(SRC_FILES
 ../src/cpp/meshing.cpp
+../src/cpp/io.cpp
 Test_meshing.cpp
 )
 
@@ -49,6 +56,7 @@ target_link_libraries(test_util PRIVATE
     pybind11::module
     Eigen3::Eigen
     CGAL::CGAL
+    ${VTK_LIBRARIES}
 )
 
 #add catch2extras
