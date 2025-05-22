@@ -4,6 +4,7 @@
 
 #include <vtkNew.h>
 #include <vtkNIFTIImageReader.h>
+#include <vtkMatrix4x4.h>
 #include <vtkSmartPointer.h>
 #include <vtkImageData.h>
 #include <string>

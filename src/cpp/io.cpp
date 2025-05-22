@@ -26,5 +26,21 @@ vtkImageData* load_nifti(std::string filepath){
 
     image = reader->GetOutput();
 
+    // set matrix
+    vtkMatrix4x4* mat = reader->GetQFormMatrix();
+    if (!mat) {
+        mat = reader->GetSFormMatrix();
+    }
+
+    // set origin
+    if (mat) {
+        double origin[3] = {
+            mat->GetElement(0, 3),
+            mat->GetElement(1, 3),
+            mat->GetElement(2, 3)
+        };
+        image->SetOrigin(origin);
+}
+
     return image;
 }

@@ -26,6 +26,16 @@ def cpptest(session):
     # Get the CMake directory from pybind11
     import pybind11
     cmake_dir = pybind11.get_cmake_dir()
+
+    #check if test data already exists, generate if not
+    if not os.path.exists(os.path.join(project_root,
+                                       "test",
+                                       "test_data",
+                                       "test_concentric_spheres.nii")):
+        print("Test data does not exist, generating...")
+        session.install("numpy")
+        session.install("antspyx")
+        session.run("python",f"{os.path.join(project_root,"test","generate_test_niftis.py")}")
     
     # Configure the build
     session.run(
@@ -57,6 +67,16 @@ def tests(session):
     vcpkg_toolchain = os.path.normpath(os.path.join(project_root, "vcpkg", "scripts", "buildsystems", "vcpkg.cmake"))
 
     session.install("pybind11")
+
+    #check if test data already exists, generate if not
+    if not os.path.exists(os.path.join(project_root,
+                                       "test",
+                                       "test_data",
+                                       "test_concentric_spheres.nii")):
+        print("Test data does not exist, generating...")
+        session.install("numpy")
+        session.install("antspyx")
+        session.run("python",f"{os.path.join(project_root,"test","generate_test_niftis.py")}")
 
     # Get the CMake directory from pybind11
     import pybind11

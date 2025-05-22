@@ -40,6 +40,7 @@ endif()
 set(SRC_FILES
 src/cpp/meshing.cpp
 src/cpp/io.cpp
+src/main.cpp
 )
 
 #link libraries

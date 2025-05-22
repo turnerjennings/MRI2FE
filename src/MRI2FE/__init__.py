@@ -18,3 +18,5 @@ from .utilities import COM_align, point_cloud_spacing
 from . import Postprocess
 from . import MRE
 from . import Pipelines
+
+from .Meshing.generate_mesh import mesh_from_nifti
