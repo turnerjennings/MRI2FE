@@ -26,4 +26,4 @@ from . import Postprocess
 from . import MRE
 from . import Pipelines
 
-from .generate_mesh import mesh_from_nifti
+from .generate_mesh import mesh_from_nifti, nifti_to_inr

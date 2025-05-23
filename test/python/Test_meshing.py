@@ -6,24 +6,52 @@ import os
 
 import meshio
 
-from MRI2FE import mesh_from_nifti
+from MRI2FE import mesh_from_nifti, nifti_to_inr
 
 class TestMeshing:
 
-    def verify_radius(self):
+    def test_file_conversion(self):
+        root_dir = os.getcwd()
+
+        path = os.path.join(root_dir,
+                            "test",
+                            "test_data",
+                            "test_concentric_spheres.nii")
         
-        root_path = os.getcwd()
+        outpath = nifti_to_inr(path)
 
-        test_file = os.path.join(root_path, 
-                                 "test", 
-                                 "test_data", 
-                                 "test_concentric_spheres.nii")
+        assert(os.path.exists(outpath))
+    
+    def test_file_raises(self):
+        root_dir = os.getcwd()
+
+        path = os.path.join(root_dir,
+                            "test",
+                            "test_data",
+                            "not_real_file.nii")
+        with pytest.raises(ValueError):
+            outpath = nifti_to_inr(path)
+
+    def test_mesh_creation(self):
+        root_dir = os.getcwd()
+
+        path = os.path.join(root_dir,
+                            "test",
+                            "test_data",
+                            "test_concentric_spheres.nii")
         
-        mesh = mesh_from_nifti(test_file)
+        mesh = mesh_from_nifti(path,
+                               optimize=True)
 
-        points = mesh.points
+        assert (mesh is not None)
 
-        distance = np.linalg.norm(points,axis=1)
+        assert (mesh.points.shape[0] > 0)
+        assert (mesh.points.shape[1] > 0)
+        
+        out_path = os.path.join(root_dir,
+                            "test",
+                            "test_data",
+                            "test_mesh_out.mesh")
+        
+        mesh.write(out_path)
 
-        for i in range(distance.shape[0]):
-            assert (distance[i] < 20.0)

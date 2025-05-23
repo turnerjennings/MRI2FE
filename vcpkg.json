@@ -5,7 +5,6 @@
         "eigen3",
         "cgal",
         "gmp",
-        "mpfr",
-        "vtk"
+        "mpfr"
     ]
 }

@@ -26,9 +26,6 @@ dependencies = ["numpy", "matplotlib","antspyx","lasso-python","scipy","meshio",
 [project.optional-dependencies]
 dev = ["pytest", "ruff"]
 
-[options.package_data]
-my_package = *.dll, *.pyd
-
 [project.urls]
 Repository = "https://github.com/turnerjennings/MRI2FE.git"
 Documentation = "https://turnerjennings.github.io/MRI2FE/"

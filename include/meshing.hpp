@@ -13,9 +13,6 @@
 #include <CGAL/IO/File_binary_mesh_3.h>
 
 
-#include<CGAL/IO/read_vtk_image_data.h>
-
-
 #include<pybind11/pybind11.h>
 
 #include<filesystem>
@@ -40,7 +37,7 @@ using Mesh_criteria = CGAL::Mesh_criteria_3<Tr>;
 
 int _debug_add(int i, int j);
 
-std::string mesh_model(vtkImageData* image_in, 
+std::string mesh_model(std::string fpath, 
     const Mesh_criteria criteria, 
     const bool lloyd
     );

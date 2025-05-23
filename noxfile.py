@@ -36,6 +36,16 @@ def cpptest(session):
         session.install("numpy")
         session.install("antspyx")
         session.run("python",f"{os.path.join(project_root,"test","generate_test_niftis.py")}")
+
+
+    if not os.path.exists(os.path.join(project_root,
+                                       "test",
+                                       "test_data",
+                                       "test_concentric_spheres.inr")):
+        print("Test data does not exist, generating...")
+        session.install("numpy")
+        session.install("antspyx")
+        session.run("python",f"{os.path.join(project_root,"test","generate_test_niftis.py")}")
     
     # Configure the build
     session.run(
@@ -65,7 +75,7 @@ def tests(session):
 
     project_root = os.path.normpath(os.path.abspath(os.getcwd()))
     vcpkg_toolchain = os.path.normpath(os.path.join(project_root, "vcpkg", "scripts", "buildsystems", "vcpkg.cmake"))
-
+    session.install("pytest")
     session.install("pybind11")
 
     #check if test data already exists, generate if not
@@ -73,6 +83,15 @@ def tests(session):
                                        "test",
                                        "test_data",
                                        "test_concentric_spheres.nii")):
+        print("Test data does not exist, generating...")
+        session.install("numpy")
+        session.install("antspyx")
+        session.run("python",f"{os.path.join(project_root,"test","generate_test_niftis.py")}")
+
+    if not os.path.exists(os.path.join(project_root,
+                                       "test",
+                                       "test_data",
+                                       "test_concentric_spheres.inr")):
         print("Test data does not exist, generating...")
         session.install("numpy")
         session.install("antspyx")

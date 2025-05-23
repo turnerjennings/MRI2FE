@@ -20,12 +20,6 @@ find_package(CGAL CONFIG REQUIRED)
 find_package(Eigen3 CONFIG REQUIRED)
 find_package(GMP REQUIRED)
 find_package(MPFR REQUIRED)
-find_package(VTK REQUIRED COMPONENTS
-    IOImage
-    RenderingCore
-    InteractionStyle
-    CommonCore
-)
 
 include(CGAL_Eigen3_support)
 if(NOT TARGET CGAL::Eigen3_support)
@@ -37,7 +31,6 @@ endif()
 #define source c++ files
 set(SRC_FILES
 src/cpp/meshing.cpp
-src/cpp/io.cpp
 )
 
 set(PYBIND11_FINDPYTHON ON)
@@ -48,7 +41,13 @@ pybind11_add_module(_MESHUTILS MODULE ${SRC_FILES})
 target_link_libraries(_MESHUTILS PRIVATE 
     Eigen3::Eigen
     CGAL::CGAL
-    ${VTK_LIBRARIES}
+    ${GMP_LIBRARIES}
+    ${MPFR_LIBRARIES}
+)
+
+target_include_directories(_MESHUTILS PRIVATE 
+    ${GMP_INCLUDE_DIR}
+    ${MPFR_INCLUDE_DIR}
 )
 
 #compile and install

@@ -1,5 +1,4 @@
 #include "meshing.hpp"
-#include "io.hpp"
 
 #include<pybind11/pybind11.h>
 
@@ -9,14 +8,17 @@ int _debug_add(int i, int j){
     return i + j;
 }
 
-std::string mesh_model(vtkImageData* image_in, 
+std::string mesh_model(std::string fpath, 
     const Mesh_criteria criteria, 
     const bool lloyd
     ){
+    
+    CGAL::Image_3 image;
 
-    //convert image to image3
-
-    CGAL::Image_3 image = CGAL::IO::read_vtk_image_data(image_in);
+    if(!image.read(fpath)){
+        throw std::exception("Cannot read file");
+    }
+     
 
     //define domain
 
@@ -58,7 +60,6 @@ const double facetSize,
 const double facetDistance,
 const double cellRadiusEdgeRatio,
 const double cellSize){
-    vtkImageData* data = load_nifti(filePath);
 
     Mesh_criteria criteria(params::facet_angle(facetAngle).
     facet_size(facetSize).
@@ -66,7 +67,7 @@ const double cellSize){
     cell_radius_edge_ratio(cellRadiusEdgeRatio).
     cell_size(cellSize));
 
-    std::string outpath = mesh_model(data, criteria, optimize);
+    std::string outpath = mesh_model(filePath, criteria, optimize);
 
     if (!fs::exists(fs::path(outpath))) {
         throw std::invalid_argument("Output file not found");

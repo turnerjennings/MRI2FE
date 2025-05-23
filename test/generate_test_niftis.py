@@ -39,3 +39,49 @@ output_dir = os.path.join(cwd,"test","test_data")
 os.makedirs(output_dir,exist_ok=True)
 
 image_write(nifti_img, os.path.join(output_dir,"test_concentric_spheres.nii"))
+
+
+
+#get dimensions and spacing
+xdim, ydim, zdim = nifti_img.shape
+
+vx, vy, vz = nifti_img.spacing
+
+#get data typeand length
+
+data = nifti_img.numpy()
+
+btype, bitlen = {
+    "uint8": ("unsigned fixed", 8),
+    "uint16": ("unsigned fixed", 16),
+    "float32": ("float", 32),
+    "float64": ("float", 64),
+}[data.dtype.name]
+
+#encode file
+header = "\n".join(
+    [
+        "#INRIMAGE-4#{",
+        f"XDIM={xdim}",
+        f"YDIM={ydim}",
+        f"ZDIM={zdim}",
+        "VDIM=1",
+        f"TYPE={btype}",
+        f"PIXSIZE={bitlen} bits",
+        "CPU=decm",
+        f"VX={vx:f}",
+        f"VY={vy:f}",
+        f"VZ={vz:f}",
+    ]
+)
+header += "\n"
+
+header = header + "\n" * (256 - 4 - len(header)) + "##}\n"
+
+
+
+out_path = os.path.join(output_dir,"test_concentric_spheres.inr")
+
+with open(out_path, 'wb') as temp_file:  # Note: 'wb' instead of 'w'
+    temp_file.write(header.encode("ascii"))
+    temp_file.write(data.tobytes(order="F"))
