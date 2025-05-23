@@ -10,14 +10,12 @@ project(
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-INCLUDE_DIRECTORIES(
-    include
-)
+INCLUDE_DIRECTORIES(include)
 
 
 #find required extensions
 find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
-find_package(pybind11 REQUIRED)
+find_package(pybind11 CONFIG REQUIRED)
 find_package(CGAL CONFIG REQUIRED)
 find_package(Eigen3 CONFIG REQUIRED)
 find_package(GMP REQUIRED)
@@ -40,14 +38,14 @@ endif()
 set(SRC_FILES
 src/cpp/meshing.cpp
 src/cpp/io.cpp
-src/main.cpp
 )
+
+set(PYBIND11_FINDPYTHON ON)
 
 #link libraries
 pybind11_add_module(_MESHUTILS MODULE ${SRC_FILES})
 
 target_link_libraries(_MESHUTILS PRIVATE 
-    pybind11::module
     Eigen3::Eigen
     CGAL::CGAL
     ${VTK_LIBRARIES}

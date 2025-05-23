@@ -1,6 +1,6 @@
 import meshio
 
-from _MESHUTILS import mesh_wrapper
+from ._MESHUTILS import mesh_wrapper
 
 
 

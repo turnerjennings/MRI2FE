@@ -89,9 +89,8 @@ def tests(session):
   
 
     os.environ["CMAKE_ARGS"] = cmake_args
-
-    session.install("scikit-build-core[pyproject]")
-    session.install("-v", ".")
+    
+    session.install(".")
     session.run("pytest")
 
     elapsed = time.time() - start_time

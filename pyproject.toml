@@ -1,5 +1,5 @@
 [build-system]
-requires = ["scikit-build-core"]
+requires = ["scikit-build-core","pybind11"]
 build-backend = "scikit_build_core.build"
 
 [project]
@@ -26,6 +26,8 @@ dependencies = ["numpy", "matplotlib","antspyx","lasso-python","scipy","meshio",
 [project.optional-dependencies]
 dev = ["pytest", "ruff"]
 
+[options.package_data]
+my_package = *.dll, *.pyd
 
 [project.urls]
 Repository = "https://github.com/turnerjennings/MRI2FE.git"

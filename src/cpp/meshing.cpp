@@ -1,6 +1,8 @@
 #include "meshing.hpp"
 #include "io.hpp"
 
+#include<pybind11/pybind11.h>
+
 namespace py=pybind11;
 
 int _debug_add(int i, int j){
@@ -74,7 +76,7 @@ const double cellSize){
 }
 
 PYBIND11_MODULE(_MESHUTILS, m) {
-
+    m.doc() = "meshing binding for tetrahedral meshing of segmented MRI";
 
     m.def("mesh_wrapper", 
         &mesh_wrapper,
