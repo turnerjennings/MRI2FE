@@ -16,10 +16,25 @@ def d3_to_displacement(
         plot (D3plot): D3eigv file for model
         part_filter (list, optional): Subset of parts to evaluate displacements at. Defaults to None.
 
+    Raises:
+        TypeError: If plot is not a D3plot object or if part_filter is not a list when provided
+        ValueError: If plot is None
+
     Returns:
         coords_filtered (np.ndarray): node coordinates (reference config), (n_nodes, 3)
         disp_filtered (np.ndarray): node displacements (deformed config - reference config), (n_timesteps, n_nodes, 3)
     """
+    # Validate plot is not None
+    if plot is None:
+        raise ValueError("plot cannot be None")
+
+    # Validate input types
+    if not isinstance(plot, D3plot):
+        raise TypeError("plot must be a D3plot object")
+
+    # Validate part_filter if provided
+    if part_filter is not None and not isinstance(part_filter, list):
+        raise TypeError("part_filter must be a list when provided")
 
     # find nodes associated with part_filter
     node_indexes = plot.arrays["element_solid_node_indexes"]
@@ -61,9 +76,45 @@ def cloud_to_grid(
         lims (dict, optional): optional min/max spatial coordinate limits for voxel field.
             calculated from min/max coordinates otherwise.
 
+    Raises:
+        TypeError: If inputs are not of correct type
+        ValueError: If required inputs are None or have invalid dimensions
+
     Returns:
         data_out (np.ndarray): grid with shape (dims) linearly interpolated with point cloud data
     """
+    # Validate required inputs are not None
+    if data is None:
+        raise ValueError("data cannot be None")
+    if dims is None:
+        raise ValueError("dims cannot be None")
+
+    # Validate input types
+    if not isinstance(data, np.ndarray):
+        raise TypeError("data must be a numpy array")
+    if not isinstance(dims, tuple):
+        raise TypeError("dims must be a tuple")
+    if lims is not None and not isinstance(lims, dict):
+        raise TypeError("lims must be a dictionary when provided")
+
+    # Validate data dimensions
+    if len(data.shape) != 2 or data.shape[1] != 4:
+        raise ValueError("data must be a 2D array with shape (n_points, 4) for (x,y,z,val)")
+    
+    # Validate dims
+    if len(dims) != 3:
+        raise ValueError("dims must be a tuple of length 3")
+    if not all(isinstance(d, int) for d in dims):
+        raise TypeError("all elements in dims must be integers")
+    if not all(d > 0 for d in dims):
+        raise ValueError("all dimensions must be positive")
+
+    # Validate lims if provided
+    if lims is not None:
+        if not all(key in lims for key in ['min', 'max']):
+            raise ValueError("lims must contain 'min' and 'max' keys")
+        if not all(len(lims[key]) == 3 for key in ['min', 'max']):
+            raise ValueError("lims['min'] and lims['max'] must each contain 3 values")
 
     # find minima and maxima
     if lims is None:
@@ -108,9 +159,24 @@ def grid_to_nifti(datagrid: np.ndarray, template: ANTsImage) -> ANTsImage:
         datagrid (np.ndarray): Voxel grid of data
         template (np.ndarray): template nifti file with header and affine transformation info
 
+    Raises:
+        TypeError: If inputs are not of correct type
+        ValueError: If inputs are None
+
     Returns:
         new_plot (AntsImage): nifti file containing voxel data
     """
+    # Validate inputs are not None
+    if datagrid is None:
+        raise ValueError("datagrid cannot be None")
+    if template is None:
+        raise ValueError("template cannot be None")
+
+    # Validate input types
+    if not isinstance(datagrid, np.ndarray):
+        raise TypeError("datagrid must be a numpy array")
+    if not isinstance(template, ANTsImage):
+        raise TypeError("template must be an ANTsImage object")
 
     spacing = template.spacing
     direction = template.direction
@@ -146,9 +212,55 @@ def save_field_variable(
         fname (str): File path to save result to
         step (int): Timestep to save field variable from
         limits (dict): dict with two keys (min and max) storing the spatial limits of the model
-        shape (tuple): tuple with desired spatial resolution for the model.
-    """
+        shape (tuple, optional): tuple with desired spatial resolution for the model.
+        save_plot (bool, optional): Whether to save the plot to file. Defaults to True.
 
+    Raises:
+        TypeError: If inputs are not of correct type
+        ValueError: If required inputs are None or invalid
+        IndexError: If array dimensions don't match
+    """
+    # Validate required inputs are not None
+    if coordinates is None:
+        raise ValueError("coordinates cannot be None")
+    if field_variable is None:
+        raise ValueError("field_variable cannot be None")
+    if template is None:
+        raise ValueError("template cannot be None")
+    if icbm is None:
+        raise ValueError("icbm cannot be None")
+    if tx is None:
+        raise ValueError("tx cannot be None")
+    if fname is None:
+        raise ValueError("fname cannot be None")
+
+    # Validate input types
+    if not isinstance(coordinates, np.ndarray):
+        raise TypeError("coordinates must be a numpy array")
+    if not isinstance(field_variable, np.ndarray):
+        raise TypeError("field_variable must be a numpy array")
+    if not isinstance(template, ANTsImage):
+        raise TypeError("template must be an ANTsImage object")
+    if not isinstance(icbm, ANTsImage):
+        raise TypeError("icbm must be an ANTsImage object")
+    if not isinstance(tx, str):
+        raise TypeError("tx must be a string")
+    if not isinstance(fname, str):
+        raise TypeError("fname must be a string")
+    if not isinstance(step, int):
+        raise TypeError("step must be an integer")
+    if not isinstance(save_plot, bool):
+        raise TypeError("save_plot must be a boolean")
+
+    # Validate array dimensions
+    if len(coordinates.shape) != 2 or coordinates.shape[1] != 3:
+        raise ValueError("coordinates must be a 2D array with shape (n_points, 3)")
+    if len(field_variable.shape) != 2:
+        raise ValueError("field_variable must be a 2D array with shape (n_timesteps, n_points)")
+    if step >= field_variable.shape[0]:
+        raise ValueError(f"step {step} is out of range for field_variable with {field_variable.shape[0]} timesteps")
+
+    # Validate coordinates and field_variable dimensions match
     if coordinates.shape[0] != field_variable.shape[1]:
         raise IndexError(
             "Number of points on axis 0 of coordinates does not equal number of points on axis 1 of field_variable"

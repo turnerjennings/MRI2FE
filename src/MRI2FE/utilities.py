@@ -17,18 +17,46 @@ def COM_align(
         fixed_mask (np.ndarray, optional): Fixed point cloud subset to define COM by. Defaults to None.
         moving_mask (np.ndarray, optional): Moving point cloud subset to define COM by. Defaults to None.
 
+    Raises:
+        TypeError: If inputs are not numpy arrays when provided
+        ValueError: If required inputs are None or have invalid dimensions
+
     Returns:
         np.ndarray: moving point cloud rigidly aligned to the fixed point cloud COM
     """
-    # confirm numpy array input
-    fixed = np.asarray(fixed)
-    moving = np.asarray(moving)
+    # Validate required inputs are not None
+    if fixed is None:
+        raise ValueError("fixed cannot be None")
+    if moving is None:
+        raise ValueError("moving cannot be None")
 
+    # confirm numpy array input and validate dimensions
+    fixed = np.asarray(fixed)
+    if len(fixed.shape) != 2:
+        raise ValueError("fixed must be a 2D array")
+
+    moving = np.asarray(moving)
+    if len(moving.shape) != 2:
+        raise ValueError("moving must be a 2D array")
+
+    # Validate matching dimensions
+    if fixed.shape[1] != moving.shape[1]:
+        raise ValueError("fixed and moving must have the same number of dimensions")
+
+    # Validate masks if provided
     if fixed_mask is not None:
         fixed_mask = np.asarray(fixed_mask)
+        if len(fixed_mask.shape) != 2:
+            raise ValueError("fixed_mask must be a 2D array")
+        if fixed_mask.shape[1] != fixed.shape[1]:
+            raise ValueError("fixed_mask must have same number of dimensions as fixed")
 
     if moving_mask is not None:
         moving_mask = np.asarray(moving_mask)
+        if len(moving_mask.shape) != 2:
+            raise ValueError("moving_mask must be a 2D array")
+        if moving_mask.shape[1] != moving.shape[1]:
+            raise ValueError("moving_mask must have same number of dimensions as moving")
 
     # Calculate Centers of Mass
     if fixed_mask is not None:
@@ -74,15 +102,22 @@ def point_cloud_spacing(
         points (Union[list, tuple, np.ndarray], optional): locations of n points in m dimensions with shape (n,m)
         lims (np.ndarray, optional): Min/max of point cloud space in m dimensions with shape (m,2)
 
+    Raises:
+        TypeError: If inputs are not of correct type
+        ValueError: If dims is None or if neither points nor lims is provided
+
     Returns:
         tuple: spacing in each dimension
     """
+    # Validate dims is not None
+    if dims is None:
+        raise ValueError("dims cannot be None")
+
     # check that either points or lims is provided
     if points is None and lims is None:
         raise ValueError("Must provide either points or lims for calculation")
 
     # convert inputs to np.ndarray
-
     dims = np.asarray(dims)
 
     if points is not None:
@@ -115,7 +150,27 @@ def point_cloud_spacing(
     return spacing
 
 
-def ants_affine(img: ants.core.ants_image.ANTsImage):
+def ants_affine(img: ants.core.ants_image.ANTsImage) -> np.ndarray:
+    """Extract affine transformation matrix from ANTsImage.
+
+    Args:
+        img (ants.core.ants_image.ANTsImage): Input ANTs image
+
+    Raises:
+        TypeError: If img is not an ANTsImage
+        ValueError: If img is None
+
+    Returns:
+        np.ndarray: 4x4 affine transformation matrix
+    """
+    # Validate input is not None
+    if img is None:
+        raise ValueError("img cannot be None")
+
+    # Validate input type
+    if not isinstance(img, ants.core.ants_image.ANTsImage):
+        raise TypeError("img must be an ANTsImage object")
+
     # Extract image properties
     spacing = np.array(img.spacing)  # (sx, sy, sz)
     direction = np.array(img.direction).reshape((3, 3))  # 3x3 rotation matrix
@@ -173,15 +228,27 @@ def check_xyz(
     return False
 
 
-def spatial_map(infile: ants.core.ants_image.ANTsImage):
+def spatial_map(infile: ants.core.ants_image.ANTsImage) -> np.ndarray:
     """Convert data from NIFTI file to (4,n) array of x,y,z,voxel value in physical space
 
     Args:
         infile (nb.nifti1): NIFTI file to convert
 
+    Raises:
+        TypeError: If infile is not an ANTsImage
+        ValueError: If infile is None
+
     Returns:
         coordinates_and_values (np.ndarray): array of x,y,z coordinates in physical space with the corresponding voxel value
     """
+    # Validate input is not None
+    if infile is None:
+        raise ValueError("infile cannot be None")
+
+    # Validate input type
+    if not isinstance(infile, ants.core.ants_image.ANTsImage):
+        raise TypeError("infile must be an ANTsImage object")
+
     # extract data from NIFTI
     image_data = infile.numpy()
     affine = ants_affine(infile)
