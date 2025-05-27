@@ -1,10 +1,17 @@
 import pytest
-from src.MRI2FE.output.fea_exporters import FEAModel, write_abaqus, write_lsdyna
+from MRI2FE.output.fea_exporters import FEAModel, write_abaqus, write_lsdyna
+
 
 def cube_nodes():
     return {
-        1: (0, 0, 0), 2: (1, 0, 0), 3: (1, 1, 0), 4: (0, 1, 0),
-        5: (0, 0, 1), 6: (1, 0, 1), 7: (1, 1, 1), 8: (0, 1, 1)
+        1: (0, 0, 0),
+        2: (1, 0, 0),
+        3: (1, 1, 0),
+        4: (0, 1, 0),
+        5: (0, 0, 1),
+        6: (1, 0, 1),
+        7: (1, 1, 1),
+        8: (0, 1, 1),
     }
 
 
@@ -19,16 +26,17 @@ def sample_model():
                 "elements": [[1, 2, 3, 4, 5, 6, 7, 8]],
                 "material": "steel",
                 "elform": 1,
-                "aet": 0
+                "aet": 0,
             }
         },
         materials={
             "steel": {
                 "type": "elastic",
-                "properties": {"E": 210e9, "nu": 0.3, "density": 7850}
+                "properties": {"E": 210e9, "nu": 0.3, "density": 7850},
             }
-        }
+        },
     )
+
 
 @pytest.fixture
 def visco_model():
@@ -41,7 +49,7 @@ def visco_model():
                 "elements": [[1, 2, 3, 4, 5, 6, 7, 8]],
                 "material": "visco",
                 "elform": 1,
-                "aet": 0
+                "aet": 0,
             }
         },
         materials={
@@ -51,11 +59,12 @@ def visco_model():
                     "E": 50e6,
                     "nu": 0.45,
                     "eta": 500.0,
-                    "density": 1200
-                }
+                    "density": 1200,
+                },
             }
-        }
+        },
     )
+
 
 def test_write_abaqus_creates_file(tmp_path, sample_model):
     out_file = tmp_path / "test.inp"
@@ -67,6 +76,7 @@ def test_write_abaqus_creates_file(tmp_path, sample_model):
     assert "*ELEMENT" in content or "*Element" in content
     assert "*MATERIAL" in content
     assert "*SOLID SECTION" in content
+
 
 def test_write_lsdyna_creates_file(tmp_path, sample_model):
     out_file = tmp_path / "test.k"
@@ -80,7 +90,9 @@ def test_write_lsdyna_creates_file(tmp_path, sample_model):
     assert "*PART" in content
     assert "*SECTION_SOLID" in content
     assert "*MAT_ELASTIC" in content
-    assert "7.8500e+03" in content or "7850.0000e+00" in content  # density value check
+    assert (
+        "7.8500e+03" in content or "7850.0000e+00" in content
+    )  # density value check
     assert "2.1000e+11" in content  # E value
 
 
@@ -95,4 +107,3 @@ def test_write_lsdyna_viscoelastic(tmp_path, visco_model):
     assert "1.2000e+03" in content or "1200.0000e+00" in content  # density
     assert "5.0000e+07" in content  # E
     assert "4.5000e-01" in content  # nu
-

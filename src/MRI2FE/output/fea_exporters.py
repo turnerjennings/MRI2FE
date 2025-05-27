@@ -1,6 +1,7 @@
 import meshio
 from dataclasses import dataclass
 
+
 @dataclass
 class FEAModel:
     """
@@ -12,10 +13,12 @@ class FEAModel:
         elements (dict): {part_id: {"type": str, "elements": list, "material": str}}
         materials (dict): {material_id: {"type": str, "properties": dict}}
     """
+
     title: str
     nodes: dict
     elements: dict
     materials: dict
+
 
 def write_abaqus(model: FEAModel, filename: str):
     """
@@ -27,10 +30,13 @@ def write_abaqus(model: FEAModel, filename: str):
     """
     mesh = meshio.Mesh(
         points=[coord for coord in model.nodes.values()],
-        cells={"hexahedron": [
-            elem for part in model.elements.values()
-            for elem in part["elements"]
-        ]}
+        cells={
+            "hexahedron": [
+                elem
+                for part in model.elements.values()
+                for elem in part["elements"]
+            ]
+        },
     )
     mesh.write(filename, file_format="abaqus")
 
@@ -40,14 +46,17 @@ def write_abaqus(model: FEAModel, filename: str):
             f.write(f"\n*MATERIAL, NAME={mat_id}\n")
             if mat["type"].lower() == "elastic":
                 f.write("*ELASTIC\n")
-                youngs_modulus = mat["properties"].get("E")
-                poisson_ratio = mat["properties"].get("nu")
-                if youngs_modulus and poisson_ratio:
-                    f.write(f"{youngs_modulus}, {poisson_ratio}\n")
+                E = mat["properties"].get("E")
+                nu = mat["properties"].get("nu")
+                if E and nu:
+                    f.write(f"{E}, {nu}\n")
 
         for part_id, part in model.elements.items():
-            f.write(f"\n*SOLID SECTION, ELSET=part_{part_id}, MATERIAL={part['material']}\n")
+            f.write(
+                f"\n*SOLID SECTION, ELSET=part_{part_id}, MATERIAL={part['material']}\n"
+            )
             f.write("1.0\n")
+
 
 def write_lsdyna(model: FEAModel, filename: str):
     """
@@ -73,7 +82,10 @@ def write_lsdyna(model: FEAModel, filename: str):
                 nodes = "".join(f"{nid:8d}" for nid in elem)
                 f.write(f"{eid:8d}{part_id:8d}{nodes}\n")
 
-        material_id_map = {mat_id: idx for idx, mat_id in enumerate(model.materials.keys(), start=1)}
+        material_id_map = {
+            mat_id: idx
+            for idx, mat_id in enumerate(model.materials.keys(), start=1)
+        }
 
         # When writing parts
         f.write("\n*PART\n")
@@ -92,28 +104,49 @@ def write_lsdyna(model: FEAModel, filename: str):
         for mat_idx, (mat_id, mat) in enumerate(model.materials.items(), start=1):
             mat_type = mat["type"].lower()
             props = mat["properties"]
-
-            youngs_modulus = props.get("E")
-            poisson_ratio = props.get("nu")
-            density = props.get("density", 1.0)
+            MID = mat_idx
 
             if mat_type == "kelvin_maxwell":
-                viscosity_coefficient = props.get("eta", 0.0)
-                if youngs_modulus is None or poisson_ratio is None:
-                    raise ValueError(f"Missing E or nu for material {mat_id}")
-                gk = youngs_modulus / (3 * (1 - 2 * poisson_ratio))
+                # Required parameters with error checking
+                RO = props.get("density")
+                E = props.get("E")
+                PR = props.get("PR")
+                if None in [RO, E, PR]:
+                    raise ValueError(f"Missing required parameters for Kelvin-Maxwell material '{mat_id}'")
+
+                # Parameters with defaults
+                DC = props.get("DC", 0.0)
+                FO = props.get("FO", 0.0)
+                SO = props.get("SO", 0.0)
+
+                # Compute derived parameters
+                BULK = E / (3 * (1 - 2 * PR))
+                G0 = props.get("G0", E / (2 * (1 + PR)))
+                GI = props.get("GI", 0.0)
 
                 f.write("\n*MAT_KELVIN_MAXWELL_VISCOELASTIC\n")
-                f.write(f"{mat_idx:8d}{density:10.4e}{youngs_modulus:10.4e}{poisson_ratio:10.4e}{gk:10.4e}{viscosity_coefficient:10.4e}\n")
+                f.write(f"{MID:8d}{RO:10.4e}{BULK:10.4e}{G0:10.4e}{GI:10.4e}{DC:10.4e}{FO:10.4e}{SO:10.4e}\n")
 
             elif mat_type == "elastic":
-                if youngs_modulus is None or poisson_ratio is None:
-                    raise ValueError(f"Missing E or nu for material {mat_id}")
+                # Required parameters with error checking
+                RO = props.get("density")
+                E = props.get("E")
+                if RO is None or E is None:
+                    raise ValueError(f"Missing RO or E for elastic material '{mat_id}'")
+
+                # Parameters with defaults
+                PR = props.get("PR", 0.0)
+                DA = props.get("DA", 0.0)
+                DB = props.get("DB", 0.0)
+                K = props.get("K", 0.0)
+
                 f.write("\n*MAT_ELASTIC\n")
-                f.write(f"{mat_idx:8d}{density:10.4e}{youngs_modulus:10.4e}{poisson_ratio:10.4e}\n")
+                # Might need to handle negative E as integer
+                f.write(
+                    f"{MID:8d}{RO:10.4e}{E:10.4e}{PR:10.4e}{DA:10.4e}{DB:10.4e}{K:10.4e}\n"
+                )
 
             else:
                 raise NotImplementedError(f"Material type '{mat_type}' not supported.")
 
-        # End of file
         f.write("\n*END\n")
