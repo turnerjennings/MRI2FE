@@ -39,5 +39,6 @@ plugins:
   - search
   - bibtex:
       bib_file: "docs/refs.bib"
+  - mkdocstrings
 markdown_extensions:
   - footnotes
