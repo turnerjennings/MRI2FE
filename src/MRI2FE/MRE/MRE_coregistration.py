@@ -86,7 +86,7 @@ def coregister_MRE_images(
 
     # load geometry and mask (if applicable)
     if type(geom) is str:
-        geom = image_read(geom)MRE
+        geom = image_read(geom)
 
     if geom_mask is not None and type(geom_mask) is str:
         geom_mask = image_read(geom_mask)

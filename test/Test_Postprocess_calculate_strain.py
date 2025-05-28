@@ -74,3 +74,18 @@ class TestMRIStrain:
 
         with pytest.raises(ValueError):
             e_out = MRI_strain(img_u1, img_u2, img_u3)
+
+        with pytest.raises(ValueError):
+            e_out = MRI_strain(None, img_u2, img_u3)
+        with pytest.raises(ValueError):
+            e_out = MRI_strain(img_u1, None, img_u3)
+        with pytest.raises(ValueError):
+            e_out = MRI_strain(img_u1, img_u2, None)
+
+        invalid_array = np.random.rand(100, 100, 100)        
+        with pytest.raises(TypeError):
+            e_out = MRI_strain(invalid_array, img_u2, img_u3)
+        with pytest.raises(TypeError):
+            e_out = MRI_strain(img_u1, invalid_array, img_u3)
+        with pytest.raises(TypeError):
+            e_out = MRI_strain(img_u1, img_u2, invalid_array)

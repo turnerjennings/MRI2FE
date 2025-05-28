@@ -24,7 +24,6 @@ def MRI_strain(
     Returns:
         AntsImage: Strain field image, shape (l,m,n,6) with strain ordered e_11, e_22, e_33, e_12, e_13, e_23
     """
-    # Validate inputs are not None
     if img_1 is None:
         raise ValueError("img_1 cannot be None")
     if img_2 is None:
@@ -32,7 +31,6 @@ def MRI_strain(
     if img_3 is None:
         raise ValueError("img_3 cannot be None")
 
-    # Validate input types
     if not isinstance(img_1, ANTsImage):
         raise TypeError("img_1 must be an ANTsImage object")
     if not isinstance(img_2, ANTsImage):
@@ -40,7 +38,6 @@ def MRI_strain(
     if not isinstance(img_3, ANTsImage):
         raise TypeError("img_3 must be an ANTsImage object")
 
-    # check shape and spacing
     if check_xyz(img_1, img_2, img_3):
         raise ValueError(
             "Images do not share the same spacing, shape, or direction..."

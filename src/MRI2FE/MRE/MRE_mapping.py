@@ -33,33 +33,27 @@ def map_MRE_to_mesh(
     Returns:
         ect (np.ndarray): new ect in 10-node LS-DYNA format with updated PIDs
     """
-    # Validate fe_model
     if not isinstance(fe_model, FEModel):
         raise TypeError("fe_model must be a FEModel object")
 
-    # Validate map
     if not isinstance(map, ANTsImage):
         raise TypeError("map must be an ANTsImage object")
 
-    # Validate numpy arrays
     if not isinstance(elcentroids, np.ndarray):
         raise TypeError("elcentroids must be a numpy array")
     if not isinstance(ect, np.ndarray):
         raise TypeError("ect must be a numpy array")
 
-    # Validate array dimensions
     if len(elcentroids.shape) != 2 or elcentroids.shape[1] != 3:
         raise ValueError("elcentroids must be a 2D array with shape (n_elements, 3)")
     if len(ect.shape) != 2:
         raise ValueError("ect must be a 2D array")
 
-    # Validate offset
     if not isinstance(offset, int):
         raise TypeError("offset must be an integer")
     if offset < 0:
         raise ValueError("offset must be non-negative")
 
-    # Validate csvpath if provided
     if csvpath is not None:
         if not isinstance(csvpath, str):
             raise TypeError("csvpath must be a string")

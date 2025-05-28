@@ -1,8 +1,9 @@
 import pytest
 
 import numpy as np
+import ants
 
-from MRI2FE import COM_align, point_cloud_spacing
+from MRI2FE import COM_align, point_cloud_spacing, ants_affine, spatial_map
 
 
 def generate_test_array():
@@ -78,6 +79,30 @@ class TestCOMAlign:
             transformed_arr, np.array([[0.0, 0.0, 0.0]])
         )
 
+    def test_raises(self):
+        with pytest.raises(ValueError):
+            COM_align(fixed=None, moving=np.array([[1, 2, 3]]))
+        with pytest.raises(ValueError):
+            COM_align(fixed=np.array([[1, 2, 3]]), moving=None)
+        with pytest.raises(ValueError):
+            COM_align(fixed=np.array([1, 2, 3]), moving=np.array([[1, 2, 3]]))
+        with pytest.raises(ValueError):
+            COM_align(fixed=np.array([[1, 2, 3]]), moving=np.array([[[1, 2, 3]]]))
+        with pytest.raises(ValueError):
+            COM_align(fixed=np.array([[1, 2]]), moving=np.array([[1, 2, 3]]))
+        with pytest.raises(ValueError):
+            COM_align(
+                fixed=np.array([[1, 2, 3]]), 
+                moving=np.array([[1, 2, 3]]),
+                fixed_mask=np.array([1, 2, 3])
+            )
+        with pytest.raises(ValueError):
+            COM_align(
+                fixed=np.array([[1, 2, 3]]), 
+                moving=np.array([[1, 2, 3]]),
+                moving_mask=np.array([[1, 2]])
+            )
+
 
 class TestPointCloudSpacing:
     def test_spacing_cloud(self):
@@ -108,18 +133,55 @@ class TestPointCloudSpacing:
 
     def test_raises(self):
         dim = (100, 100, 100, 100)
-
         lim = np.array([[-1, 1]])
-
         img, _, _ = generate_test_array()
 
-        # no data input
         with pytest.raises(ValueError):
-            spacing = point_cloud_spacing(dims=dim)
+            point_cloud_spacing(dims=None, points=img)
+        with pytest.raises(ValueError):
+            point_cloud_spacing(dims=dim)
+        with pytest.raises(ValueError):
+            point_cloud_spacing(dims=dim, lims=lim)
+        with pytest.raises(ValueError):
+            point_cloud_spacing(dims=dim, points=img)
 
-        # wrong dimensions
+class TestAntsAffine:
+    def test_raises(self):
         with pytest.raises(ValueError):
-            spacing = point_cloud_spacing(dims=dim, lims=lim)
+            ants_affine(img=None)
+        with pytest.raises(TypeError):
+            ants_affine(img=np.array([1, 2, 3]))
 
+    def test_ants_affine(self):
+        test_data = np.random.rand(10, 10, 10)
+        test_img = ants.from_numpy(
+            data=test_data,
+            origin=(0, 0, 0),
+            spacing=(1, 1, 1),
+            direction=np.eye(3)
+        )
+        
+        affine = ants_affine(test_img)
+        assert affine.shape == (4, 4)
+        np.testing.assert_array_equal(affine[3], [0, 0, 0, 1])
+
+
+class TestSpatialMap:
+    def test_raises(self):
         with pytest.raises(ValueError):
-            spacing = point_cloud_spacing(dims=dim, points=img)
+            spatial_map(infile=None)
+        with pytest.raises(TypeError):
+            spatial_map(infile=np.array([1, 2, 3]))
+
+    def test_spatial_map(self):
+        test_data = np.ones((2, 2, 2))
+        test_img = ants.from_numpy(
+            data=test_data,
+            origin=(0, 0, 0),
+            spacing=(1, 1, 1),
+            direction=np.eye(3)
+        )
+        
+        result = spatial_map(test_img)
+        assert result.shape[1] == 4
+        assert len(result) == np.prod(test_data.shape)

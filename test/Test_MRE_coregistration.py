@@ -51,14 +51,47 @@ class TestMRECoreg:
 
     def test_raises(self):
         geom = get_ants_data("r16")
-
         mu = get_ants_data("r27")
         xi = get_ants_data("r27")
 
         with pytest.raises(ValueError):
             test_dict = coregister_MRE_images(geom=geom, gp=mu, xi=xi)
 
+        with pytest.raises(ValueError):
             test_dict = coregister_MRE_images(geom=geom, mu=mu, gpp=xi)
 
+        with pytest.raises(FileNotFoundError):
+            test_dict = coregister_MRE_images(geom="nonexistent_file.nii.gz")
+
+        with pytest.raises(FileNotFoundError):
+            test_dict = coregister_MRE_images(
+                geom=geom,
+                geom_mask="nonexistent_mask.nii.gz",
+                gp=mu,
+                gpp=xi
+            )
+
         with pytest.raises(TypeError):
-            test_dict = coregister_MRE_images(geom_mask=geom)
+            test_dict = coregister_MRE_images(geom=123)
+
+        with pytest.raises(TypeError):
+            test_dict = coregister_MRE_images(geom=geom, geom_mask=[1, 2, 3])
+
+        with pytest.raises(ValueError):
+            test_dict = coregister_MRE_images(
+                geom=geom,
+                gp=mu,
+                gpp=xi,
+                imgout="/nonexistent_directory/output"
+            )
+
+        geom_3d = image_read(get_ants_data("r16"))
+        mask_2d = geom_3d[:, :, 0]
+        
+        with pytest.raises(ValueError):
+            test_dict = coregister_MRE_images(
+                geom=geom_3d,
+                geom_mask=mask_2d,
+                gp=mu,
+                gpp=xi
+            )
