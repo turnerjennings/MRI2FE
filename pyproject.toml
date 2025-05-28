@@ -24,7 +24,14 @@ requires-python = ">=3.8.1"
 dependencies = ["numpy", "matplotlib","antspyx","lasso-python","scipy","meshio"]
 
 [project.optional-dependencies]
-dev = ["pytest", "ruff"]
+dev = [
+    "pytest", 
+    "ruff",
+    "mkdocs",
+    "mkdocs-material",
+    "mkdocstrings[python]",
+    "mkdocs-bibtex"
+    ]
 
 
 [project.urls]
