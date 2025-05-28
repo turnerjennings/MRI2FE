@@ -31,7 +31,7 @@ def write_abaqus(model: FEAModel, filename: str):
     mesh = meshio.Mesh(
         points=[coord for coord in model.nodes.values()],
         cells={
-            "hexahedron": [
+            "tetrahedron": [
                 elem
                 for part in model.elements.values()
                 for elem in part["elements"]
@@ -111,8 +111,6 @@ def write_lsdyna(model: FEAModel, filename: str):
                 RO = props.get("density")
                 E = props.get("E")
                 PR = props.get("PR")
-                if None in [RO, E, PR]:
-                    raise ValueError(f"Missing required parameters for Kelvin-Maxwell material '{mat_id}'")
 
                 # Parameters with defaults
                 DC = props.get("DC", 0.0)
@@ -123,6 +121,10 @@ def write_lsdyna(model: FEAModel, filename: str):
                 BULK = E / (3 * (1 - 2 * PR))
                 G0 = props.get("G0", E / (2 * (1 + PR)))
                 GI = props.get("GI", 0.0)
+
+                if None in [RO, BULK, G0, GI, DC, FO, SO]:
+                    raise ValueError(f"Missing required parameters for Kelvin-Maxwell material '{mat_id}'")
+
 
                 f.write("\n*MAT_KELVIN_MAXWELL_VISCOELASTIC\n")
                 f.write(f"{MID:8d}{RO:10.4e}{BULK:10.4e}{G0:10.4e}{GI:10.4e}{DC:10.4e}{FO:10.4e}{SO:10.4e}\n")

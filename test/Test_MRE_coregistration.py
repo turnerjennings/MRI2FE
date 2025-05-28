@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 
-from ants import get_ants_data, image_read, registration
+from ants import get_ants_data, image_read
 
 from MRI2FE.MRE import coregister_MRE_images
 
