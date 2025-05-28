@@ -48,6 +48,7 @@ def parse_k_file(fpath: str):
 
     # read elements
     i = 0
+    data = []
     while i < len(lines):
         if lines[i].startswith("$#   eid     pid") and not lines[
             i + 1
@@ -101,10 +102,12 @@ def element_centroids(elnodes, node_coords):
         raise ValueError("elnodes must be a 1D array")
     if len(node_coords.shape) != 2:
         raise ValueError("node_coords must be a 2D array")
-    
+
     # Validate array sizes
     if elnodes.shape[0] < 12:  # Must have at least EID, PID, and 10 nodes
-        raise ValueError("elnodes must contain at least 12 elements (EID, PID, and 10 nodes)")
+        raise ValueError(
+            "elnodes must contain at least 12 elements (EID, PID, and 10 nodes)"
+        )
     if node_coords.shape[1] != 4:  # Must have NID and xyz coordinates
         raise ValueError("node_coords must have 4 columns (NID, x, y, z)")
 
@@ -113,7 +116,9 @@ def element_centroids(elnodes, node_coords):
     if not np.all(node_connections > 0):
         raise ValueError("Node indices must be positive")
     if np.max(node_connections) > len(node_coords):
-        raise ValueError("Node indices exceed the number of nodes in node_coords")
+        raise ValueError(
+            "Node indices exceed the number of nodes in node_coords"
+        )
 
     node_coords_subset = node_coords[node_connections - 1, :]
     centroid = np.mean(node_coords_subset[:, 1:], axis=0)
@@ -138,12 +143,12 @@ def write_head_k_file(fe_model: FEModel, fpath: str):
         raise ValueError("fe_model cannot be None")
     if not isinstance(fe_model, FEModel):
         raise TypeError("fe_model must be a FEModel object")
-    
+
     if fpath is None:
         raise ValueError("fpath cannot be None")
     if not isinstance(fpath, str):
         raise TypeError("fpath must be a string")
-    
+
     # Validate output path exists
     output_dir = os.path.dirname(fpath)
     if output_dir and not os.path.exists(output_dir):

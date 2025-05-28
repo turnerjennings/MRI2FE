@@ -45,7 +45,9 @@ def map_MRE_to_mesh(
         raise TypeError("ect must be a numpy array")
 
     if len(elcentroids.shape) != 2 or elcentroids.shape[1] != 3:
-        raise ValueError("elcentroids must be a 2D array with shape (n_elements, 3)")
+        raise ValueError(
+            "elcentroids must be a 2D array with shape (n_elements, 3)"
+        )
     if len(ect.shape) != 2:
         raise ValueError("ect must be a 2D array")
 
@@ -59,7 +61,9 @@ def map_MRE_to_mesh(
             raise TypeError("csvpath must be a string")
         csv_dir = os.path.dirname(csvpath)
         if csv_dir and not os.path.exists(csv_dir):
-            raise FileNotFoundError(f"CSV output directory does not exist: {csv_dir}")
+            raise FileNotFoundError(
+                f"CSV output directory does not exist: {csv_dir}"
+            )
 
     physical_space_map = spatial_map(map)
     # print(physical_space_map)

@@ -65,10 +65,7 @@ class TestMRECoreg:
 
         with pytest.raises(FileNotFoundError):
             test_dict = coregister_MRE_images(
-                geom=geom,
-                geom_mask="nonexistent_mask.nii.gz",
-                gp=mu,
-                gpp=xi
+                geom=geom, geom_mask="nonexistent_mask.nii.gz", gp=mu, gpp=xi
             )
 
         with pytest.raises(TypeError):
@@ -82,5 +79,5 @@ class TestMRECoreg:
                 geom=geom,
                 gp=mu,
                 gpp=xi,
-                imgout="/nonexistent_directory/output"
+                imgout="/nonexistent_directory/output",
             )

@@ -41,7 +41,9 @@ def COM_align(
 
     # Validate matching dimensions
     if fixed.shape[1] != moving.shape[1]:
-        raise ValueError("fixed and moving must have the same number of dimensions")
+        raise ValueError(
+            "fixed and moving must have the same number of dimensions"
+        )
 
     # Validate masks if provided
     if fixed_mask is not None:
@@ -49,14 +51,18 @@ def COM_align(
         if len(fixed_mask.shape) != 2:
             raise ValueError("fixed_mask must be a 2D array")
         if fixed_mask.shape[1] != fixed.shape[1]:
-            raise ValueError("fixed_mask must have same number of dimensions as fixed")
+            raise ValueError(
+                "fixed_mask must have same number of dimensions as fixed"
+            )
 
     if moving_mask is not None:
         moving_mask = np.asarray(moving_mask)
         if len(moving_mask.shape) != 2:
             raise ValueError("moving_mask must be a 2D array")
         if moving_mask.shape[1] != moving.shape[1]:
-            raise ValueError("moving_mask must have same number of dimensions as moving")
+            raise ValueError(
+                "moving_mask must have same number of dimensions as moving"
+            )
 
     # Calculate Centers of Mass
     if fixed_mask is not None:

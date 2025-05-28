@@ -99,8 +99,10 @@ def cloud_to_grid(
 
     # Validate data dimensions
     if len(data.shape) != 2 or data.shape[1] != 4:
-        raise ValueError("data must be a 2D array with shape (n_points, 4) for (x,y,z,val)")
-    
+        raise ValueError(
+            "data must be a 2D array with shape (n_points, 4) for (x,y,z,val)"
+        )
+
     # Validate dims
     if len(dims) != 3:
         raise ValueError("dims must be a tuple of length 3")
@@ -111,10 +113,12 @@ def cloud_to_grid(
 
     # Validate lims if provided
     if lims is not None:
-        if not all(key in lims for key in ['min', 'max']):
+        if not all(key in lims for key in ["min", "max"]):
             raise ValueError("lims must contain 'min' and 'max' keys")
-        if not all(len(lims[key]) == 3 for key in ['min', 'max']):
-            raise ValueError("lims['min'] and lims['max'] must each contain 3 values")
+        if not all(len(lims[key]) == 3 for key in ["min", "max"]):
+            raise ValueError(
+                "lims['min'] and lims['max'] must each contain 3 values"
+            )
 
     # find minima and maxima
     if lims is None:
@@ -254,11 +258,17 @@ def save_field_variable(
 
     # Validate array dimensions
     if len(coordinates.shape) != 2 or coordinates.shape[1] != 3:
-        raise ValueError("coordinates must be a 2D array with shape (n_points, 3)")
+        raise ValueError(
+            "coordinates must be a 2D array with shape (n_points, 3)"
+        )
     if len(field_variable.shape) != 2:
-        raise ValueError("field_variable must be a 2D array with shape (n_timesteps, n_points)")
+        raise ValueError(
+            "field_variable must be a 2D array with shape (n_timesteps, n_points)"
+        )
     if step >= field_variable.shape[0]:
-        raise ValueError(f"step {step} is out of range for field_variable with {field_variable.shape[0]} timesteps")
+        raise ValueError(
+            f"step {step} is out of range for field_variable with {field_variable.shape[0]} timesteps"
+        )
 
     # Validate coordinates and field_variable dimensions match
     if coordinates.shape[0] != field_variable.shape[1]:

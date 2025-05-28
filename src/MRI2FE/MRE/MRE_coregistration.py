@@ -53,20 +53,28 @@ def coregister_MRE_images(
             raise FileNotFoundError(f"Geometry image file not found: {geom}")
         geom = image_read(geom)
     elif not isinstance(geom, ANTsImage):
-        raise TypeError("geom must be either a filepath string or ANTsImage object")
+        raise TypeError(
+            "geom must be either a filepath string or ANTsImage object"
+        )
 
     # Validate and load geometry mask if provided
     if geom_mask is not None:
         if isinstance(geom_mask, str):
             if not os.path.exists(geom_mask):
-                raise FileNotFoundError(f"Geometry mask file not found: {geom_mask}")
+                raise FileNotFoundError(
+                    f"Geometry mask file not found: {geom_mask}"
+                )
             geom_mask = image_read(geom_mask)
         elif not isinstance(geom_mask, ANTsImage):
-            raise TypeError("geom_mask must be either a filepath string or ANTsImage object")
-        
+            raise TypeError(
+                "geom_mask must be either a filepath string or ANTsImage object"
+            )
+
         # Check mask dimensions match geometry
         if geom_mask.dimension != geom.dimension:
-            raise ValueError(f"Geometry mask dimensions ({geom_mask.dimension}) do not match geometry image dimensions ({geom.dimension})")
+            raise ValueError(
+                f"Geometry mask dimensions ({geom_mask.dimension}) do not match geometry image dimensions ({geom.dimension})"
+            )
 
     # Validate output path if provided
     if imgout is not None:
@@ -77,7 +85,7 @@ def coregister_MRE_images(
     # check for valid input parameter sets
     first_set_valid = all(param is not None for param in [geom, gp, gpp])
     second_set_valid = all(param is not None for param in [geom, mu, xi])
-    
+
     # Raise error if neither parameter set is complete
     if not (first_set_valid or second_set_valid):
         raise ValueError(

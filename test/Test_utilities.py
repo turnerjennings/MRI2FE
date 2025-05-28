@@ -87,20 +87,22 @@ class TestCOMAlign:
         with pytest.raises(ValueError):
             COM_align(fixed=np.array([1, 2, 3]), moving=np.array([[1, 2, 3]]))
         with pytest.raises(ValueError):
-            COM_align(fixed=np.array([[1, 2, 3]]), moving=np.array([[[1, 2, 3]]]))
+            COM_align(
+                fixed=np.array([[1, 2, 3]]), moving=np.array([[[1, 2, 3]]])
+            )
         with pytest.raises(ValueError):
             COM_align(fixed=np.array([[1, 2]]), moving=np.array([[1, 2, 3]]))
         with pytest.raises(ValueError):
             COM_align(
-                fixed=np.array([[1, 2, 3]]), 
+                fixed=np.array([[1, 2, 3]]),
                 moving=np.array([[1, 2, 3]]),
-                fixed_mask=np.array([1, 2, 3])
+                fixed_mask=np.array([1, 2, 3]),
             )
         with pytest.raises(ValueError):
             COM_align(
-                fixed=np.array([[1, 2, 3]]), 
+                fixed=np.array([[1, 2, 3]]),
                 moving=np.array([[1, 2, 3]]),
-                moving_mask=np.array([[1, 2]])
+                moving_mask=np.array([[1, 2]]),
             )
 
 
@@ -145,6 +147,7 @@ class TestPointCloudSpacing:
         with pytest.raises(ValueError):
             point_cloud_spacing(dims=dim, points=img)
 
+
 class TestAntsAffine:
     def test_raises(self):
         with pytest.raises(ValueError):
@@ -158,9 +161,9 @@ class TestAntsAffine:
             data=test_data,
             origin=(0, 0, 0),
             spacing=(1, 1, 1),
-            direction=np.eye(3)
+            direction=np.eye(3),
         )
-        
+
         affine = ants_affine(test_img)
         assert affine.shape == (4, 4)
         np.testing.assert_array_equal(affine[3], [0, 0, 0, 1])
@@ -179,9 +182,9 @@ class TestSpatialMap:
             data=test_data,
             origin=(0, 0, 0),
             spacing=(1, 1, 1),
-            direction=np.eye(3)
+            direction=np.eye(3),
         )
-        
+
         result = spatial_map(test_img)
         assert result.shape[1] == 4
         assert len(result) == np.prod(test_data.shape)
