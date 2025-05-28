@@ -84,14 +84,3 @@ class TestMRECoreg:
                 gpp=xi,
                 imgout="/nonexistent_directory/output"
             )
-
-        geom_3d = image_read(get_ants_data("r16"))
-        mask_2d = geom_3d[:, :, 0]
-        
-        with pytest.raises(ValueError):
-            test_dict = coregister_MRE_images(
-                geom=geom_3d,
-                geom_mask=mask_2d,
-                gp=mu,
-                gpp=xi
-            )

@@ -13,7 +13,7 @@ from .output.k_file_operations import (
     edit_control_keyword,
 )
 
-from .utilities import COM_align, point_cloud_spacing
+from .utilities import COM_align, point_cloud_spacing, ants_affine, spatial_map
 
 from . import Postprocess
 from . import MRE
