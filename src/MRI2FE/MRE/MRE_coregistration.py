@@ -13,11 +13,12 @@ import numpy as np
 from .calculate_prony import calculate_prony
 from datetime import datetime
 from typing import Union
+import os
 
 
 def coregister_MRE_images(
     geom: Union[str, ANTsImage],
-    geom_mask: Union[str:ANTsImage] = None,
+    geom_mask: Union[str, ANTsImage] = None,
     gp: Union[str, ANTsImage] = None,
     gpp: Union[str, ANTsImage] = None,
     mu: Union[str, ANTsImage] = None,
@@ -28,22 +29,63 @@ def coregister_MRE_images(
 
     Args:
         geom (str or ANTsImage): Image or filepath to the geometry MRI file.
+        geom_mask (str or ANTsImage, optional): Image or filepath to the geometry mask.
         gp (str or ANTsImage): Image or filepath to the storage modulus map.
         gpp (str or ANTsImage): Image or filepath to the loss modulus map.
-        DR (str or ANTsImage): Image or filepath to the damping ratio MRE file.
-        SS (str or ANTsImage): Image or filepath to the shear stiffness MRE file.
+        mu (str or ANTsImage): Image or filepath to the mu parameter map.
+        xi (str or ANTsImage): Image or filepath to the xi parameter map.
         imgout (str, optional): Filepath prefix to save visualization images.
-
 
     Raises:
         ValueError: incorrect input formats
+        TypeError: If input types are invalid
+        FileNotFoundError: If image files don't exist
 
     Returns:
         dict: Contains coregistered SS, DR images and transformation metadata.
     """
-    # check for valid input
+    if geom is None:
+        raise ValueError("Geometry image is required")
+
+    # Validate and load geometry image
+    if isinstance(geom, str):
+        if not os.path.exists(geom):
+            raise FileNotFoundError(f"Geometry image file not found: {geom}")
+        geom = image_read(geom)
+    elif not isinstance(geom, ANTsImage):
+        raise TypeError(
+            "geom must be either a filepath string or ANTsImage object"
+        )
+
+    # Validate and load geometry mask if provided
+    if geom_mask is not None:
+        if isinstance(geom_mask, str):
+            if not os.path.exists(geom_mask):
+                raise FileNotFoundError(
+                    f"Geometry mask file not found: {geom_mask}"
+                )
+            geom_mask = image_read(geom_mask)
+        elif not isinstance(geom_mask, ANTsImage):
+            raise TypeError(
+                "geom_mask must be either a filepath string or ANTsImage object"
+            )
+
+        # Check mask dimensions match geometry
+        if geom_mask.dimension != geom.dimension:
+            raise ValueError(
+                f"Geometry mask dimensions ({geom_mask.dimension}) do not match geometry image dimensions ({geom.dimension})"
+            )
+
+    # Validate output path if provided
+    if imgout is not None:
+        output_dir = os.path.dirname(imgout)
+        if output_dir and not os.path.exists(output_dir):
+            raise ValueError(f"Output directory does not exist: {output_dir}")
+
+    # check for valid input parameter sets
     first_set_valid = all(param is not None for param in [geom, gp, gpp])
     second_set_valid = all(param is not None for param in [geom, mu, xi])
+
     # Raise error if neither parameter set is complete
     if not (first_set_valid or second_set_valid):
         raise ValueError(

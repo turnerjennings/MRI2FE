@@ -3,7 +3,7 @@ from ants.core.ants_image import ANTsImage
 import scipy.spatial as sp
 from ..utilities import COM_align, spatial_map
 from ..FEModel.femodel import FEModel
-
+import os
 import datetime
 
 
@@ -18,14 +18,52 @@ def map_MRE_to_mesh(
     """Map elements to parts from a segmented spatial map
 
     Args:
+        fe_model (FEModel): Finite element model object
         map (AntsImage): segmented spatial map in voxel space
         elcentroids (np.ndarray): (3,n_elements) array of the coordinates of each element centroid
         ect (np.ndarray): element connectivity table in 10-node LS-Dyna format
         offset (int, optional): optional filter if it is not desired to remap all pids, will skip mapping any elements belonging to pid <= offset. Defaults to 3.
+        csvpath (str, optional): Path to save CSV output files. Defaults to None.
+
+    Raises:
+        TypeError: If input types are invalid
+        ValueError: If input dimensions or values are invalid
+        FileNotFoundError: If CSV directory doesn't exist
 
     Returns:
         ect (np.ndarray): new ect in 10-node LS-DYNA format with updated PIDs
     """
+    if not isinstance(fe_model, FEModel):
+        raise TypeError("fe_model must be a FEModel object")
+
+    if not isinstance(map, ANTsImage):
+        raise TypeError("map must be an ANTsImage object")
+
+    if not isinstance(elcentroids, np.ndarray):
+        raise TypeError("elcentroids must be a numpy array")
+    if not isinstance(ect, np.ndarray):
+        raise TypeError("ect must be a numpy array")
+
+    if len(elcentroids.shape) != 2 or elcentroids.shape[1] != 3:
+        raise ValueError(
+            "elcentroids must be a 2D array with shape (n_elements, 3)"
+        )
+    if len(ect.shape) != 2:
+        raise ValueError("ect must be a 2D array")
+
+    if not isinstance(offset, int):
+        raise TypeError("offset must be an integer")
+    if offset < 0:
+        raise ValueError("offset must be non-negative")
+
+    if csvpath is not None:
+        if not isinstance(csvpath, str):
+            raise TypeError("csvpath must be a string")
+        csv_dir = os.path.dirname(csvpath)
+        if csv_dir and not os.path.exists(csv_dir):
+            raise FileNotFoundError(
+                f"CSV output directory does not exist: {csv_dir}"
+            )
 
     physical_space_map = spatial_map(map)
     # print(physical_space_map)
