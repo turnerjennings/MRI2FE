@@ -31,6 +31,7 @@ jobs:
       - name: Run tests with nox
         run: |
           nox -s test
+          nox -s lint
 
       - name: Report test status
         run: echo "🍏 Test job status is ${{ job.status }}"
