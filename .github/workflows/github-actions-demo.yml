@@ -28,10 +28,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install nox
 
-      - name: Run tests with nox
+      - name: Run tests, format, and lint with nox
         run: |
-          nox -s test
-          nox -s lint
+          nox
 
       - name: Report test status
         run: echo "🍏 Test job status is ${{ job.status }}"
