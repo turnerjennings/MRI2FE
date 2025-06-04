@@ -1,0 +1,36 @@
+name: GitHub Actions Testing Suite
+run-name: ${{ github.actor }} is running the testing suite 🚀
+on: [push]
+
+jobs:
+  Run-Tests:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10", "3.11"]
+
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: true
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install nox
+
+      - name: Run tests, format, and lint with nox
+        run: |
+          nox
+
+      - name: Report test status
+        run: echo "🍏 Test job status is ${{ job.status }}"
