@@ -17,6 +17,7 @@ jobs:
         with:
           fetch-depth: 1
           persist-credentials: true
+          submodules: false
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
