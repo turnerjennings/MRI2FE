@@ -55,3 +55,11 @@ class TestMeshing:
         
         mesh.write(out_path)
 
+        centered_points = mesh.points - np.array([32.,32.,32.])
+
+        dist = np.linalg.norm(centered_points,axis=1)
+
+        ref_dist = 33*np.ones_like(dist)
+
+        np.testing.assert_array_less(dist,ref_dist)
+
