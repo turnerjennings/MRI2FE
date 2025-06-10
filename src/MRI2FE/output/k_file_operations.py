@@ -40,39 +40,63 @@ def parse_k_file(fpath: str):
 
     lines = fcontent.split("\n")
 
-    # Validate file format
     if not any(line.startswith("$#   eid     pid") for line in lines):
         raise ValueError("Invalid file format: Missing element data header")
     if "*NODE" not in fcontent:
         raise ValueError("Invalid file format: Missing node data section")
 
-    # read elements
     i = 0
     data = []
     while i < len(lines):
-        if lines[i].startswith("$#   eid     pid") and not lines[
-            i + 1
-        ].startswith("$#   eid     pid"):
-            eid_pid = list(map(int, lines[i + 1].strip().split()))
-            i += 2
+        line = lines[i].strip()
 
-            n_values = list(map(int, lines[i + 1].strip().split()))
+        if not line or line.startswith("$") or line.startswith("*"):
+            i += 1
+            continue
 
-            combined = eid_pid + n_values
-            data.append(combined)
+        try:
+            values = list(map(int, line.split()))
+            if len(values) >= 2:
+                i += 1
+                while i < len(lines) and (
+                    not lines[i].strip() or lines[i].strip().startswith("$")
+                ):
+                    i += 1
 
+                if i < len(lines):
+                    node_values = list(map(int, lines[i].strip().split()))
+                    combined = values + node_values
+                    if len(combined) >= 12:
+                        data.append(combined)
+        except ValueError:
+            pass
         i += 1
+
+    if not data:
+        raise ValueError("No valid element data found in file")
 
     ect_array = np.array(data)
 
-    # read nodes
-    nodes_lines = fcontent.split("*NODE\n")[-1].split("\n")
+    node_section = fcontent.split("*NODE\n")[-1].split("*")[0]
+    node_lines = [
+        line.strip()
+        for line in node_section.split("\n")
+        if line.strip() and not line.startswith("$")
+    ]
 
-    data = []
-    for i, line in enumerate(nodes_lines):
-        data.append(list(map(float, line.strip().split())))
+    node_data = []
+    for line in node_lines:
+        try:
+            values = list(map(float, line.split()))
+            if len(values) == 4:
+                node_data.append(values)
+        except ValueError:
+            continue
 
-    node_array = np.array(data[:-1])
+    if not node_data:
+        raise ValueError("No valid node data found in file")
+
+    node_array = np.array(node_data)
 
     return ect_array, node_array
 
