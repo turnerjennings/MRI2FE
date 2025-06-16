@@ -45,32 +45,23 @@ def parse_k_file(fpath: str):
     if "*NODE" not in fcontent:
         raise ValueError("Invalid file format: Missing node data section")
 
-    i = 0
+    element_section = fcontent.split("*ELEMENT_SOLID\n")[-1].split("*")[0]
+    element_lines = [
+        line.strip()
+        for line in element_section.split("\n")
+        if line.strip() and not line.startswith("$")
+    ]
+
     data = []
-    while i < len(lines):
-        line = lines[i].strip()
-
-        if not line or line.startswith("$") or line.startswith("*"):
-            i += 1
-            continue
-
+    for line in element_lines:
         try:
             values = list(map(int, line.split()))
-            if len(values) >= 2:
-                i += 1
-                while i < len(lines) and (
-                    not lines[i].strip() or lines[i].strip().startswith("$")
-                ):
-                    i += 1
-
-                if i < len(lines):
-                    node_values = list(map(int, lines[i].strip().split()))
-                    combined = values + node_values
-                    if len(combined) >= 12:
-                        data.append(combined)
+            if len(values) >= 10:
+                if len(values) < 12:
+                    values.extend([0] * (12 - len(values)))
+                data.append(values)
         except ValueError:
-            pass
-        i += 1
+            continue
 
     if not data:
         raise ValueError("No valid element data found in file")
@@ -113,7 +104,7 @@ def element_centroids(elnodes, node_coords):
         ValueError: If array dimensions or contents are invalid
 
     Returns:
-        centroid (np.array): (1,3) array containing average coordinate of the element
+        centroid (np.array): (3,) array containing average coordinate of the element
     """
     # Validate input types
     if not isinstance(elnodes, np.ndarray):
@@ -135,8 +126,12 @@ def element_centroids(elnodes, node_coords):
     if node_coords.shape[1] != 4:  # Must have NID and xyz coordinates
         raise ValueError("node_coords must have 4 columns (NID, x, y, z)")
 
-    # Validate node indices
-    node_connections = elnodes[2:6]
+    node_connections = elnodes[2:12]
+    node_connections = node_connections[node_connections > 0]
+
+    if len(node_connections) == 0:
+        raise ValueError("No valid node connections found in element")
+
     if not np.all(node_connections > 0):
         raise ValueError("Node indices must be positive")
     if np.max(node_connections) > len(node_coords):
@@ -146,6 +141,10 @@ def element_centroids(elnodes, node_coords):
 
     node_coords_subset = node_coords[node_connections - 1, :]
     centroid = np.mean(node_coords_subset[:, 1:], axis=0)
+    if centroid.shape != (3,):
+        raise ValueError(
+            f"Invalid centroid shape: {centroid.shape}, expected (3,)"
+        )
 
     return centroid
 

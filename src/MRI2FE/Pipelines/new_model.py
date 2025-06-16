@@ -225,15 +225,20 @@ class NewModel:
 
         element_table, node_table = parse_k_file(mesh_path)
 
-        centroids = []
-        for element in element_table:
-            centroid = element_centroids(element, node_table)
-            centroids.append(centroid)
+        n_elements = len(element_table)
+        centroids = np.zeros((n_elements, 3))
+
+        for i, element in enumerate(element_table):
+            try:
+                centroid = element_centroids(element, node_table)
+                centroids[i] = centroid
+            except Exception as e:
+                raise e
 
         return {
             "element_table": element_table,
             "node_table": node_table,
-            "centroids": np.array(centroids),
+            "centroids": centroids,
         }
 
     def assign_material_properties(
