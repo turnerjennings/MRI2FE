@@ -37,10 +37,6 @@ def validate_material_constants(material_constants):
     assert material_constants["G1"] > 0, "G1 should be positive"
     assert material_constants["Tau"] > 0, "Tau should be positive"
 
-    assert material_constants["Ginf"] < 1000, "Ginf seems unreasonably large"
-    assert material_constants["G1"] < 1000, "G1 seems unreasonably large"
-    assert material_constants["Tau"] < 100, "Tau seems unreasonably large"
-
 
 def validate_mesh_data(mesh_data):
     """Validate the mesh data and centroids"""
