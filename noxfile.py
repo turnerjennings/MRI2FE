@@ -1,5 +1,6 @@
 import nox
 import time
+import os
 import pybind11
 
 nox.options.reuse_venv = "yes"  # or "yes"
@@ -78,24 +79,19 @@ def tests(session):
     session.install("pytest")
     session.install("pybind11")
 
-    #check if test data already exists, generate if not
-    if not os.path.exists(os.path.join(project_root,
-                                       "test",
-                                       "test_data",
-                                       "test_concentric_spheres.nii")):
-        print("Test data does not exist, generating...")
+    #check if test data exist, create if not
+    if not all([
+        os.path.exists(os.path.join("test", "test_data", "test_stiffness.nii")),
+        os.path.exists(os.path.join("test", "test_data", "test_damping_ratio.nii")),
+        os.path.exists(os.path.join("test", "test_data", "test_mesh.k")),
+        os.path.exists(os.path.join("test","test_data","test_concentric_spheres.nii")),
+        os.path.exists(os.path.join("test","test_data","test_concentric_spheres.inr"))
+    ]):
+        print("Generating test data")
+        
         session.install("numpy")
         session.install("antspyx")
-        session.run("python",f"{os.path.join(project_root,"test","generate_test_niftis.py")}")
-
-    if not os.path.exists(os.path.join(project_root,
-                                       "test",
-                                       "test_data",
-                                       "test_concentric_spheres.inr")):
-        print("Test data does not exist, generating...")
-        session.install("numpy")
-        session.install("antspyx")
-        session.run("python",f"{os.path.join(project_root,"test","generate_test_niftis.py")}")
+        session.run("python",f"{os.path.join(project_root, "test", "create_test_data.py")}")
 
     # Get the CMake directory from pybind11
     import pybind11
@@ -110,6 +106,9 @@ def tests(session):
     os.environ["CMAKE_ARGS"] = cmake_args
     
     session.install(".")
+
+
+    
     session.run("pytest")
 
     elapsed = time.time() - start_time

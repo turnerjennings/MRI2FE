@@ -14,13 +14,9 @@ from .output.k_file_operations import (
     edit_control_keyword,
 )
 
-from .output.fea_exporters import (
-    FEAModel,
-    write_abaqus,
-    write_lsdyna
-)
+from .output.fea_exporters import FEAModel, write_abaqus, write_lsdyna
 
-from .utilities import COM_align, point_cloud_spacing
+from .utilities import COM_align, point_cloud_spacing, ants_affine, spatial_map
 
 from . import Postprocess
 from . import MRE

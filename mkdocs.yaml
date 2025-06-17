@@ -1,0 +1,44 @@
+site_name: MRI2FE
+site_description: Patient-specific Finite Element Model Generation from medical imaging data
+site_author: Turner Jennings
+site_url: https://github.com/turnerjennings/MRI2FE
+
+repo_name: turnerjennings/MRI2FE
+repo_url: https://github.com/turnerjennings/MRI2FE
+
+nav:
+  - Home: index.md
+
+theme:
+  name: material
+  palette:
+    # Palette toggle for light mode
+    - scheme: default
+      primary: navy
+      accent: navy
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Palette toggle for dark mode
+    - scheme: slate
+      primary: navy
+      accent: navy
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.highlight
+    - search.share
+    - content.code.copy
+
+plugins:
+  - search
+  - bibtex:
+      bib_file: "docs/refs.bib"
+  - mkdocstrings
+markdown_extensions:
+  - footnotes

@@ -6,18 +6,19 @@ import os
 
 from ._MESHUTILS import mesh_wrapper
 
-def nifti_to_inr(filepath:str) -> str:
+
+def nifti_to_inr(filepath: str) -> str:
     if not os.path.exists(filepath):
         raise ValueError(f"input filepath {filepath} does not exist")
-    
+
     image = image_read(filepath)
 
-    #get dimensions and spacing
+    # get dimensions and spacing
     xdim, ydim, zdim = image.shape
 
     vx, vy, vz = image.spacing
 
-    #get data typeand length
+    # get data typeand length
 
     data = image.numpy()
 
@@ -28,7 +29,7 @@ def nifti_to_inr(filepath:str) -> str:
         "float64": ("float", 64),
     }[data.dtype.name]
 
-    #encode file
+    # encode file
     header = "\n".join(
         [
             "#INRIMAGE-4#{",
@@ -49,48 +50,48 @@ def nifti_to_inr(filepath:str) -> str:
     header = header + "\n" * (256 - 4 - len(header)) + "##}\n"
 
     import tempfile
-    temp_file = tempfile.NamedTemporaryFile(suffix=".inr",delete=False)
+
+    temp_file = tempfile.NamedTemporaryFile(suffix=".inr", delete=False)
 
     out_path = temp_file.name
 
     try:
-
         temp_file.write(header.encode("ascii"))
         temp_file.write(data.tobytes(order="F"))
         temp_file.close()
 
         if not os.path.exists(out_path):
             raise ValueError(f"File was not written to {out_path}")
-        
+
         return out_path
-    
+
     except:
         if os.path.exists(out_path):
             os.unlink(out_path)
         raise
 
 
-
 def mesh_from_nifti(
-        filepath:str,
-        optimize:bool = False,
-        facetAngle:float = 30.,
-        facetSize:float = 1.,
-        facetDistance:float = 4.,
-        cellRadiusEdgeRatio:float = 3.,
-        cellSize:float = 1.
+    filepath: str,
+    optimize: bool = False,
+    facetAngle: float = 30.0,
+    facetSize: float = 1.0,
+    facetDistance: float = 4.0,
+    cellRadiusEdgeRatio: float = 3.0,
+    cellSize: float = 1.0,
 ) -> meshio.Mesh:
-    
     transfer_path = nifti_to_inr(filepath=filepath)
 
-    mesh_path = mesh_wrapper(transfer_path,
-                             optimize,
-                             facetAngle,
-                             facetSize,
-                             facetDistance,
-                             cellRadiusEdgeRatio,
-                             cellSize)
-    
+    mesh_path = mesh_wrapper(
+        transfer_path,
+        optimize,
+        facetAngle,
+        facetSize,
+        facetDistance,
+        cellRadiusEdgeRatio,
+        cellSize,
+    )
+
     if not os.path.exists(mesh_path):
         raise ValueError(f"Mesh wrapper did not create mesh at {mesh_path}")
 

@@ -1,6 +1,9 @@
-[submodule "vcpkg"]
-	path = vcpkg
-	url = https://github.com/microsoft/vcpkg.git
 [submodule "include/RNifti"]
-	path = include/RNifti
-	url = https://github.com/jonclayden/RNifti
+    path = include/RNifti
+    url = https://github.com/jonclayden/RNifti.git
+    branch = master
+
+[submodule "vcpkg"]
+    path = vcpkg
+    url = https://github.com/Microsoft/vcpkg.git
+    branch = master

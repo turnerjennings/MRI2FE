@@ -3,8 +3,8 @@ from ants.core.ants_image import ANTsImage
 import scipy.spatial as sp
 from ..utilities import COM_align, spatial_map
 from ..FEModel.femodel import FEModel
-
-import datetime
+import os
+from datetime import datetime
 
 
 def map_MRE_to_mesh(
@@ -18,14 +18,52 @@ def map_MRE_to_mesh(
     """Map elements to parts from a segmented spatial map
 
     Args:
+        fe_model (FEModel): Finite element model object
         map (AntsImage): segmented spatial map in voxel space
         elcentroids (np.ndarray): (3,n_elements) array of the coordinates of each element centroid
         ect (np.ndarray): element connectivity table in 10-node LS-Dyna format
         offset (int, optional): optional filter if it is not desired to remap all pids, will skip mapping any elements belonging to pid <= offset. Defaults to 3.
+        csvpath (str, optional): Path to save CSV output files. Defaults to None.
+
+    Raises:
+        TypeError: If input types are invalid
+        ValueError: If input dimensions or values are invalid
+        FileNotFoundError: If CSV directory doesn't exist
 
     Returns:
         ect (np.ndarray): new ect in 10-node LS-DYNA format with updated PIDs
     """
+    if not isinstance(fe_model, FEModel):
+        raise TypeError("fe_model must be a FEModel object")
+
+    if not isinstance(map, ANTsImage):
+        raise TypeError("map must be an ANTsImage object")
+
+    if not isinstance(elcentroids, np.ndarray):
+        raise TypeError("elcentroids must be a numpy array")
+    if not isinstance(ect, np.ndarray):
+        raise TypeError("ect must be a numpy array")
+
+    if len(elcentroids.shape) != 2 or elcentroids.shape[1] != 3:
+        raise ValueError(
+            "elcentroids must be a 2D array with shape (n_elements, 3)"
+        )
+    if len(ect.shape) != 2:
+        raise ValueError("ect must be a 2D array")
+
+    if not isinstance(offset, int):
+        raise TypeError("offset must be an integer")
+    if offset < 0:
+        raise ValueError("offset must be non-negative")
+
+    if csvpath is not None:
+        if not isinstance(csvpath, str):
+            raise TypeError("csvpath must be a string")
+        csv_dir = os.path.dirname(csvpath)
+        if csv_dir and not os.path.exists(csv_dir):
+            raise FileNotFoundError(
+                f"CSV output directory does not exist: {csv_dir}"
+            )
 
     physical_space_map = spatial_map(map)
     # print(physical_space_map)
@@ -99,15 +137,19 @@ def map_MRE_to_mesh(
     new_pids = physical_space_map_nonzero[idx, 3] + offset
     # np.savetxt("test_query.csv",np.hstack((new_pids,d)),delimiter=',')
 
-    ect[query_mask, 1] = new_pids
+    ect_copy = ect.copy()
+    ect_copy[query_mask, 1] = new_pids
 
-    # Update element connectivity table in FEModel
-    for element_id, centroid in enumerate(elcentroids):
-        part_id = map_to_part_id(centroid)
+    for element_id, part_id in enumerate(ect_copy[:, 1]):
+        element_data = ect_copy[element_id]
+        node_refs = element_data[2:].tolist()
+        is_tet4 = all(node == 0 for node in node_refs[4:])
+        active_nodes = node_refs[:4] if is_tet4 else node_refs
+
         fe_model.add_element(
-            element_id=element_id + 1,
-            nodes=ect[element_id, 2:],
-            part_id=part_id,
+            element_id=int(element_data[0]),
+            nodes=active_nodes,
+            part_id=int(part_id),
         )
 
     return fe_model
