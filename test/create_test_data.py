@@ -2,7 +2,7 @@ import numpy as np
 from ants import from_numpy, image_write
 import os
 
-def create_test_nifti_files(output_dir: str = "test_data"):
+def create_test_nifti_files(output_dir: str = "test/test_data"):
     """Create test NIfTI files for stiffness and damping ratio.
     
     Args:
@@ -28,7 +28,7 @@ def create_test_nifti_files(output_dir: str = "test_data"):
     
     return os.path.join(output_dir, "test_stiffness.nii"), os.path.join(output_dir, "test_damping_ratio.nii")
 
-def create_test_mesh_file(output_dir: str = "test_data"):
+def create_test_mesh_file(output_dir: str = "test/test_data"):
     """Create a simple tetrahedral mesh file for testing.
     
     Args:
@@ -73,8 +73,12 @@ def create_test_mesh_file(output_dir: str = "test_data"):
         f.write("\n*PART\n")
         f.write("$#                                                                         title\n")
         f.write("$#     pid     secid       mid     eosid      hgid      grav    adpopt      tmid\n")
-        for pid in range(4, 6):
-            f.write(f"{pid:9d}{1:9d}{1:9d}{0:9d}{0:9d}{0:9d}{0:9d}{0:9d}\n")
+        f.write(f"{1:9d}{1:9d}{1:9d}{0:9d}{0:9d}{0:9d}{0:9d}{0:9d}\n")
+        
+        f.write("\n*PART\n")
+        f.write("$#                                                                         title\n")
+        f.write("$#     pid     secid       mid     eosid      hgid      grav    adpopt      tmid\n")
+        f.write(f"{2:9d}{1:9d}{1:9d}{0:9d}{0:9d}{0:9d}{0:9d}{0:9d}\n")
         
         f.write("\n*SECTION_SOLID\n")
         f.write("$#   secid    elform       aet\n")
@@ -84,7 +88,7 @@ def create_test_mesh_file(output_dir: str = "test_data"):
     
     return output_file
 
-def create_all_test_files(output_dir: str = "test_data"):
+def create_all_test_files(output_dir: str = "test/test_data"):
     """Create all test files needed for the MRE pipeline.
     
     Args:

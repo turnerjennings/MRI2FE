@@ -1,8 +1,8 @@
 from MRI2FE.Pipelines.new_model import NewModel
-from create_test_data import create_all_test_files
 import os
 import numpy as np
 from ants.core.ants_image import ANTsImage
+import pytest
 
 def validate_registration(registered):
     """Validate the registration step outputs"""
@@ -19,7 +19,6 @@ def validate_registration(registered):
     assert np.all(mu_array >= 0), "Stiffness values should be non-negative"
     assert np.all(xi_array >= 0), "Damping ratio values should be non-negative"
     
-    print("✓ Registration validation passed")
 
 def validate_material_constants(material_constants):
     """Validate the material constants calculation"""
@@ -34,8 +33,6 @@ def validate_material_constants(material_constants):
     assert material_constants["Ginf"] < 1000, "Ginf seems unreasonably large"
     assert material_constants["G1"] < 1000, "G1 seems unreasonably large"
     assert material_constants["Tau"] < 100, "Tau seems unreasonably large"
-    
-    print("✓ Material constants validation passed")
 
 def validate_mesh_data(mesh_data):
     """Validate the mesh data and centroids"""
@@ -54,8 +51,6 @@ def validate_mesh_data(mesh_data):
     max_coords = np.max(mesh_data["node_table"][:, 1:], axis=0)
     assert np.all(mesh_data["centroids"] >= min_coords), "Centroids should be within node bounds"
     assert np.all(mesh_data["centroids"] <= max_coords), "Centroids should be within node bounds"
-    
-    print("✓ Mesh data validation passed")
 
 def validate_fe_model(fe_model):
     """Validate the final FE model"""
@@ -75,7 +70,6 @@ def validate_fe_model(fe_model):
     element_table = element_table[element_table[:, 0].argsort()]
     
     for element in element_table:
-        element_id = int(element[0])
         node_refs = element[2:]
         is_tet4 = all(node == 0 for node in node_refs[4:])
         active_nodes = node_refs[:4] if is_tet4 else node_refs
@@ -85,11 +79,15 @@ def validate_fe_model(fe_model):
         
         if is_tet4:
             assert np.all(node_refs[4:] == 0), "Extra node references should be zero for TET4 elements"
-    
-    print("✓ FE model validation passed")
 
 def test_mre_pipeline():
-    stiffness_path, damping_ratio_path, mesh_path = create_all_test_files()
+    test_data_dir = "test/test_data/"
+
+    #create paths
+    stiffness_path = os.path.join(test_data_dir,"test_stiffness.nii")
+    damping_ratio_path = os.path.join(test_data_dir, "test_damping_ratio.nii")
+    mesh_path = os.path.join(test_data_dir, "test_mesh.k")
+
     model = NewModel()
     
     print("Step 1: MRE/MRI Registration")
@@ -131,8 +129,6 @@ def test_mre_pipeline():
     )
     print("Material properties assigned to mesh")
     validate_fe_model(fe_model)
-    
-    return fe_model
 
 if __name__ == "__main__":
     try:

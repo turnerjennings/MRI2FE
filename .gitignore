@@ -179,3 +179,4 @@ cython_debug/
 test/test_data/
 .vscode/
 *.pptx
+*.csv

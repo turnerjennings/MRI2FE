@@ -8,7 +8,7 @@ def tests(session):
     start_time = time.time()
     session.install("pytest")
     session.install(".")
-    session.run("pytest", "codes/test_with_generated_data.py")
+    session.run("pytest")
 
     elapsed = time.time() - start_time
     print(f"Session 'test' completed in {elapsed:.2f} seconds")
