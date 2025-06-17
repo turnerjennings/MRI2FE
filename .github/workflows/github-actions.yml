@@ -1,6 +1,9 @@
 name: GitHub Actions Testing Suite
 run-name: ${{ github.actor }} is running the testing suite 🚀
-on: [push]
+on:
+  pull_request:
+    branches:
+      - "**"
 
 jobs:
   Run-Tests:
