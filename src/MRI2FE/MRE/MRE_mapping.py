@@ -4,7 +4,7 @@ import scipy.spatial as sp
 from ..utilities import COM_align, spatial_map
 from ..FEModel.femodel import FEModel
 import os
-import datetime
+from datetime import datetime
 
 
 def map_MRE_to_mesh(
@@ -137,15 +137,19 @@ def map_MRE_to_mesh(
     new_pids = physical_space_map_nonzero[idx, 3] + offset
     # np.savetxt("test_query.csv",np.hstack((new_pids,d)),delimiter=',')
 
-    ect[query_mask, 1] = new_pids
+    ect_copy = ect.copy()
+    ect_copy[query_mask, 1] = new_pids
 
-    # Update element connectivity table in FEModel
-    for element_id, centroid in enumerate(elcentroids):
-        part_id = map_to_part_id(centroid)
+    for element_id, part_id in enumerate(ect_copy[:, 1]):
+        element_data = ect_copy[element_id]
+        node_refs = element_data[2:].tolist()
+        is_tet4 = all(node == 0 for node in node_refs[4:])
+        active_nodes = node_refs[:4] if is_tet4 else node_refs
+
         fe_model.add_element(
-            element_id=element_id + 1,
-            nodes=ect[element_id, 2:],
-            part_id=part_id,
+            element_id=int(element_data[0]),
+            nodes=active_nodes,
+            part_id=int(part_id),
         )
 
     return fe_model

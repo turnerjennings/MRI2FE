@@ -275,7 +275,6 @@ def save_field_variable(
         raise IndexError(
             "Number of points on axis 0 of coordinates does not equal number of points on axis 1 of field_variable"
         )
-    
 
     if shape is None:
         shape = template.get_fdata().shape
