@@ -91,7 +91,7 @@ def tests(session):
         
         session.install("numpy")
         session.install("antspyx")
-        session.run("python",f"{os.path.join(project_root, "test", "create_test_data.py")}")
+        session.run("python",f"{os.path.join(project_root, 'test', 'create_test_data.py')}")
 
     # Get the CMake directory from pybind11
     import pybind11
