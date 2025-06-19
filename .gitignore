@@ -178,6 +178,7 @@ cython_debug/
 .benchmark/*
 test/test_data/
 .vscode/
+.idea/
 *.pptx
 *.csv
 CMakeUserPresets.json
