@@ -95,6 +95,11 @@ def mesh_from_nifti(
     if not os.path.exists(mesh_path):
         raise ValueError(f"Mesh wrapper did not create mesh at {mesh_path}")
 
-    mesh = meshio.read(mesh_path)
+    try:
+        mesh = meshio.read(mesh_path)
+        return mesh
+    except ValueError:
+        raise ValueError("Error loading mesh from file, mesh may be too large...")
+        
 
-    return mesh
+    
