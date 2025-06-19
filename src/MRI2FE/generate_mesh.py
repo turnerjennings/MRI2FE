@@ -99,7 +99,6 @@ def mesh_from_nifti(
         mesh = meshio.read(mesh_path)
         return mesh
     except ValueError:
-        raise ValueError("Error loading mesh from file, mesh may be too large...")
-        
-
-    
+        raise ValueError(
+            "Error loading mesh from file, mesh may be too large..."
+        )
