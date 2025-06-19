@@ -1,0 +1,10 @@
+{
+    "name":"mri2fe",
+    "dependencies": [
+        "catch2",
+        "eigen3",
+        "cgal",
+        "gmp",
+        "mpfr"
+    ]
+}

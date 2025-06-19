@@ -1,5 +1,5 @@
 import pytest
-from MRI2FE.output.fea_exporters import FEAModel, write_abaqus, write_lsdyna
+from MRI2FE import FEAModel, write_abaqus, write_lsdyna
 
 
 def cube_nodes():

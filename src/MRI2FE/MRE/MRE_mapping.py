@@ -66,7 +66,6 @@ def map_MRE_to_mesh(
             )
 
     physical_space_map = spatial_map(map)
-    # print(physical_space_map)
 
     # create filtered space map and centroids for brain only
     physical_space_map_nonzero = physical_space_map[
@@ -75,16 +74,10 @@ def map_MRE_to_mesh(
     physical_space_map_nonzero[:, [0, 1]] = physical_space_map_nonzero[
         :, [1, 0]
     ]
-    # print(
-    #    f"physical space map: min/max x=({np.min(physical_space_map_nonzero[:,0])},{np.max(physical_space_map_nonzero[:,0])}), y=({np.min(physical_space_map_nonzero[:,1])},{np.max(physical_space_map_nonzero[:,1])}), z=({np.min(physical_space_map_nonzero[:,2])},{np.max(physical_space_map_nonzero[:,2])})"
-    # )
 
     ect_brain_mask = ect[:, 1] > 3
     elcentroids_brain = elcentroids[ect_brain_mask, :]
 
-    # print(
-    #    f"physical_space_map_nonzero shape: {physical_space_map_nonzero.shape}\nelcentroids_brain shape: {elcentroids_brain.shape}"
-    # )
     print(f"{datetime.now()}\t\tAligning COM...")
     physical_space_map_transformed = COM_align(
         elcentroids,
@@ -94,9 +87,6 @@ def map_MRE_to_mesh(
 
     physical_space_map_nonzero[:, 0:3] = physical_space_map_transformed
 
-    # print(
-    #    f"Transformed physical space map: min/max x=({np.min(physical_space_map_nonzero[:,0])},{np.max(physical_space_map_nonzero[:,0])}), y=({np.min(physical_space_map_nonzero[:,1])},{np.max(physical_space_map_nonzero[:,1])}), z=({np.min(physical_space_map_nonzero[:,2])},{np.max(physical_space_map_nonzero[:,2])})"
-    # )
     # write csv output if requested
     if csvpath is not None:
         elcentroids_brain_out = np.hstack(
@@ -124,18 +114,13 @@ def map_MRE_to_mesh(
         physical_space_map_nonzero[:, 0:3], leafsize=15
     )
 
-    # print(f"physical space map: number of points = {physical_space_tree.n}, number of dimensions = {physical_space_tree.m}, number of nodes = {physical_space_tree.size}")
-
     query_mask = ect[:, 1] > offset
 
     element_query = elcentroids[query_mask, :]
 
     d, idx = physical_space_tree.query(element_query, k=1)
 
-    # idx_avg = np.round(np.mean(idx,axis=1))
-
     new_pids = physical_space_map_nonzero[idx, 3] + offset
-    # np.savetxt("test_query.csv",np.hstack((new_pids,d)),delimiter=',')
 
     ect_copy = ect.copy()
     ect_copy[query_mask, 1] = new_pids

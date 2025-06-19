@@ -1,6 +1,6 @@
 [build-system]
-requires = ["setuptools>=61.0"]
-build-backend = "setuptools.build_meta"
+requires = ["scikit-build-core","pybind11"]
+build-backend = "scikit_build_core.build"
 
 [project]
 name = "MRI2FE"
@@ -21,7 +21,7 @@ classifiers = [
 ]
 
 requires-python = ">=3.8.1"
-dependencies = ["numpy", "matplotlib","antspyx","lasso-python","scipy","meshio"]
+dependencies = ["numpy", "matplotlib","antspyx","lasso-python","scipy","meshio","pybind11"]
 
 [project.optional-dependencies]
 dev = [
@@ -32,7 +32,6 @@ dev = [
     "mkdocstrings[python]",
     "mkdocs-bibtex"
     ]
-
 
 [project.urls]
 Repository = "https://github.com/turnerjennings/MRI2FE.git"
