@@ -19,7 +19,6 @@ def nifti_to_inr(filepath: str) -> str:
     vx, vy, vz = image.spacing
 
     # get data typeand length
-
     data = image.numpy()
 
     btype, bitlen = {

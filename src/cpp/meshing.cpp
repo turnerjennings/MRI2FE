@@ -18,10 +18,8 @@ std::string mesh_model(std::string fpath,
     if(!image.read(fpath)){
         throw std::exception("Cannot read file");
     }
-     
 
     //define domain
-
     Mesh_domain domain
     = Mesh_domain::create_labeled_image_mesh_domain(image);
     //mesh

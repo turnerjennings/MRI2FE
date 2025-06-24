@@ -50,7 +50,6 @@ xdim, ydim, zdim = nifti_img.shape
 vx, vy, vz = nifti_img.spacing
 
 # get data typeand length
-
 data = nifti_img.numpy()
 
 btype, bitlen = {
