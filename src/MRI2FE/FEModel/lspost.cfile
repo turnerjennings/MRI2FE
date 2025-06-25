@@ -1,0 +1,15 @@
+$# LS-PrePost command file created by LS-PrePost(R) 2025 R1 (v4.12.6DP) - 14May2025 -64bit-Window
+$# Created on Jun-25-2025 (13:13:27)
+open keyword "C:\Users\mateo\MRI2FE\src\MRI2FE\FEModel\output_model.k"
+Message 1
+Message 0
+modelcheck checkgeneral
+selectentity getalllabel
+selectentity getalllabel
+modelcheck checkgeneral
+selectentity getalllabel
+selectentity getalllabel
+genselect clear
+modelcheck checkgeneral
+selectentity getalllabel
+selectentity getalllabel

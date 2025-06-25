@@ -75,7 +75,7 @@ class FEModel:
         """
         with open(filename, "w") as f:
             f.write("*KEYWORD\n")
-            f.write(f"*TITLE\n{self.metadata['title']}\n\n")
+            f.write(f"*TITLE\n{self.metadata['title']}\n")
 
             # Write nodes
             f.write("*NODE\n")
@@ -86,20 +86,22 @@ class FEModel:
 
             # Write elements
             for row in self.element_table:
-                f.write("\n*ELEMENT_SOLID\n")
+                f.write("*ELEMENT_SOLID\n")
                 f.write(f"{row[0]:>8d}{row[1]:>8d}\n")  # eid and part id
 
                 # write element connectivity, padding to 10-node format
                 for i in range(2, len(row)):
                     f.write(f"{row[i]:>8d}")
 
+                # Pad with last valid node or a dummy valid node ID (ex. repeat last node)
+                last_node = row[-1]
                 for i in range(len(row), 11):
-                    f.write(f"{0:>8d}")
+                    f.write(f"{last_node:>8d}")
 
                 f.write("\n")
 
             # Writing parts
-            f.write("\n*PART\n")
+            f.write("*PART\n")
             for id, part in self.part_info.items():
                 part_insert = [0, 0, 0, 0, 0, 0, 0, 0]
                 part_insert[0] = int(id)
@@ -113,11 +115,11 @@ class FEModel:
 
             # Write solid sections
             for sec in self.section_info:
-                f.write("\n*SECTION_SOLID\n")
+                f.write("*SECTION_SOLID\n")
                 secid = sec["ID"]
                 elform = sec["constants"][0]
                 aet = 0
-                if len(sec["constants"] > 1):
+                if len(sec["constants"]) > 1:
                     aet = sec["constants"][1]
                 f.write(
                     f"{secid:>8d}{elform:>8d}{aet:8d}{0.0:>32.1f}{0.0:>8.1f}\n"
@@ -142,12 +144,17 @@ class FEModel:
 
                 f.write(f"*MAT_{mat_type}\n")
                 for item in mat_insert:
-                    f.write(f"{item:>8d}")
+                    if isinstance(item, int):
+                        f.write(f"{item:>8d}")
+                    elif isinstance(item, float):
+                        f.write(f"{item:>16.6f}")
+                    else:
+                        raise ValueError(f"Unsupported type in material constants: {type(item)}")
 
                 f.write("\n")
 
             # End of file
-            f.write("\n*END\n")
+            f.write("*END\n")
 
     def write_abaqus(self, filename: str):
         """
