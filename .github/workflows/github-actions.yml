@@ -27,7 +27,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install nox
+          pip install nox pybind11
 
       - name: Run tests, format, and lint with nox
         run: |
