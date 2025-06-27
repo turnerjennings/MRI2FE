@@ -1,8 +1,4 @@
-#include "meshing.hpp"
-
-#include<pybind11/pybind11.h>
-
-namespace py=pybind11;
+#include "meshing_core.hpp"
 
 int _debug_add(int i, int j){
     return i + j;
@@ -72,19 +68,4 @@ const double cellSize){
     }
 
     return outpath;
-}
-
-PYBIND11_MODULE(_MESHUTILS, m) {
-    m.doc() = "meshing binding for tetrahedral meshing of segmented MRI";
-
-    m.def("mesh_wrapper", 
-        &mesh_wrapper,
-        py::arg("filePath"),
-        py::arg("optimize"),
-        py::arg("facetAngle"),
-        py::arg("facetSize"),
-        py::arg("facetDistance"),
-        py::arg("cellRadiusEdgeRatio"),
-        py::arg("cellSize"),
-    "create a mesh from a segmented NIFTI image.");
-}
+} 

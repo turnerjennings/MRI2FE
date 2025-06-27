@@ -27,7 +27,7 @@ endif()
 
 #include both the test files and the .cpp files that the tests are pulling from
 set(SRC_FILES
-../src/cpp/meshing.cpp
+../src/cpp/meshing_core.cpp
 Test_meshing.cpp
 )
 

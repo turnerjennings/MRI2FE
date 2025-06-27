@@ -10,6 +10,14 @@ project(
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
+# Add C++ standard library include paths for macOS
+if(APPLE)
+    set(CMAKE_OSX_SYSROOT "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem /usr/local/include")
+    include_directories(SYSTEM "/usr/local/include")
+    link_directories("/usr/local/lib")
+endif()
+
 INCLUDE_DIRECTORIES(include)
 
 
@@ -49,6 +57,13 @@ target_include_directories(_MESHUTILS PRIVATE
     ${GMP_INCLUDE_DIR}
     ${MPFR_INCLUDE_DIR}
 )
+
+# Add additional include paths for macOS
+if(APPLE)
+    target_include_directories(_MESHUTILS PRIVATE SYSTEM
+        "/usr/local/include"
+    )
+endif()
 
 #compile and install
 target_compile_definitions(_MESHUTILS PRIVATE VERSION_INFO=${PROJECT_VERSION})

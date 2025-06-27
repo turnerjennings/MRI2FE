@@ -1,7 +1,7 @@
 #define CATCH_CONFIG_MAIN
 #include<catch2/catch_test_macros.hpp>
 #include<catch2/catch_approx.hpp>
-#include "meshing.hpp"
+#include "meshing_core.hpp"
 
 #include<CGAL/Exact_predicates_inexact_constructions_kernel.h>
 
