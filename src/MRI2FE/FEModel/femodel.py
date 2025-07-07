@@ -20,7 +20,7 @@ class FEModel:
             Tuple[int, int, int, int, int, int]
         ] = []  # List of elements: [element_id, part_id, node1, node2, node3, node4]
 
-        self.part_info: dict = {}  # Dictionary with keys "part id" and list of assigned constants [section id, material id]
+        self.part_info: dict = {}  # Dictionary with keys "part id" and dictionary of "name":str and "constants":list
 
         self.material_info: List[
             dict
@@ -37,12 +37,15 @@ class FEModel:
 
     def add_element(self, element_id: int, nodes: list, part_id: int):
         """Add an element to the element table."""
-        self.element_table.append([element_id] + nodes + [part_id])
+        self.element_table.append([element_id] + [part_id] + nodes )
         self.metadata["num_elements"] += 1
 
-    def add_part(self, part_id: int, material_constants: dict):
+    def add_part(self, part_id: int, name:str, material_constants: list):
         """Add part information (e.g., material constants)."""
-        self.part_info[part_id] = material_constants
+        self.part_info[part_id] = {}
+        self.part_info[part_id]["name"] = name
+        self.part_info[part_id]["constants"] = material_constants
+
 
     def get_node_table(self):
         """Return the node table."""
@@ -85,8 +88,8 @@ class FEModel:
                 )
 
             # Write elements
+            f.write("*ELEMENT_SOLID\n")
             for row in self.element_table:
-                f.write("*ELEMENT_SOLID\n")
                 f.write(f"{row[0]:>8d}{row[1]:>8d}\n")  # eid and part id
 
                 # write element connectivity, padding to 10-node format
@@ -95,22 +98,26 @@ class FEModel:
 
                 # Pad with last valid node or a dummy valid node ID (ex. repeat last node)
                 last_node = row[-1]
-                for i in range(len(row), 11):
+                for i in range(len(row), 10):
                     f.write(f"{last_node:>8d}")
+                
+                #zero padding for n9 and n10
+                f.write(f"{0:>8d}{0:>8d}")
 
                 f.write("\n")
 
             # Writing parts
-            f.write("*PART\n")
             for id, part in self.part_info.items():
+                f.write("*PART\n")
+                f.write(part["name"] + "\n")
                 part_insert = [0, 0, 0, 0, 0, 0, 0, 0]
                 part_insert[0] = int(id)
                 # update default part with all available information
-                for idx, item in enumerate(part):
+                for idx, item in enumerate(part["constants"]):
                     part_insert[idx + 1] = item
 
                 for item in part_insert:
-                    f.write(f"{item:>8d}")
+                    f.write(f"{item:>10d}")
                 f.write("\n")
 
             # Write solid sections
@@ -122,7 +129,7 @@ class FEModel:
                 if len(sec["constants"]) > 1:
                     aet = sec["constants"][1]
                 f.write(
-                    f"{secid:>8d}{elform:>8d}{aet:8d}{0.0:>32.1f}{0.0:>8.1f}\n"
+                    f"{secid:>10d}{elform:>10d}{aet:10d}{0.0:>40.1f}{0.0:>10.1f}\n"
                 )
 
             # Write materials
@@ -137,7 +144,7 @@ class FEModel:
                         f"Error in material id {mat_id}: multi-line input cards not supported"
                     )
 
-                mat_insert = [0, 0, 0, 0, 0, 0, 0, 0]
+                mat_insert = [0., 0., 0., 0., 0., 0., 0., 0.]
                 mat_insert[0] = mat_id
                 for idx, item in enumerate(props):
                     mat_insert[idx + 1] = item
@@ -145,9 +152,11 @@ class FEModel:
                 f.write(f"*MAT_{mat_type}\n")
                 for item in mat_insert:
                     if isinstance(item, int):
-                        f.write(f"{item:>8d}")
+                        f.write(f"{item:>10d}")
+                    elif isinstance(item, float) and item == 0.0:
+                        f.write(f"{0.0:>10.1f}")
                     elif isinstance(item, float):
-                        f.write(f"{item:>16.6f}")
+                        f.write(f"{item:>10.2E}")
                     else:
                         raise ValueError(f"Unsupported type in material constants: {type(item)}")
 
