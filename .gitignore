@@ -182,3 +182,8 @@ test/test_data/
 *.k
 *.db
 *.cfile
+.idea/
+*.pptx
+*.csv
+CMakeUserPresets.json
+test/test_data/*

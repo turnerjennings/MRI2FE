@@ -12,6 +12,7 @@ class FEModel:
             "num_nodes": 0,
             "num_elements": 0,
         }
+
         self.node_table: List[
             Tuple[int, float, float, float]
         ] = []  # List of nodes: [node_id, x, y, z]
@@ -36,8 +37,14 @@ class FEModel:
         self.metadata["num_nodes"] += 1
 
     def add_element(self, element_id: int, nodes: list, part_id: int):
-        """Add an element to the element table."""
-        self.element_table.append([element_id] + [part_id] + nodes )
+        """Add an element to the element table.
+
+        Args:
+            element_id: The ID of the element
+            nodes: List of node references
+            part_id: The part ID for this element
+        """
+        self.element_table.append([element_id, part_id] + nodes)
         self.metadata["num_elements"] += 1
 
     def add_part(self, part_id: int, name:str, material_constants: list):

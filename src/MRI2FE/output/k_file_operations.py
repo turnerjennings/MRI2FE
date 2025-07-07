@@ -40,39 +40,54 @@ def parse_k_file(fpath: str):
 
     lines = fcontent.split("\n")
 
-    # Validate file format
     if not any(line.startswith("$#   eid     pid") for line in lines):
         raise ValueError("Invalid file format: Missing element data header")
     if "*NODE" not in fcontent:
         raise ValueError("Invalid file format: Missing node data section")
 
-    # read elements
-    i = 0
+    element_section = fcontent.split("*ELEMENT_SOLID\n")[-1].split("*")[0]
+    element_lines = [
+        line.strip()
+        for line in element_section.split("\n")
+        if line.strip() and not line.startswith("$")
+    ]
+
     data = []
-    while i < len(lines):
-        if lines[i].startswith("$#   eid     pid") and not lines[
-            i + 1
-        ].startswith("$#   eid     pid"):
-            eid_pid = list(map(int, lines[i + 1].strip().split()))
-            i += 2
+    for line in element_lines:
+        try:
+            values = list(map(int, line.split()))
+            if len(values) >= 10:
+                if len(values) < 12:
+                    values.extend([0] * (12 - len(values)))
+                data.append(values)
+        except ValueError:
+            continue
 
-            n_values = list(map(int, lines[i + 1].strip().split()))
-
-            combined = eid_pid + n_values
-            data.append(combined)
-
-        i += 1
+    if not data:
+        raise ValueError("No valid element data found in file")
 
     ect_array = np.array(data)
 
-    # read nodes
-    nodes_lines = fcontent.split("*NODE\n")[-1].split("\n")
+    node_section = fcontent.split("*NODE\n")[-1].split("*")[0]
+    node_lines = [
+        line.strip()
+        for line in node_section.split("\n")
+        if line.strip() and not line.startswith("$")
+    ]
 
-    data = []
-    for i, line in enumerate(nodes_lines):
-        data.append(list(map(float, line.strip().split())))
+    node_data = []
+    for line in node_lines:
+        try:
+            values = list(map(float, line.split()))
+            if len(values) == 4:
+                node_data.append(values)
+        except ValueError:
+            continue
 
-    node_array = np.array(data[:-1])
+    if not node_data:
+        raise ValueError("No valid node data found in file")
+
+    node_array = np.array(node_data)
 
     return ect_array, node_array
 
@@ -89,7 +104,7 @@ def element_centroids(elnodes, node_coords):
         ValueError: If array dimensions or contents are invalid
 
     Returns:
-        centroid (np.array): (1,3) array containing average coordinate of the element
+        centroid (np.array): (3,) array containing average coordinate of the element
     """
     # Validate input types
     if not isinstance(elnodes, np.ndarray):
@@ -111,8 +126,12 @@ def element_centroids(elnodes, node_coords):
     if node_coords.shape[1] != 4:  # Must have NID and xyz coordinates
         raise ValueError("node_coords must have 4 columns (NID, x, y, z)")
 
-    # Validate node indices
-    node_connections = elnodes[2:6]
+    node_connections = elnodes[2:12]
+    node_connections = node_connections[node_connections > 0]
+
+    if len(node_connections) == 0:
+        raise ValueError("No valid node connections found in element")
+
     if not np.all(node_connections > 0):
         raise ValueError("Node indices must be positive")
     if np.max(node_connections) > len(node_coords):
@@ -122,6 +141,10 @@ def element_centroids(elnodes, node_coords):
 
     node_coords_subset = node_coords[node_connections - 1, :]
     centroid = np.mean(node_coords_subset[:, 1:], axis=0)
+    if centroid.shape != (3,):
+        raise ValueError(
+            f"Invalid centroid shape: {centroid.shape}, expected (3,)"
+        )
 
     return centroid
 
