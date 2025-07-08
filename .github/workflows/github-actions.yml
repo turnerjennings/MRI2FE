@@ -42,7 +42,7 @@ jobs:
 
       - name: Install system and Python dependencies (Linux)
         if: runner.os == 'Linux'
-        run: ./install_linux.sh
+        run: ./install_mac_linux.sh
         shell: bash
 
       - name: Run Python tests
