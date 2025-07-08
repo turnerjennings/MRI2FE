@@ -36,5 +36,15 @@ jobs:
         run: ./install_mac.sh
         shell: bash
 
-      - name: Run Python tests only
+      - name: Run Python tests
         run: nox -s test
+
+      - name: Run code formatter
+        run: nox -s format
+
+      - name: Run linter
+        run: nox -s lint
+
+      - name: Report job status
+        if: always()
+        run: echo "Test, format, and lint job status: ${{ job.status }}"
