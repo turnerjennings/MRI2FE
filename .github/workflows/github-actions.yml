@@ -49,5 +49,4 @@ jobs:
         run: nox -s lint
 
       - name: Report job status
-        if: always()
         run: echo "Test, format, and lint job status: ${{ job.status }}"
