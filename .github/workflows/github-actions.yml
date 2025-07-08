@@ -36,7 +36,13 @@ jobs:
           pip install nox pybind11
 
       - name: Install system and Python dependencies (macOS)
+        if: runner.os == 'macOS'
         run: ./install_mac.sh
+        shell: bash
+
+      - name: Install system and Python dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: ./install_linux.sh
         shell: bash
 
       - name: Run Python tests
