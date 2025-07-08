@@ -1,6 +1,9 @@
-name: Nox Testing Suite
-
-on: [push, pull_request]
+name: GitHub Actions Testing Suite
+run-name: ${{ github.actor }} is running the testing suite 🚀
+on:
+  pull_request:
+    branches:
+      - "**"
 
 jobs:
   test:

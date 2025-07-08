@@ -1,0 +1,14 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Jennings"
+  given-names: "Turner"
+  orcid: "https://orcid.org/0009-0003-3536-3645"
+- family-names: "Biggs"
+  given-names: "Matteo"
+- family-names: "Shirude"
+  given-names: "Anshul"
+title: "MRI2FE"
+version: 0.0.1
+date-released: 2025-07-01
+url: "https://github.com/turnerjennings/MRI2FE"
