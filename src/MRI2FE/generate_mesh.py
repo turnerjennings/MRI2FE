@@ -79,6 +79,30 @@ def mesh_from_nifti(
     cellRadiusEdgeRatio: float = 3.0,
     cellSize: float = 1.0,
 ) -> meshio.Mesh:
+    """Generate a tetrahedral mesh from a segmented 3D image
+
+    Parameters
+    ----------
+    filepath: string
+        Path to segmented input nifti image, where each integer value represents a unique segment.
+    optimize : bool, optional
+        Whether to perform postprocessing mesh optimization. Defaults to False.
+    facetAngle: float, optional
+        Minimum tetrahedral facet angle permissible. Defaults to 30.0.
+    facetSize: float, optional
+        Minimum tetrahedral facet size permissible. Defaults to 1.0.
+    facetDistance: float, optional
+        Maximum distance between the facet circumcenter and its surface. Defaults to 4.0.
+    cellRadiusEdgeRatio: float, optional
+        Maximum radius-edge ratio. Defaults to 3.0.
+    cellSize: float, optional
+        Maximum circumradii for the tetrahedra. Defaults to 1.0.
+
+    Returns
+    -------
+    meshio.Mesh
+        Resultant tetrahedral mesh in meshio mesh format.
+    """
     transfer_path = nifti_to_inr(filepath=filepath)
 
     mesh_path = mesh_wrapper(

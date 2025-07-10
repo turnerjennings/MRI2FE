@@ -21,7 +21,7 @@ classifiers = [
 ]
 
 requires-python = ">=3.8.1"
-dependencies = ["numpy", "matplotlib","antspyx","lasso-python","scipy","meshio","pybind11"]
+dependencies = ["numpy", "matplotlib","antspyx","lasso-python","scipy","meshio","pybind11","mkdocstrings[python]>=0.18"]
 
 [project.optional-dependencies]
 dev = [

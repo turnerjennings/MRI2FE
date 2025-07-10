@@ -8,6 +8,7 @@ repo_url: https://github.com/turnerjennings/MRI2FE
 
 nav:
   - Home: index.md
+  - Meshing: mesh.md
 
 theme:
   name: material
@@ -39,6 +40,15 @@ plugins:
   - search
   - bibtex:
       bib_file: "docs/refs.bib"
-  - mkdocstrings
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]  
+          options:
+            docstring_style: numpy
+            show_source: true
+            show_root_heading: true
+            show_root_toc_entry: true
+            heading_level: 2
 markdown_extensions:
   - footnotes

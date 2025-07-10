@@ -12,28 +12,122 @@ from ants.core.ants_image import ANTsImage
 import numpy as np
 from .calculate_prony import calculate_prony
 from datetime import datetime
-from typing import Union
+from typing import Union, List
 import os
+
+def _create_min_max_mask(img:ANTsImage) -> ANTsImage:
+    """Create a binary mask encompassing the entire nonzero region of an ants image
+
+    Args:
+        img (ANTsImage): input image
+
+    Returns:
+        ANTsImage: binary mask
+    """
+    img_arr = np.nonzero(img.numpy())
+    img_min = np.min(img_arr[np.nonzero(img_arr)])
+    img_max = np.max(img_arr)
+    img_mask = threshold_image(img, img_min, img_max)
+    return img_mask
+
+
+
+def _segment_MRE_list(geom: ANTsImage, im1:List[str], im2:List[str]):
+        # load images
+
+        im1_list = []
+        for file in im1:
+            im1_list.append(image_read(file))
+
+        im2_list = []
+        for file in im2:
+            im2_list.append(image_read(file))
+
+
+
+        # find threshold limits and generate binary mask
+        im_thresh = im1_list[0]
+        
+
+        # generate transformation
+        geom_ants = resample_image_to_target(geom, gp)
+
+        if geom_mask is not None:
+            tx = registration(
+                fixed=geom_ants,
+                mask=geom_mask,
+                moving=gp,
+                moving_mask=gp_mask,
+                type_of_transform="Elastic",
+            )
+
+        else:
+            tx = registration(
+                fixed=geom_ants,
+                moving=gp,
+                moving_mask=gp_mask,
+                type_of_transform="Elastic",
+            )
+
+        gp_out = tx["warpedmovout"]
+
+        transform = tx["fwdtransforms"]
+
+        gpp_out = apply_transforms(
+            fixed=geom, moving=gpp, transformlist=transform
+        )
+
+        out_dict = {"gp": gp_out, "gpp": gpp_out, "transform": transform}
+
+        # write images to file if requested
+        if imgout is not None:
+            plot(
+                geom,
+                overlay=gp_out,
+                overlay_cmap="Dark2",
+                overlay_alpha=0.8,
+                filename=imgout + "_sagittal.jpg",
+                axis=0,
+            )
+            plot(
+                geom,
+                overlay=gp_out,
+                overlay_cmap="Dark2",
+                overlay_alpha=0.8,
+                filename=imgout + "_coronal.jpg",
+                axis=1,
+            )
+            plot(
+                geom,
+                overlay=gp_out,
+                overlay_cmap="Dark2",
+                overlay_alpha=0.8,
+                filename=imgout + "_transverse.jpg",
+                axis=2,
+            )
+
+        return out_dict
+
 
 
 def coregister_MRE_images(
-    geom: Union[str, ANTsImage],
-    geom_mask: Union[str, ANTsImage] = None,
-    gp: Union[str, ANTsImage] = None,
-    gpp: Union[str, ANTsImage] = None,
-    mu: Union[str, ANTsImage] = None,
-    xi: Union[str, ANTsImage] = None,
+    geom: str,
+    geom_mask: str = None,
+    gp: Union[str, List[str]] = None,
+    gpp: Union[str, List[str]] = None,
+    mu: Union[str, List[str]] = None,
+    xi: Union[str, List[str]] = None,
     imgout: str = None,
 ):
     """Coregister MRE images to MRI geometry.
 
     Args:
-        geom (str or ANTsImage): Image or filepath to the geometry MRI file.
-        geom_mask (str or ANTsImage, optional): Image or filepath to the geometry mask.
-        gp (str or ANTsImage): Image or filepath to the storage modulus map.
-        gpp (str or ANTsImage): Image or filepath to the loss modulus map.
-        mu (str or ANTsImage): Image or filepath to the mu parameter map.
-        xi (str or ANTsImage): Image or filepath to the xi parameter map.
+        geom (str or ANTsImage): filepath to the geometry MRI file.
+        geom_mask (str or ANTsImage, optional): filepath to the geometry mask.
+        gp (str or ANTsImage): filepath or list of filepaths to the storage modulus map.
+        gpp (str or ANTsImage): filepath or list of filepaths to the loss modulus map.
+        mu (str or ANTsImage): filepath or list of filepaths to the mu parameter map.
+        xi (str or ANTsImage): filepath or list of filepaths to the xi parameter map.
         imgout (str, optional): Filepath prefix to save visualization images.
 
     Raises:
@@ -51,10 +145,10 @@ def coregister_MRE_images(
     if isinstance(geom, str):
         if not os.path.exists(geom):
             raise FileNotFoundError(f"Geometry image file not found: {geom}")
-        geom = image_read(geom)
-    elif not isinstance(geom, ANTsImage):
+        geom_check = image_read(geom)
+    else:
         raise TypeError(
-            "geom must be either a filepath string or ANTsImage object"
+            "geom must be a filepath string"
         )
 
     # Validate and load geometry mask if provided
@@ -64,14 +158,14 @@ def coregister_MRE_images(
                 raise FileNotFoundError(
                     f"Geometry mask file not found: {geom_mask}"
                 )
-            geom_mask = image_read(geom_mask)
-        elif not isinstance(geom_mask, ANTsImage):
+            geom_mask_check = image_read(geom_mask)
+        else:
             raise TypeError(
-                "geom_mask must be either a filepath string or ANTsImage object"
+                "geom_mask must be a filepath string"
             )
 
         # Check mask dimensions match geometry
-        if geom_mask.dimension != geom.dimension:
+        if geom_mask_check.dimension != geom_check.dimension:
             raise ValueError(
                 f"Geometry mask dimensions ({geom_mask.dimension}) do not match geometry image dimensions ({geom.dimension})"
             )
@@ -103,13 +197,24 @@ def coregister_MRE_images(
     if first_set_valid:
         # load images
         if type(gp) is str:
-            gp = image_read(gp)
+            gp_list = [image_read(gp)]
+        else:
+            gp_list = []
+            for file in gp:
+                gp_list.append(image_read(file))
+
 
         if type(gpp) is str:
-            gpp = image_read(gpp)
+            gpp_list = [image_read(gpp)]
+        else:
+            gpp_list = []
+            for file in gpp:
+                gpp_list.append(image_read(file))
+
 
         # find threshold limits and generate binary mask
-        gp_arr = np.nonzero(gp.numpy())
+        gp_thresh = gp_list[0]
+        gp_arr = np.nonzero(gp_thresh.numpy())
         gp_min = np.min(gp_arr)
         gp_max = np.max(gp_arr)
         gp_mask = threshold_image(gp, gp_min, gp_max)
