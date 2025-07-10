@@ -1,4 +1,6 @@
 import numpy as np
+import meshio
+from typing import List, Tuple
 
 
 class FEModel:
@@ -10,9 +12,24 @@ class FEModel:
             "num_nodes": 0,
             "num_elements": 0,
         }
-        self.node_table = []  # List of nodes: [node_id, x, y, z]
-        self.element_table = []  # List of elements: [element_id, part_id, node1, node2, node3, node4, ...]
-        self.part_info = {}  # Dictionary of part_id -> material constants (e.g., Ginf, G1, Tau)
+
+        self.node_table: List[
+            Tuple[int, float, float, float]
+        ] = []  # List of nodes: [node_id, x, y, z]
+
+        self.element_table: List[
+            Tuple[int, int, int, int, int, int]
+        ] = []  # List of elements: [element_id, part_id, node1, node2, node3, node4]
+
+        self.part_info: dict = {}  # Dictionary with keys "part id" and dictionary of "name":str and "constants":list
+
+        self.material_info: List[
+            dict
+        ] = []  # List of Dictionaries with three entries: "type":str, "ID":int, and "constants":list[int,float]
+        
+        self.section_info: List[
+            dict
+        ] = []  # List of Dictionaries with two entries: "ID": str and "constants":list[int, float]
 
     def add_node(self, node_id: int, x: float, y: float, z: float):
         """Add a node to the node table."""
@@ -30,9 +47,12 @@ class FEModel:
         self.element_table.append([element_id, part_id] + nodes)
         self.metadata["num_elements"] += 1
 
-    def add_part(self, part_id: int, material_constants: dict):
+    def add_part(self, part_id: int, name:str, material_constants: list):
         """Add part information (e.g., material constants)."""
-        self.part_info[part_id] = material_constants
+        self.part_info[part_id] = {}
+        self.part_info[part_id]["name"] = name
+        self.part_info[part_id]["constants"] = material_constants
+
 
     def get_node_table(self):
         """Return the node table."""
@@ -54,3 +74,135 @@ class FEModel:
             f"num_nodes={self.metadata['num_nodes']}, "
             f"num_elements={self.metadata['num_elements']})"
         )
+
+    def write_lsdyna(self, filename: str):
+        """
+        Write FE model data to an LS-DYNA .k file.
+
+        Args:
+            model (FEAModel): Model containing nodes, elements, and materials.
+            filename (str): Output file path for the .k file.
+        """
+        with open(filename, "w") as f:
+            f.write("*KEYWORD\n")
+            f.write(f"*TITLE\n{self.metadata['title']}\n")
+
+            # Write nodes
+            f.write("*NODE\n")
+            for row in self.node_table:
+                f.write(
+                    f"{row[0]:8d}{row[1]:16.6f}{row[2]:16.6f}{row[3]:16.6f}\n"
+                )
+
+            # Write elements
+            f.write("*ELEMENT_SOLID\n")
+            for row in self.element_table:
+                f.write(f"{row[0]:>8d}{row[1]:>8d}\n")  # eid and part id
+
+                # write element connectivity, padding to 10-node format
+                for i in range(2, len(row)):
+                    f.write(f"{row[i]:>8d}")
+
+                # Pad with last valid node or a dummy valid node ID (ex. repeat last node)
+                last_node = row[-1]
+                for i in range(len(row), 10):
+                    f.write(f"{last_node:>8d}")
+                
+                #zero padding for n9 and n10
+                f.write(f"{0:>8d}{0:>8d}")
+
+                f.write("\n")
+
+            # Writing parts
+            for id, part in self.part_info.items():
+                f.write("*PART\n")
+                f.write(part["name"] + "\n")
+                part_insert = [0, 0, 0, 0, 0, 0, 0, 0]
+                part_insert[0] = int(id)
+                # update default part with all available information
+                for idx, item in enumerate(part["constants"]):
+                    part_insert[idx + 1] = item
+
+                for item in part_insert:
+                    f.write(f"{item:>10d}")
+                f.write("\n")
+
+            # Write solid sections
+            for sec in self.section_info:
+                f.write("*SECTION_SOLID\n")
+                secid = sec["ID"]
+                elform = sec["constants"][0]
+                aet = 0
+                if len(sec["constants"]) > 1:
+                    aet = sec["constants"][1]
+                f.write(
+                    f"{secid:>10d}{elform:>10d}{aet:10d}{0.0:>40.1f}{0.0:>10.1f}\n"
+                )
+
+            # Write materials
+            for mat in self.material_info:
+                mat_type = mat["type"]
+                mat_id = mat["ID"]
+                props = mat["constants"]
+
+                # check if multi-line input card, raise error if yes
+                if len(props) > 7:
+                    raise ValueError(
+                        f"Error in material id {mat_id}: multi-line input cards not supported"
+                    )
+
+                mat_insert = [0., 0., 0., 0., 0., 0., 0., 0.]
+                mat_insert[0] = mat_id
+                for idx, item in enumerate(props):
+                    mat_insert[idx + 1] = item
+
+                f.write(f"*MAT_{mat_type}\n")
+                for item in mat_insert:
+                    if isinstance(item, int):
+                        f.write(f"{item:>10d}")
+                    elif isinstance(item, float) and item == 0.0:
+                        f.write(f"{0.0:>10.1f}")
+                    elif isinstance(item, float):
+                        f.write(f"{item:>10.2E}")
+                    else:
+                        raise ValueError(f"Unsupported type in material constants: {type(item)}")
+
+                f.write("\n")
+
+            # End of file
+            f.write("*END\n")
+
+    def write_abaqus(self, filename: str):
+        """
+        Write FE model data to an ABAQUS .inp file.
+
+        Args:
+            model (FEAModel): Model containing nodes, elements, and materials.
+            filename (str): Output file path for the .inp file.
+        """
+
+        nodes = self.get_node_table()
+
+        cells = self.get_element_table()
+        mesh = meshio.Mesh(
+            points=nodes,
+            cells={"tetra": cells},
+        )
+        mesh.write(filename, file_format="abaqus")
+
+        # Add more material types as needed underneath
+        with open(filename, "a") as f:
+            for mat_id, mat in self.material_info.items():
+                f.write(f"\n*MATERIAL, NAME={mat_id}\n")
+                if mat["type"].lower() == "elastic":
+                    f.write("*ELASTIC\n")
+                    youngs_modulus = mat["properties"].get("E")
+                    poisson_ratio = mat["properties"].get("nu")
+                    if youngs_modulus and poisson_ratio:
+                        f.write(f"{youngs_modulus}, {poisson_ratio}\n")
+
+            for part_id, part in self.part_info.items():
+                f.write(
+                    f"\n*SOLID SECTION, ELSET=part_{part_id}, MATERIAL={part['material']}\n"
+                )
+                f.write("1.0\n")
