@@ -9,6 +9,8 @@ repo_url: https://github.com/turnerjennings/MRI2FE
 nav:
   - Home: index.md
   - Meshing: mesh.md
+  - MRE coregistration: mre.md
+  - FE Model: model.md
 
 theme:
   name: material
@@ -45,7 +47,7 @@ plugins:
         python:
           paths: [src]  
           options:
-            docstring_style: numpy
+            docstring_style: google
             show_source: true
             show_root_heading: true
             show_root_toc_entry: true

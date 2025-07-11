@@ -23,3 +23,5 @@ from . import MRE
 from . import Pipelines
 
 from .generate_mesh import mesh_from_nifti, nifti_to_inr
+
+from .FEModel import FEModel

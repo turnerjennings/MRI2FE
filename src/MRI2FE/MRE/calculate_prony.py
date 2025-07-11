@@ -24,12 +24,16 @@ def calculate_prony(
     """Calculate the 1st order prony series equivalent to the complex shear modulus representation of brain tissue viscoelasticity
 
     Args:
-        mu (float or array): Shear stiffness [MPa]
-        xi (float): Damping ratio
-        w (float): vibration frequency [Hz]
+        gp (array-like): storage moduli at different frequencies. If gp is provided, gpp must also be provided.
+        gpp (array-like): loss moduli at different frequencies.  If gpp is provided, gp must also be provided.
+        mu (array-like): Shear stiffness at different frequencies.  If mu is provided, xi must also be provided.
+        xi (array-like): Damping ratio at different frequencies.  If xi, is provided, mu must also be provided.
+        w (array-like): MRE frequency for each gp/gpp or mu/xi value, must follow the same order.
         tol (float, optional): Back calculation tolerance check. Defaults to 1.00e-3.
 
     Raises:
+        ValueError: gp/gpp or mu/xi not provided
+        ValueError: number of inputs on each array do not match
         ValueError: Mu or Xi back-calculation out of range
 
     Returns:

@@ -1,3 +1,5 @@
+# Meshing
+
 This package contains wrapper functions around Computational Geometry Algorithms Library (CGAL)[@cgalmain] functions for generating a multi-region tetrahedral mesh from a segmented 3D image.
 
 # Example
@@ -25,6 +27,6 @@ nifti_mesh.write("path/to/output",file_format="abaqus")
 
 ```
 
-# Reference
+# API Reference
 
 ::: MRI2FE.mesh_from_nifti
