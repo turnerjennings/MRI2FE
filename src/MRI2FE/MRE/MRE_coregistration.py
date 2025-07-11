@@ -15,6 +15,21 @@ from datetime import datetime
 from typing import Union, List
 import os
 
+
+def _entry_to_list(entry):
+    """Check if an input is a single item and convert to a list if so.
+
+    Args:
+        entry (any): function input argument for parent function
+
+    Returns:
+        list: list form of input
+    """
+
+    if entry is not None and isinstance(entry,(str,ANTsImage)):
+        return [entry]
+    return entry
+
 def coregister_MRE_images(
     geom: Union[str, ANTsImage],
     geom_mask: Union[str, ANTsImage] = None,
@@ -40,6 +55,13 @@ def coregister_MRE_images(
     """
     if geom is None:
         raise ValueError("Geometry image is required")
+    
+    #check if entries are not lists
+    gp_list = _entry_to_list(gp_list)
+    gpp_list = _entry_to_list(gpp_list)
+    mu_list = _entry_to_list(mu_list)
+    xi_list = _entry_to_list(xi_list)
+
 
     # Load geometry image
     if isinstance(geom, str):
@@ -88,14 +110,17 @@ def coregister_MRE_images(
             gp_out = tx["warpedmovout"]
             gpp_out = apply_transforms(fixed=geom, moving=gpp, transformlist=tx["fwdtransforms"])
 
-            # Save plots if requested
-            if imgout is not None:
-                base = f"{imgout}_pair{idx}"
-                plot(geom, overlay=gp_out, overlay_cmap="Dark2", overlay_alpha=0.8, filename=base + "_sagittal.jpg", axis=0)
-                plot(geom, overlay=gp_out, overlay_cmap="Dark2", overlay_alpha=0.8, filename=base + "_coronal.jpg", axis=1)
-                plot(geom, overlay=gp_out, overlay_cmap="Dark2", overlay_alpha=0.8, filename=base + "_transverse.jpg", axis=2)
-
             results.append({"gp": gp_out, "gpp": gpp_out, "transform": tx["fwdtransforms"]})
+
+            #save imgout
+            if imgout is not None:
+                if not os.path.exists(imgout):
+                    raise ValueError("imgout directory does not exist")
+                else:
+                    base = f"{imgout + "MRE{idx}_coreg.jpg"}"
+                    plot(geom, overlay=gp_out, overlay_cmap="Dark2", overlay_alpha=0.8, filename=base, axis=0)
+
+
 
     # Coregistration for shear stiffness and damping ratio (mu + xi)
     elif mu_list and xi_list:
@@ -125,19 +150,26 @@ def coregister_MRE_images(
             mu_out = tx["warpedmovout"]
             xi_out = apply_transforms(fixed=geom, moving=xi, transformlist=tx["fwdtransforms"])
 
-            # Save plots if requested
-            if imgout is not None:
-                base = f"{imgout}_pair{idx}"
-                plot(geom, overlay=mu_out, overlay_cmap="Dark2", overlay_alpha=0.8, filename=base + "_sagittal.jpg", axis=0)
-                plot(geom, overlay=mu_out, overlay_cmap="Dark2", overlay_alpha=0.8, filename=base + "_coronal.jpg", axis=1)
-                plot(geom, overlay=mu_out, overlay_cmap="Dark2", overlay_alpha=0.8, filename=base + "_transverse.jpg", axis=2)
-
             results.append({"mu": mu_out, "xi": xi_out, "transform": tx["fwdtransforms"]})
 
+            #save imgout
+            if imgout is not None:
+                if not os.path.exists(imgout):
+                    raise ValueError("imgout directory does not exist")
+                else:
+                    base = f"{imgout + "MRE{idx}_coreg.jpg"}"
+                    plot(geom, overlay=gp_out, overlay_cmap="Dark2", overlay_alpha=0.8, filename=base, axis=0)
     else:
         raise ValueError("Must provide either (gp_list, gpp_list) or (mu_list, xi_list)")
 
-    return results
+
+    #return single dict or list of dicts
+    if len(results) == 0:
+        raise ValueError("No results generated from MRE coregistration")
+    elif len(results) == 1:
+        return results[0]
+    else:
+        return results
 
 def segment_MRE_regions(SS_img, DR_img, n_segs: int = 5):
     """Segment MRE images and calculate Prony model parameters for each region.

@@ -51,10 +51,10 @@ class NewModel:
             result = coregister_MRE_images(
                 geom=geom_image,
                 geom_mask=None,
-                gp=complex_modulus_path,
-                gpp=complex_modulus_path,
-                mu=None,
-                xi=None,
+                gp_list=complex_modulus_path,
+                gpp_list=complex_modulus_path,
+                mu_list=None,
+                xi_list=None,
                 imgout=output_viz_path,
             )
 
@@ -67,10 +67,10 @@ class NewModel:
             result = coregister_MRE_images(
                 geom=geom_image,
                 geom_mask=None,
-                gp=None,
-                gpp=None,
-                mu=stiffness_path,
-                xi=damping_ratio_path,
+                gp_list=None,
+                gpp_list=None,
+                mu_list=stiffness_path,
+                xi_list=damping_ratio_path,
                 imgout=output_viz_path,
             )
 
