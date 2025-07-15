@@ -9,6 +9,8 @@ from ants import (
     apply_transforms,
 )
 from ants.core.ants_image import ANTsImage
+import meshio
+from src.MRI2FE.FEModel import FEModel
 import numpy as np
 from .calculate_prony import calculate_prony
 from datetime import datetime
@@ -230,3 +232,39 @@ def run_MRE_pipeline(geom, DR_list, SS_list, n_segs=5, imgout=None):
         ROI_means = segment_MRE_regions(result["gp"], result["gpp"], n_segs)
         all_results.append(ROI_means)
     return coreg_results, all_results
+
+def meshio_to_femodel(mesh: meshio.Mesh, title: str = "", source: str = "", default_part_id: int = 1) -> FEModel:
+    """
+    Convert a meshio.Mesh object into a custom FEModel object.
+
+    Args:
+        mesh: meshio.Mesh object
+        title: Metadata title for FEModel
+        source: Metadata source for FEModel
+        default_part_id: Default part ID for all elements
+
+    Returns:
+        FEModel instance with custom nodes and elements
+    """
+    femodel = FEModel(title=title, source=source)
+
+    # Add nodes
+    for node_id, (x, y, z) in enumerate(mesh.points, start=1):
+        femodel.add_node(node_id, x, y, z)
+
+    # Handle only one type of element for now (ex. "tetra")
+    supported_keys = ["tetra", "triangle", "hexahedron", "quad"]
+    found = False
+    for key in supported_keys:
+        if key in mesh.cells_dict:
+            elements = mesh.cells_dict[key]
+            for elem_id, node_ids in enumerate(elements, start=1):
+                # FIXED: + 1 offset since meshio is zero indexed but FEModel is one indexed
+                femodel.add_element(elem_id, [i + 1 for i in node_ids], default_part_id)
+            found = True
+            break
+
+    if not found:
+        raise ValueError(f"No supported cell types found in mesh. Supported: {supported_keys}")
+
+    return femodel
