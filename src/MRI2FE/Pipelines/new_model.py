@@ -3,9 +3,10 @@ from ants.core.ants_image import ANTsImage
 from ants import image_read
 from ..MRE.MRE_coregistration import coregister_MRE_images, segment_MRE_regions
 from ..MRE.calculate_prony import calculate_prony
-from ..output.k_file_operations import element_centroids, parse_k_file
+from ..output.k_file_operations import parse_k_file
 from ..MRE.MRE_mapping import map_MRE_to_mesh
 from ..FEModel.femodel import FEModel
+from ..utilities import element_centroids
 import numpy as np
 
 

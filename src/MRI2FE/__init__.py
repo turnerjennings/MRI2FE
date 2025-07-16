@@ -9,17 +9,22 @@ from .Postprocess.d3_to_nifti import (
 
 from .output.k_file_operations import (
     parse_k_file,
-    element_centroids,
     write_head_k_file,
     edit_control_keyword,
 )
 
-from .output.fea_exporters import FEAModel, write_abaqus, write_lsdyna
-
-from .utilities import COM_align, point_cloud_spacing, ants_affine, spatial_map
+from .utilities import (
+    COM_align,
+    point_cloud_spacing,
+    ants_affine,
+    spatial_map,
+    element_centroids,
+)
 
 from . import Postprocess
 from . import MRE
 from . import Pipelines
+
+from .FEModel.femodel import FEModel
 
 from .generate_mesh import mesh_from_nifti, nifti_to_inr
