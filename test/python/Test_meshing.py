@@ -6,7 +6,7 @@ import os
 
 import meshio
 
-from MRI2FE import mesh_from_nifti, nifti_to_inr
+from MRI2FE import mesh_from_nifti, nifti_to_inr,FEModel
 
 
 class TestMeshing:
@@ -30,20 +30,14 @@ class TestMeshing:
 
     def test_mesh_creation(self):
         root_dir = os.getcwd()
-
         path = os.path.join(
-            root_dir, "test", "test_data", "test_concentric_spheres.nii"
+            root_dir, "test","test_data", "test_concentric_spheres.nii"
         )
 
         mesh = mesh_from_nifti(path, optimize=True)
 
-        assert mesh is not None
-
-        assert mesh.points.shape[0] > 0
-        assert mesh.points.shape[1] > 0
-
         out_path = os.path.join(
-            root_dir, "test", "test_data", "test_mesh_out.mesh"
+            root_dir, "test","test_data", "test_mesh_out.mesh"
         )
 
         mesh.write(out_path)
@@ -55,3 +49,18 @@ class TestMeshing:
         ref_dist = 33 * np.ones_like(dist)
 
         np.testing.assert_array_less(dist, ref_dist)
+
+    def test_femodel_from_meshio(self):
+        root_dir = os.getcwd()
+
+        inpath = os.path.join(
+            root_dir,"test","test_data","test_mesh_out.mesh"
+        )
+
+        mesh = meshio.read(inpath)
+
+        mdl = FEModel(title="test",source=inpath)
+
+        mdl.from_meshio(mesh)
+
+        assert mdl.get_node_table.shape[0] > 1

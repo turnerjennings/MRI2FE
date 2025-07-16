@@ -1,4 +1,4 @@
-from ..FEModel.femodel import FEModel
+from ..models.femodel import FEModel
 
 import numpy as np
 import os
