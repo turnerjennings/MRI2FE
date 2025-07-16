@@ -13,7 +13,7 @@ class TestMRECoreg:
         gp = image_read(get_ants_data("r27"))
         gpp = image_read(get_ants_data("r27"))
 
-        test_dict = coregister_MRE_images(geom=geom, gp=gp, gpp=gpp)
+        test_dict = coregister_MRE_images(geom=geom, gp_list=gp, gpp_list=gpp)
 
         assert "gp" in test_dict
         assert "gpp" in test_dict
@@ -28,13 +28,35 @@ class TestMRECoreg:
             test_dict["gp"].numpy(), test_dict["gpp"].numpy(), decimal=2
         )
 
+    def test_gstar_from_buffer_list(self):
+        geom = image_read(get_ants_data("r16"))
+
+        gp = image_read(get_ants_data("r27"))
+        gpp = image_read(get_ants_data("r27"))
+
+        test_dict = coregister_MRE_images(geom=geom, gp_list=[gp, gp, gp], gpp_list=[gpp, gpp, gpp])
+
+        for out in test_dict:
+            assert "gp" in out
+            assert "gpp" in out
+            assert "transform" in out
+
+            print(out["gp"])
+            print(out["gpp"])
+
+            print(out["gp"].min(), out["gp"].max())
+
+            np.testing.assert_almost_equal(
+                out["gp"].numpy(), out["gpp"].numpy(), decimal=2
+            )
+
     def test_ddsr_from_fpath(self):
         geom = get_ants_data("r16")
 
         mu = get_ants_data("r27")
         xi = get_ants_data("r27")
 
-        test_dict = coregister_MRE_images(geom=geom, mu=mu, xi=xi)
+        test_dict = coregister_MRE_images(geom=geom, mu_list=[mu], xi_list=[xi])
 
         assert "mu" in test_dict
         assert "xi" in test_dict
@@ -55,17 +77,17 @@ class TestMRECoreg:
         xi = get_ants_data("r27")
 
         with pytest.raises(ValueError):
-            test_dict = coregister_MRE_images(geom=geom, gp=mu, xi=xi)
+            test_dict = coregister_MRE_images(geom=geom, gp_list=mu, xi_list=xi)
 
         with pytest.raises(ValueError):
-            test_dict = coregister_MRE_images(geom=geom, mu=mu, gpp=xi)
+            test_dict = coregister_MRE_images(geom=geom, mu_list=mu, gpp_list=xi)
 
         with pytest.raises(FileNotFoundError):
             test_dict = coregister_MRE_images(geom="nonexistent_file.nii.gz")
 
         with pytest.raises(FileNotFoundError):
             test_dict = coregister_MRE_images(
-                geom=geom, geom_mask="nonexistent_mask.nii.gz", gp=mu, gpp=xi
+                geom=geom, geom_mask="nonexistent_mask.nii.gz", gp_list=mu, gpp_list=xi
             )
 
         with pytest.raises(TypeError):
@@ -77,7 +99,7 @@ class TestMRECoreg:
         with pytest.raises(ValueError):
             test_dict = coregister_MRE_images(
                 geom=geom,
-                gp=mu,
-                gpp=xi,
+                gp_list=mu,
+                gpp_list=xi,
                 imgout="/nonexistent_directory/output",
             )
