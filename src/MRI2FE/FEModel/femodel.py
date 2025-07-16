@@ -1,6 +1,7 @@
 import numpy as np
 from typing import List, Union
 from ..utilities import element_centroids
+import meshio
 
 
 class FEModel:
@@ -79,6 +80,45 @@ class FEModel:
                 raise ValueError("Sections must be a list of dictionaries")
         else:
             self.section_info: List[dict] = []
+
+    def from_meshio(self, 
+                    mesh: meshio.Mesh, 
+                    default_part_id: int = 1):
+        """
+        Convert a meshio.Mesh object into a custom FEModel object.
+
+        Args:
+            mesh: meshio.Mesh object
+            title: Metadata title for FEModel
+            source: Metadata source for FEModel
+            default_part_id: Default part ID for all elements
+
+        Returns:
+            FEModel instance with custom nodes and elements
+        """
+
+        # Add nodes
+        for node_id, (x, y, z) in enumerate(mesh.points, start=1):
+            self.add_nodes(node_id, x, y, z)
+
+        # Handle only one type of element for now (ex. "tetra")
+        supported_keys = ["tetra"]
+        found = False
+        for key in supported_keys:
+            if key in mesh.cells_dict:
+                elements = mesh.cells_dict[key]
+                for elem_id, node_ids in enumerate(elements, start=1):
+                    # FIXED: + 1 offset since meshio is zero indexed but FEModel is one indexed
+                    self.add_elements(
+                        elem_id, default_part_id, [i + 1 for i in node_ids]
+                    )
+                found = True
+                break
+
+        if not found:
+            raise ValueError(
+                f"No supported cell types found in mesh. Supported: {supported_keys}"
+            )
 
     def add_nodes(
         self,
