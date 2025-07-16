@@ -25,6 +25,6 @@ from . import Postprocess
 from . import MRE
 from . import Pipelines
 
-from .models.femodel import FEModel
+from .models.femodel import FEModel, model_from_meshio
 
 from .generate_mesh import mesh_from_nifti, nifti_to_inr

@@ -92,9 +92,11 @@ def create_test_nifti_MRI_files(output_dir: str = "test/test_data"):
         temp_file.write(header.encode("ascii"))
         temp_file.write(data.tobytes(order="F"))
 
-    #generate mesh
-    mesh_obj:meshio.Mesh = mesh_from_nifti(os.path.join(output_dir, "test_concentric_spheres.nii"))
-    mesh_obj.write(os.path.join(output_dir,"test_mesh_out.mesh"))
+    # generate mesh
+    mesh_obj: meshio.Mesh = mesh_from_nifti(
+        os.path.join(output_dir, "test_concentric_spheres.nii")
+    )
+    mesh_obj.write(os.path.join(output_dir, "test_mesh_out.mesh"))
 
 
 def create_test_nifti_MRE_files(output_dir: str = "test/test_data"):
@@ -210,21 +212,17 @@ def create_test_mesh_file(output_dir: str = "test/test_data"):
 
     return output_file
 
+
 def create_meshio_mesh(output_dir: str = "test/test_data"):
+    path = os.path.join(output_dir, "test_concentric_spheres.nii")
 
-        path = os.path.join(
-            output_dir, "test_concentric_spheres.nii"
-        )
+    mesh = mesh_from_nifti(path, optimize=True)
 
-        mesh = mesh_from_nifti(path, optimize=True)
+    out_path = os.path.join(output_dir, "test_mesh_out.mesh")
 
-        out_path = os.path.join(
-            output_dir, "test_mesh_out.mesh"
-        )
+    mesh.write(out_path)
 
-        mesh.write(out_path)
-
-        return out_path
+    return out_path
 
 
 def create_all_test_files(output_dir: str = "test/test_data"):
@@ -236,7 +234,6 @@ def create_all_test_files(output_dir: str = "test/test_data"):
     stiffness_path, damping_path = create_test_nifti_MRE_files(output_dir)
     mesh_path = create_test_mesh_file(output_dir)
     meshio_path = create_meshio_mesh(output_dir)
-
 
     print(f"Created test files:")
     print(f"Stiffness file: {stiffness_path}")

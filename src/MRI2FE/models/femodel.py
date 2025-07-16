@@ -25,9 +25,9 @@ class FEModel:
 
         # create node table - List of nodes: [node_id, x, y, z]
         if nodes is not None:
-            if isinstance(nodes,np.ndarray):
+            if isinstance(nodes, np.ndarray):
                 self.node_table = nodes.tolist()
-            elif isinstance(nodes,np.ndarray):
+            elif isinstance(nodes, np.ndarray):
                 self.node_table = nodes
             else:
                 raise ValueError("Nodes must be a list or numpy array")
@@ -38,7 +38,7 @@ class FEModel:
         if elements is not None:
             if isinstance(elements, np.ndarray):
                 self.element_table = elements.tolist()
-            elif isinstance(elements,list):
+            elif isinstance(elements, list):
                 self.element_table = elements
             else:
                 raise ValueError("Elements must be a list or numpy array")
@@ -47,7 +47,8 @@ class FEModel:
             self.element_table: List[list] = []
 
         # create centroid table - List of centroids: [x,y,z]
-        self.centroid_table: List[list] = []
+        self.centroid_table = []
+
         if len(self.element_table) > 0:
             for element in self.element_table:
                 self.centroid_table.append(
@@ -56,7 +57,7 @@ class FEModel:
 
         # create part info - Dictionary with keys "part id" and dictionary of "name":str and "constants":list
         if parts is not None:
-            if isinstance(parts,dict):
+            if isinstance(parts, dict):
                 self.part_info = parts
             else:
                 raise ValueError("Parts must be a dictionary")
@@ -65,7 +66,7 @@ class FEModel:
 
         # create material info - List of Dictionaries with three entries: "type":str, "ID":int, and "constants":list[int,float]
         if materials is not None:
-            if isinstance(materials,list):
+            if isinstance(materials, list):
                 self.material_info = materials
             else:
                 raise ValueError("Materials must be a list of dictionaries")
@@ -74,51 +75,12 @@ class FEModel:
 
         # create section info - List of Dictionaries with two entries: "ID": str and "constants":list[int, float]
         if sections is not None:
-            if isinstance(sections,list):
+            if isinstance(sections, list):
                 self.section_info = sections
             else:
                 raise ValueError("Sections must be a list of dictionaries")
         else:
             self.section_info: List[dict] = []
-
-    def from_meshio(self, 
-                    mesh: meshio.Mesh, 
-                    default_part_id: int = 1):
-        """
-        Convert a meshio.Mesh object into a custom FEModel object.
-
-        Args:
-            mesh: meshio.Mesh object
-            title: Metadata title for FEModel
-            source: Metadata source for FEModel
-            default_part_id: Default part ID for all elements
-
-        Returns:
-            FEModel instance with custom nodes and elements
-        """
-
-        # Add nodes
-        for node_id, (x, y, z) in enumerate(mesh.points, start=1):
-            self.add_nodes(node_id, x, y, z)
-
-        # Handle only one type of element for now (ex. "tetra")
-        supported_keys = ["tetra"]
-        found = False
-        for key in supported_keys:
-            if key in mesh.cells_dict:
-                elements = mesh.cells_dict[key]
-                for elem_id, node_ids in enumerate(elements, start=1):
-                    # FIXED: + 1 offset since meshio is zero indexed but FEModel is one indexed
-                    self.add_elements(
-                        elem_id, default_part_id, [i + 1 for i in node_ids]
-                    )
-                found = True
-                break
-
-        if not found:
-            raise ValueError(
-                f"No supported cell types found in mesh. Supported: {supported_keys}"
-            )
 
     def add_nodes(
         self,
@@ -127,12 +89,13 @@ class FEModel:
         y: float = None,
         z: float = None,
         node_array: np.ndarray = None,
+        force_insert: bool = False,
     ):
         """Add a node to the node table."""
         # check which input type is provided
         if all(var is not None for var in [node_id, x, y, z]):
             indiv_input = True
-            node_id_list = [node_id]
+            node_id_list = np.array([node_id])
 
         elif node_array is not None:
             indiv_input = False
@@ -144,12 +107,17 @@ class FEModel:
                 "Must provide either (node_id,x,y,z) or node_array"
             )
 
-        # check if node already in the table
-        node_table = self.get_node_table()
-        node_table = np.atleast_2d(node_table)
-        for n in node_id_list:
-            if node_table.shape[0] > 1 and n in node_table[:, 0]:
-                raise ValueError(f"Node ID {n} already exists, cannot append")
+        if not force_insert and self.get_node_table().size > 0:
+            # check if node already in the table
+            node_table = self.get_node_table()
+            node_table = np.atleast_2d(node_table)
+            node_table = node_table[:, 0]
+            matches = np.intersect1d(node_id_list, node_table)
+
+            if len(matches) > 0:
+                raise ValueError(
+                    f"The following inserted nodes have duplicate IDs: {matches}"
+                )
 
         # add nodes to node table
         if indiv_input:
@@ -168,6 +136,7 @@ class FEModel:
         part_id: int = None,
         nodes: list = None,
         element_array: np.ndarray = None,
+        force_insert: bool = False,
     ):
         """Add an element to the element table.
 
@@ -193,31 +162,37 @@ class FEModel:
             )
 
         # check if element already exists
-        element_table = self.get_element_table()
-        element_table = np.atleast_2d(element_table)
-        for e in element_id_list:
-            if element_table.shape[0] > 1 and e in element_table[:, 0]:
+        if not force_insert and self.get_element_table().size > 0:
+            # check if node already in the table
+            element_table = self.get_element_table()
+            element_table = np.atleast_2d(element_table)
+            element_table = element_table[:, 0]
+            matches = np.intersect1d(element_id_list, element_table)
+
+            if len(matches) > 0:
                 raise ValueError(
-                    f"Element ID {e} already exists, cannot insert"
+                    f"The following inserted nodes have duplicate IDs: {matches}"
                 )
 
         if indiv_input:
             self.element_table.append([element_id, part_id] + nodes)
             self.metadata["num_elements"] += 1
-            self.centroid_table.append(
-                element_centroids(
-                    [element_id, part_id] + nodes, np.array(self.node_table)
-                )
-            )
         else:
             element_list = element_array.tolist()
 
             for element in element_list:
                 self.element_table.append(element)
                 self.metadata["num_elements"] += 1
-                self.centroid_table.append(
-                    element_centroids(element, np.array(self.node_table))
-                )
+
+    def update_centroids(self):
+        if self.get_element_table().size > 0:
+            self.centroid_table = np.apply_along_axis(
+                element_centroids,
+                1,
+                np.array(np.atleast_2d(self.element_table)),
+                np.array(np.atleast_2d(self.node_table)),
+            )
+            self.centroid_table = self.centroid_table.tolist()
 
     def add_part(self, part_id: int, name: str, material_constants: list):
         """Add part information (e.g., material constants)."""
@@ -344,3 +319,60 @@ class FEModel:
 
             # End of file
             f.write("*END\n")
+
+
+def model_from_meshio(
+    mesh: Union[meshio.Mesh, str], title: str = "", source: str = ""
+) -> FEModel:
+    """
+    Convert a meshio.Mesh object into a custom FEModel object.
+
+    Args:
+        mesh: meshio.Mesh object
+        title: Metadata title for FEModel
+        source: Metadata source for FEModel
+        default_part_id: Default part ID for all elements
+
+    Returns:
+        FEModel instance with custom nodes and elements
+    """
+    if isinstance(mesh, str):
+        mesh = meshio.read(mesh)
+
+    # extract meshio points and create node numbering
+    mesh_nodes = mesh.points
+    n_points = mesh.points.shape[0]
+
+    # apply offsets
+    nids = np.arange(1, n_points + 1)
+    new_nodes = np.column_stack((nids, mesh_nodes))
+
+    # Handle only one type of element for now (ex. "tetra")
+    supported_keys = ["tetra"]
+    found = False
+    for key in supported_keys:
+        if key in mesh.cells_dict:
+            # extract meshio cells and create node numbering
+
+            mesh_elements = mesh.cells_dict[key]
+            n_elems = mesh_elements.shape[0]
+
+            # apply offsets
+            eids = np.arange(1, n_elems + 1)
+            mesh_elements = mesh_elements + 1
+
+            new_elements = np.column_stack((eids, mesh_elements))
+
+            found = True
+            break
+
+    if not found:
+        raise ValueError(
+            f"No supported cell types found in mesh. Supported: {supported_keys}"
+        )
+
+    out_mesh = FEModel(
+        title=title, source=source, nodes=new_nodes, elements=new_elements
+    )
+
+    return out_mesh

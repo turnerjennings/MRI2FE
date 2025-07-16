@@ -6,7 +6,7 @@ import os
 
 import meshio
 
-from MRI2FE import mesh_from_nifti, nifti_to_inr,FEModel
+from MRI2FE import mesh_from_nifti, nifti_to_inr, FEModel, model_from_meshio
 
 
 class TestMeshing:
@@ -30,14 +30,20 @@ class TestMeshing:
 
     def test_mesh_creation(self):
         root_dir = os.getcwd()
+
         path = os.path.join(
-            root_dir, "test","test_data", "test_concentric_spheres.nii"
+            root_dir, "test", "test_data", "test_concentric_spheres.nii"
         )
 
-        mesh = mesh_from_nifti(path, optimize=True)
+        mesh = mesh_from_nifti(path, optimize=True, facetSize=3, cellSize=2)
+
+        assert mesh is not None
+
+        assert mesh.points.shape[0] > 0
+        assert mesh.points.shape[1] > 0
 
         out_path = os.path.join(
-            root_dir, "test","test_data", "test_mesh_out.mesh"
+            root_dir, "test", "test_data", "test_mesh_out.mesh"
         )
 
         mesh.write(out_path)
@@ -54,13 +60,16 @@ class TestMeshing:
         root_dir = os.getcwd()
 
         inpath = os.path.join(
-            root_dir,"test","test_data","test_mesh_out.mesh"
+            root_dir, "test", "test_data", "test_mesh_out.mesh"
         )
 
         mesh = meshio.read(inpath)
+        print(mesh.points)
+        print(mesh.cells_dict["tetra"])
 
-        mdl = FEModel(title="test",source=inpath)
+        mdl: FEModel = model_from_meshio(mesh, title="test", source="test")
 
-        mdl.from_meshio(mesh)
+        print(mdl.get_node_table().shape)
+        print(mdl.get_element_table().shape)
 
-        assert mdl.get_node_table.shape[0] > 1
+        assert mdl.get_node_table().shape[0] > 1

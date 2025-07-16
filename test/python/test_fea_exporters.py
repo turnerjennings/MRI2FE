@@ -63,6 +63,7 @@ class TestFEModel:
         assert mdl.get_node_table().shape == (5, 4)
         assert mdl.get_element_table().shape == (2, 6)
 
+        mdl.update_centroids()
         print(mdl.centroid_table)
         assert np.array(mdl.centroid_table).shape == (2, 3)
 
