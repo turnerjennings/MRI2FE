@@ -316,7 +316,7 @@ def element_centroids(elnodes:Union[np.ndarray,tuple,list],
     if node_coords.shape[1] != 4:  # Must have NID and xyz coordinates
         raise ValueError("node_coords must have 4 columns (NID, x, y, z)")
 
-    nodes = elnodes[2:]
+    nodes = np.unique(elnodes[2:])
 
     coords=[]
     for node in nodes:
@@ -329,7 +329,7 @@ def element_centroids(elnodes:Union[np.ndarray,tuple,list],
     if n < 2:
         raise ValueError(f"only {n} points found during centroid calculation")
     
-    cx = np.mean(coords,axis=1)
+    cx = np.mean(coords,axis=0).flatten()
 
     return cx
         

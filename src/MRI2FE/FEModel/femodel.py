@@ -1,10 +1,16 @@
 import numpy as np
 import meshio
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 
 class FEModel:
-    def __init__(self, title: str = "", source: str = ""):
+    def __init__(self, title: str = "", 
+                 source: str = "", 
+                 nodes: Union[list,np.ndarray] = None,
+                 elements: Union[list,np.ndarray] = None,
+                 parts: dict = None,
+                 materials: List[dict] = None,
+                 sections: List[dict] = None):
         """Initialize the FEModel data structure."""
         self.metadata = {
             "title": title,
@@ -13,30 +19,97 @@ class FEModel:
             "num_elements": 0,
         }
 
-        self.node_table: List[
-            Tuple[int, float, float, float]
-        ] = []  # List of nodes: [node_id, x, y, z]
+        #create node table - List of nodes: [node_id, x, y, z]
+        if nodes is not None:
+            if type(nodes) == np.ndarray:
+                self.node_table = nodes.tolist()
+            elif type(nodes) == list:
+                self.node_table = nodes
+            else:
+                raise ValueError("Nodes must be a list or numpy array")
+        else:
+            self.node_table: List[
+                list
+            ] = []  
 
-        self.element_table: List[
-            Tuple[int, int, int, int, int, int]
-        ] = []  # List of elements: [element_id, part_id, node1, node2, node3, node4]
 
-        self.part_info: dict = {}  # Dictionary with keys "part id" and dictionary of "name":str and "constants":list
+        #create element table - List of elements: [element_id, part_id, node1, node2, node3, node4]
+        if elements is not None:
+            if type(elements) == np.ndarray:
+                self.element_table = elements.tolist()
+            elif type(elements) == list:
+                self.element_table = elements
+            else:
+                raise ValueError("Elements must be a list or numpy array")
 
-        self.material_info: List[
-            dict
-        ] = []  # List of Dictionaries with three entries: "type":str, "ID":int, and "constants":list[int,float]
+        else:
+            self.element_table: List[
+                list
+            ] = [] 
+
         
-        self.section_info: List[
-            dict
-        ] = []  # List of Dictionaries with two entries: "ID": str and "constants":list[int, float]
+        #create part info - Dictionary with keys "part id" and dictionary of "name":str and "constants":list
+        if parts is not None:
+            if type(parts) == dict:
+                self.part_info = parts
+            else:
+                raise ValueError("Parts must be a dictionary")
+        else:
+            self.part_info: dict = {} 
 
-    def add_node(self, node_id: int, x: float, y: float, z: float):
+        
+        #create material info - List of Dictionaries with three entries: "type":str, "ID":int, and "constants":list[int,float]
+        if materials is not None:
+            if type(parts) == list:
+                self.material_info = materials
+            else:
+                raise ValueError("Materials must be a list of dictionaries")
+        else:
+            self.material_info: List[
+                dict
+            ] = []  
+        
+
+        #create section info - List of Dictionaries with two entries: "ID": str and "constants":list[int, float]
+        if sections is not None:
+            if type(parts) == list:
+                self.section_info = sections
+            else:
+                raise ValueError("Sections must be a list of dictionaries")
+        else:
+            self.section_info: List[
+                dict
+            ] = []
+
+
+    def add_nodes(self, 
+                  node_id: int = None, 
+                  x: float = None, 
+                  y: float = None, 
+                  z: float = None, 
+                  node_array: np.ndarray = None):
         """Add a node to the node table."""
-        self.node_table.append([node_id, x, y, z])
-        self.metadata["num_nodes"] += 1
+        if all(var is not None for var in [node_id,x,y,z]):
 
-    def add_element(self, element_id: int, nodes: list, part_id: int):
+            self.node_table.append([node_id, x, y, z])
+            self.metadata["num_nodes"] += 1
+
+        elif node_array is not None:
+            node_list = node_array.tolist()
+
+            for node in node_list:
+                self.node_table.append(node)
+                self.metadata["num_nodes"] += 1
+
+        else:
+            raise ValueError("Must provide either (node_id,x,y,z) or node_array")
+
+
+    def add_elements(self, 
+                     element_id: int = None, 
+                     part_id: int = None,
+                     nodes: list = None,
+                     element_array:np.ndarray = None):
         """Add an element to the element table.
 
         Args:
@@ -44,8 +117,22 @@ class FEModel:
             nodes: List of node references
             part_id: The part ID for this element
         """
-        self.element_table.append([element_id, part_id] + nodes)
-        self.metadata["num_elements"] += 1
+
+        if all(var is not None for var in [element_id, part_id, nodes]):
+
+            self.element_table.append([element_id, part_id] + nodes)
+            self.metadata["num_elements"] += 1
+
+        elif element_array is not None:
+            element_list = element_array.tolist()
+
+            for element in element_list:
+                self.element_table.append(element)
+                self.metadata["num_elements"] += 1
+
+        else:
+            raise ValueError("Must provide either (element_id, part_id, nodes) or element_array")
+
 
     def add_part(self, part_id: int, name:str, material_constants: list):
         """Add part information (e.g., material constants)."""
@@ -171,38 +258,3 @@ class FEModel:
 
             # End of file
             f.write("*END\n")
-
-    def write_abaqus(self, filename: str):
-        """
-        Write FE model data to an ABAQUS .inp file.
-
-        Args:
-            model (FEAModel): Model containing nodes, elements, and materials.
-            filename (str): Output file path for the .inp file.
-        """
-
-        nodes = self.get_node_table()
-
-        cells = self.get_element_table()
-        mesh = meshio.Mesh(
-            points=nodes,
-            cells={"tetra": cells},
-        )
-        mesh.write(filename, file_format="abaqus")
-
-        # Add more material types as needed underneath
-        with open(filename, "a") as f:
-            for mat_id, mat in self.material_info.items():
-                f.write(f"\n*MATERIAL, NAME={mat_id}\n")
-                if mat["type"].lower() == "elastic":
-                    f.write("*ELASTIC\n")
-                    youngs_modulus = mat["properties"].get("E")
-                    poisson_ratio = mat["properties"].get("nu")
-                    if youngs_modulus and poisson_ratio:
-                        f.write(f"{youngs_modulus}, {poisson_ratio}\n")
-
-            for part_id, part in self.part_info.items():
-                f.write(
-                    f"\n*SOLID SECTION, ELSET=part_{part_id}, MATERIAL={part['material']}\n"
-                )
-                f.write("1.0\n")

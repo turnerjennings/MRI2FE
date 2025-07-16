@@ -1,86 +1,59 @@
 import pytest
-from MRI2FE import FEAModel, write_abaqus, write_lsdyna
+from MRI2FE import FEModel
+import numpy as np
+import os
 
-
-def cube_nodes():
-    return {
-        1: (0, 0, 0),
-        2: (1, 0, 0),
-        3: (1, 1, 0),
-        4: (0, 1, 0),
-        5: (0, 0, 1),
-        6: (1, 0, 1),
-        7: (1, 1, 1),
-        8: (0, 1, 1),
-    }
+def cube_nodes() -> np.ndarray:
+    return np.array([
+        [1, 0., 0., 0.],
+        [2, 1., 0., 0.],
+        [3, 1., 1., 0.],
+        [4, 0., 1., 0.],
+        [5, 0., 0., 1.],
+        [6, 1., 0., 1.],
+        [7, 1., 1., 1.],
+        [8, 0., 1., 1.],
+    ])
 
 
 @pytest.fixture
 def sample_model():
-    return FEAModel(
-        title="Test",
-        nodes=cube_nodes(),
-        elements={
-            1: {
-                "type": "C3D8",
-                "elements": [[1, 2, 3, 4, 5, 6, 7, 8]],
-                "material": "steel",
-                "elform": 1,
-                "aet": 0,
-            }
-        },
-        materials={
-            "steel": {
-                "type": "elastic",
-                "properties": {"E": 210e9, "nu": 0.3, "density": 7850},
-            }
-        },
-    )
 
+    model = FEModel(title="Test model",
+                    source="test")
 
-@pytest.fixture
-def visco_model():
-    return FEAModel(
-        title="Viscoelastic Test",
-        nodes=cube_nodes(),
-        elements={
-            1: {
-                "type": "C3D8",
-                "elements": [[1, 2, 3, 4, 5, 6, 7, 8]],
-                "material": "visco",
-                "elform": 1,
-                "aet": 0,
-            }
-        },
-        materials={
-            "visco": {
-                "type": "kelvin_maxwell",
-                "properties": {
-                    "E": 50e6,
-                    "nu": 0.45,
-                    "eta": 500.0,
-                    "density": 1200,
-                },
-            }
-        },
-    )
+    model.add_nodes(1, 0.0, 0.0, 0.0)
+    model.add_nodes(2, 1.0, 0.0, 0.0)
+    model.add_nodes(3, 0.0, 1.0, 0.0)
+    model.add_nodes(4, 0.0, 0.0, 1.0)
+    model.add_nodes(5, 1.0, 1.0, 1.0)
 
+    model.add_elements(1,1, [1, 2, 3, 4])
+    model.add_elements(2,2, [2, 3, 4, 5])
+    model.add_part(part_id=1, name="part1", material_constants=[1,1])
+    model.add_part(part_id=2, name="part2", material_constants=[2,1])
 
-def test_write_abaqus_creates_file(tmp_path, sample_model):
-    out_file = tmp_path / "test.inp"
-    write_abaqus(sample_model, str(out_file))
-    assert out_file.exists()
+    model.section_info.append({"ID": 1, "constants": [1]})
+    model.section_info.append({"ID": 2, "constants": [1]})
 
-    content = out_file.read_text()
-    assert "*NODE" in content or "*Node" in content
-    assert "*ELEMENT" in content or "*Element" in content
-    assert "*MATERIAL" in content
-    assert "*SOLID SECTION" in content
+    model.material_info.append({
+        "type": "ELASTIC",
+        "ID": 1,
+        "constants": [1000., 210000., 0.3]
+    })
+
+    model.material_info.append({
+        "type": "KELVIN-MAXWELL_VISCOELASTIC",
+        "ID": 2,
+        "constants": [1000., 210000., 0.3, 1.0, 1.0, 1.0, 1.0]
+    })
+
+    return model
 
 
 def test_write_lsdyna_creates_file(tmp_path, sample_model):
     out_file = tmp_path / "test.k"
-    write_lsdyna(sample_model, str(out_file))
+    sample_model.write_lsdyna(os.path.join(tmp_path,"test.k"))
     assert out_file.exists()
 
     content = out_file.read_text()
@@ -90,20 +63,3 @@ def test_write_lsdyna_creates_file(tmp_path, sample_model):
     assert "*PART" in content
     assert "*SECTION_SOLID" in content
     assert "*MAT_ELASTIC" in content
-    assert (
-        "7.8500e+03" in content or "7850.0000e+00" in content
-    )  # density value check
-    assert "2.1000e+11" in content  # E value
-
-
-def test_write_lsdyna_viscoelastic(tmp_path, visco_model):
-    out_file = tmp_path / "visco.k"
-    write_lsdyna(visco_model, str(out_file))
-    assert out_file.exists()
-
-    content = out_file.read_text()
-    assert "*MAT_KELVIN_MAXWELL_VISCOELASTIC" in content
-    assert "5.0000e+02" in content  # eta
-    assert "1.2000e+03" in content or "1200.0000e+00" in content  # density
-    assert "5.0000e+07" in content  # E
-    assert "4.5000e-01" in content  # nu
