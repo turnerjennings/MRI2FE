@@ -286,7 +286,7 @@ def element_centroids(elnodes:Union[np.ndarray,tuple,list],
     """Calculate the centroid of an element
 
     Args:
-        elnodes (np.array): 1D array containing EID, PID, and connected nodes for arbitrary 10-node element
+        elnodes (np.array): 1D array containing EID, PID, and connected nodes
         node_coords (np.array): 2D array containing NID, xyz coordinates
 
     Raises:
@@ -301,6 +301,8 @@ def element_centroids(elnodes:Union[np.ndarray,tuple,list],
         raise TypeError("elnodes must be a numpy array, tuple, or list")
     if not isinstance(node_coords, np.ndarray):
         raise TypeError("node_coords must be a numpy array")
+    
+    elnodes = np.asarray(elnodes)
 
     # Validate array dimensions
     if len(elnodes.shape) != 1:
@@ -308,11 +310,6 @@ def element_centroids(elnodes:Union[np.ndarray,tuple,list],
     if len(node_coords.shape) != 2:
         raise ValueError("node_coords must be a 2D array")
 
-    # Validate array sizes
-    if elnodes.shape[0] < 12:  # Must have at least EID, PID, and 10 nodes
-        raise ValueError(
-            "elnodes must contain at least 12 elements (EID, PID, and 10 nodes)"
-        )
     if node_coords.shape[1] != 4:  # Must have NID and xyz coordinates
         raise ValueError("node_coords must have 4 columns (NID, x, y, z)")
 
@@ -331,5 +328,5 @@ def element_centroids(elnodes:Union[np.ndarray,tuple,list],
     
     cx = np.mean(coords,axis=0).flatten()
 
-    return cx
+    return cx.tolist()
         

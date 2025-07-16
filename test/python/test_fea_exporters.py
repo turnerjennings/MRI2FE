@@ -15,16 +15,17 @@ def cube_nodes() -> np.ndarray:
         [8, 0., 1., 1.],
     ])
 
-
-@pytest.fixture
 def sample_model():
 
     model = FEModel(title="Test model",
                     source="test")
 
     model.add_nodes(1, 0.0, 0.0, 0.0)
+    print(model.node_table)
     model.add_nodes(2, 1.0, 0.0, 0.0)
+    print(model.node_table)
     model.add_nodes(3, 0.0, 1.0, 0.0)
+    print(model.node_table)
     model.add_nodes(4, 0.0, 0.0, 1.0)
     model.add_nodes(5, 1.0, 1.0, 1.0)
 
@@ -51,15 +52,107 @@ def sample_model():
     return model
 
 
-def test_write_lsdyna_creates_file(tmp_path, sample_model):
-    out_file = tmp_path / "test.k"
-    sample_model.write_lsdyna(os.path.join(tmp_path,"test.k"))
-    assert out_file.exists()
+class TestFEModel:
+    def test_femodel(self):
+        mdl = sample_model()
+        print(mdl)
 
-    content = out_file.read_text()
-    assert "*KEYWORD" in content
-    assert "*NODE" in content
-    assert "*ELEMENT_SOLID" in content
-    assert "*PART" in content
-    assert "*SECTION_SOLID" in content
-    assert "*MAT_ELASTIC" in content
+        #check 
+        assert mdl.get_node_table().shape == (5,4)
+        assert mdl.get_element_table().shape == (2,6)
+
+        print(mdl.centroid_table)
+        assert np.array(mdl.centroid_table).shape == (2,3)
+
+        assert len(mdl.part_info) == 2
+        assert len(mdl.section_info) == 2
+        assert len(mdl.material_info) == 2
+
+    def test_add_nodes_single(self):
+        #complete individual input
+        mdl = sample_model()
+        mdl.add_nodes(6,2.0,3.0,4.0)
+        
+        np.testing.assert_equal(mdl.get_node_table()[-1,:],
+                                np.array([6,2.0,3.0,4.0]))
+        
+        #incomplete individual input
+        with pytest.raises(ValueError):
+            mdl.add_nodes(node_id = 7, x=1.0, z=1.0)
+
+        #repeat node ID
+        with pytest.raises(ValueError):
+            mdl.add_nodes(node_id = 1, x=1.0, y=2.0, z=3.0)
+
+        #complete array input
+        mdl.add_nodes(node_array = np.array([7,1.,2.,3.]))
+
+        #repeat node ID array
+        with pytest.raises(ValueError):
+            mdl.add_nodes(node_array = np.array([1,1.,1.,1.]))
+    
+    def test_add_nodes_multiple(self):
+        mdl = sample_model()
+        #array input
+        node_arr = np.array([
+            [6,5.,5.,5.],
+            [7,7.,7.,7.]
+        ])
+
+        mdl.add_nodes(node_array = node_arr)
+        print(mdl.get_node_table())
+        assert mdl.get_node_table().shape == (7,4)
+
+        node_arr = np.array([
+            [6,5.,5.,5.],
+            [8,7.,7.,7.]
+        ])
+        #array input with repeat value
+        with pytest.raises(ValueError):
+            mdl.add_nodes(node_array = node_arr)
+            
+    def test_add_elements(self):
+        #complete individual input
+        mdl = sample_model()
+        mdl.add_elements(3,1,[1,2,3,4])
+        
+        np.testing.assert_equal(mdl.get_element_table()[-1,:],
+                                np.array([3,1,1.,2.,3.,4.]))
+        
+        #incomplete individual input
+        with pytest.raises(ValueError):
+            mdl.add_elements(element_id = 3,nodes=[1,2,3,4])
+
+        #repeat node ID
+        with pytest.raises(ValueError):
+            mdl.add_elements(element_id = 1, 
+                             part_id = 1, 
+                             nodes = [1., 2., 3., 4.,])
+
+        #complete array input
+        mdl.add_elements(element_array = np.array([
+            [5,1,1,2,3,4],
+            [6,2,1,2,3,4]
+        ]))
+
+        #repeat node ID array
+        with pytest.raises(ValueError):
+            mdl.add_elements(element_array = np.array([
+                [1,1,1,2,3,4],
+                [7,1,1,2,3,4]
+            ]))
+
+    def test_write_lsdyna_creates_file(self, tmp_path):
+
+        mdl = sample_model()
+        out_file = tmp_path / "test.k"
+        mdl.write_lsdyna(os.path.join(tmp_path,"test.k"))
+        assert out_file.exists()
+
+        content = out_file.read_text()
+        assert "*KEYWORD" in content
+        assert "*NODE" in content
+        assert "*ELEMENT_SOLID" in content
+        assert "*PART" in content
+        assert "*SECTION_SOLID" in content
+        assert "*MAT_ELASTIC" in content

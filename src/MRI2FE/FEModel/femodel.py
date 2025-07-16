@@ -1,6 +1,7 @@
 import numpy as np
 import meshio
 from typing import List, Tuple, Union
+from ..utilities import element_centroids
 
 
 class FEModel:
@@ -48,6 +49,13 @@ class FEModel:
             ] = [] 
 
         
+        #create centroid table - List of centroids: [x,y,z]
+        self.centroid_table: List[list] = []
+        if len(self.element_table) > 0:
+            for element in self.element_table:
+                self.centroid_table.append(element_centroids(element,np.array(self.node_table)))
+
+        
         #create part info - Dictionary with keys "part id" and dictionary of "name":str and "constants":list
         if parts is not None:
             if type(parts) == dict:
@@ -89,21 +97,37 @@ class FEModel:
                   z: float = None, 
                   node_array: np.ndarray = None):
         """Add a node to the node table."""
+        #check which input type is provided
         if all(var is not None for var in [node_id,x,y,z]):
-
-            self.node_table.append([node_id, x, y, z])
-            self.metadata["num_nodes"] += 1
+            indiv_input = True
+            node_id_list = [node_id]
 
         elif node_array is not None:
-            node_list = node_array.tolist()
-
-            for node in node_list:
-                self.node_table.append(node)
-                self.metadata["num_nodes"] += 1
+            indiv_input = False
+            node_array = np.atleast_2d(node_array)
+            node_id_list = node_array[:,0]
 
         else:
             raise ValueError("Must provide either (node_id,x,y,z) or node_array")
 
+
+        #check if node already in the table
+        node_table = self.get_node_table()
+        node_table = np.atleast_2d(node_table)
+        for n in node_id_list:
+            if node_table.shape[0] > 1 and n in node_table[:,0]:
+                raise ValueError(f"Node ID {n} already exists, cannot append")
+
+        #add nodes to node table
+        if indiv_input:
+            self.node_table.append([node_id, x, y, z])
+            self.metadata["num_nodes"] += 1
+        else:
+            node_array = node_array.tolist()
+
+            for node in node_array:
+                self.node_table.append(node)
+                self.metadata["num_nodes"] += 1
 
     def add_elements(self, 
                      element_id: int = None, 
@@ -119,19 +143,38 @@ class FEModel:
         """
 
         if all(var is not None for var in [element_id, part_id, nodes]):
-
-            self.element_table.append([element_id, part_id] + nodes)
-            self.metadata["num_elements"] += 1
+            indiv_input = True
+            element_id_list = [element_id]
 
         elif element_array is not None:
+            indiv_input = False
+
+            element_array = np.atleast_2d(element_array)
+            element_id_list = element_array[:,0]
+
+        else:
+            raise ValueError("Must provide either (element_id, part_id, nodes) or element_array")
+
+        #check if element already exists
+        element_table = self.get_element_table()
+        element_table = np.atleast_2d(element_table)
+        for e in element_id_list:
+            if element_table.shape[0] > 1 and e in element_table[:,0]:
+                raise ValueError(f"Element ID {e} already exists, cannot insert")
+        
+        if indiv_input:
+            self.element_table.append([element_id, part_id] + nodes)
+            self.metadata["num_elements"] += 1
+            self.centroid_table.append(element_centroids([element_id,part_id] + nodes, np.array(self.node_table)))
+        else:
             element_list = element_array.tolist()
 
             for element in element_list:
                 self.element_table.append(element)
                 self.metadata["num_elements"] += 1
+                self.centroid_table.append(element_centroids(element, np.array(self.node_table)))
 
-        else:
-            raise ValueError("Must provide either (element_id, part_id, nodes) or element_array")
+
 
 
     def add_part(self, part_id: int, name:str, material_constants: list):
