@@ -9,8 +9,6 @@ from ants import (
     apply_transforms,
 )
 from ants.core.ants_image import ANTsImage
-import meshio
-from src.MRI2FE.FEModel import FEModel
 import numpy as np
 from .calculate_prony import calculate_prony
 from datetime import datetime
@@ -28,9 +26,10 @@ def _entry_to_list(entry):
         list: list form of input
     """
 
-    if entry is not None and isinstance(entry,(str,ANTsImage)):
+    if entry is not None and isinstance(entry, (str, ANTsImage)):
         return [entry]
     return entry
+
 
 def coregister_MRE_images(
     geom: Union[str, ANTsImage],
@@ -57,13 +56,12 @@ def coregister_MRE_images(
     """
     if geom is None:
         raise ValueError("Geometry image is required")
-    
-    #check if entries are not lists
+
+    # check if entries are not lists
     gp_list = _entry_to_list(gp_list)
     gpp_list = _entry_to_list(gpp_list)
     mu_list = _entry_to_list(mu_list)
     xi_list = _entry_to_list(xi_list)
-
 
     # Load geometry image
     if isinstance(geom, str):
@@ -71,16 +69,22 @@ def coregister_MRE_images(
             raise FileNotFoundError(f"Geometry image file not found: {geom}")
         geom = image_read(geom)
     elif not isinstance(geom, ANTsImage):
-        raise TypeError("geom must be either a filepath string or ANTsImage object")
+        raise TypeError(
+            "geom must be either a filepath string or ANTsImage object"
+        )
 
     # Load optional geometry mask
     if geom_mask is not None:
         if isinstance(geom_mask, str):
             if not os.path.exists(geom_mask):
-                raise FileNotFoundError(f"Geometry mask file not found: {geom_mask}")
+                raise FileNotFoundError(
+                    f"Geometry mask file not found: {geom_mask}"
+                )
             geom_mask = image_read(geom_mask)
         elif not isinstance(geom_mask, ANTsImage):
-            raise TypeError("geom_mask must be either a filepath string or ANTsImage object")
+            raise TypeError(
+                "geom_mask must be either a filepath string or ANTsImage object"
+            )
 
     results = []
 
@@ -94,7 +98,11 @@ def coregister_MRE_images(
                 gpp = image_read(gpp)
 
             # Create binary mask for moving image
-            gp_mask = threshold_image(gp, np.min(np.nonzero(gp.numpy())), np.max(np.nonzero(gp.numpy())))
+            gp_mask = threshold_image(
+                gp,
+                np.min(np.nonzero(gp.numpy())),
+                np.max(np.nonzero(gp.numpy())),
+            )
 
             # Resample geometry to match moving image resolution
             geom_ants = resample_image_to_target(geom, gp)
@@ -110,19 +118,32 @@ def coregister_MRE_images(
 
             # Apply transformation to both gp and gpp
             gp_out = tx["warpedmovout"]
-            gpp_out = apply_transforms(fixed=geom, moving=gpp, transformlist=tx["fwdtransforms"])
+            gpp_out = apply_transforms(
+                fixed=geom, moving=gpp, transformlist=tx["fwdtransforms"]
+            )
 
-            results.append({"gp": gp_out, "gpp": gpp_out, "transform": tx["fwdtransforms"]})
+            results.append(
+                {
+                    "gp": gp_out,
+                    "gpp": gpp_out,
+                    "transform": tx["fwdtransforms"],
+                }
+            )
 
-            #save imgout
+            # save imgout
             if imgout is not None:
                 if not os.path.exists(imgout):
                     raise ValueError("imgout directory does not exist")
                 else:
-                    base = f"{imgout + "MRE{idx}_coreg.jpg"}"
-                    plot(geom, overlay=gp_out, overlay_cmap="Dark2", overlay_alpha=0.8, filename=base, axis=0)
-
-
+                    base = f"{imgout + 'MRE{idx}_coreg.jpg'}"
+                    plot(
+                        geom,
+                        overlay=gp_out,
+                        overlay_cmap="Dark2",
+                        overlay_alpha=0.8,
+                        filename=base,
+                        axis=0,
+                    )
 
     # Coregistration for shear stiffness and damping ratio (mu + xi)
     elif mu_list and xi_list:
@@ -134,7 +155,11 @@ def coregister_MRE_images(
                 xi = image_read(xi)
 
             # Create binary mask for moving image
-            mu_mask = threshold_image(mu, np.min(np.nonzero(mu.numpy())), np.max(np.nonzero(mu.numpy())))
+            mu_mask = threshold_image(
+                mu,
+                np.min(np.nonzero(mu.numpy())),
+                np.max(np.nonzero(mu.numpy())),
+            )
 
             # Resample geometry to match moving image resolution
             geom_ants = resample_image_to_target(geom, mu)
@@ -150,28 +175,41 @@ def coregister_MRE_images(
 
             # Apply transformation to both mu and xi
             mu_out = tx["warpedmovout"]
-            xi_out = apply_transforms(fixed=geom, moving=xi, transformlist=tx["fwdtransforms"])
+            xi_out = apply_transforms(
+                fixed=geom, moving=xi, transformlist=tx["fwdtransforms"]
+            )
 
-            results.append({"mu": mu_out, "xi": xi_out, "transform": tx["fwdtransforms"]})
+            results.append(
+                {"mu": mu_out, "xi": xi_out, "transform": tx["fwdtransforms"]}
+            )
 
-            #save imgout
+            # save imgout
             if imgout is not None:
                 if not os.path.exists(imgout):
                     raise ValueError("imgout directory does not exist")
                 else:
-                    base = f"{imgout + "MRE{idx}_coreg.jpg"}"
-                    plot(geom, overlay=gp_out, overlay_cmap="Dark2", overlay_alpha=0.8, filename=base, axis=0)
+                    base = f"{imgout + 'MRE{idx}_coreg.jpg'}"
+                    plot(
+                        geom,
+                        overlay=gp_out,
+                        overlay_cmap="Dark2",
+                        overlay_alpha=0.8,
+                        filename=base,
+                        axis=0,
+                    )
     else:
-        raise ValueError("Must provide either (gp_list, gpp_list) or (mu_list, xi_list)")
+        raise ValueError(
+            "Must provide either (gp_list, gpp_list) or (mu_list, xi_list)"
+        )
 
-
-    #return single dict or list of dicts
+    # return single dict or list of dicts
     if len(results) == 0:
         raise ValueError("No results generated from MRE coregistration")
     elif len(results) == 1:
         return results[0]
     else:
         return results
+
 
 def segment_MRE_regions(SS_img, DR_img, n_segs: int = 5):
     """Segment MRE images and calculate Prony model parameters for each region.
@@ -204,7 +242,9 @@ def segment_MRE_regions(SS_img, DR_img, n_segs: int = 5):
 
         # Compute Prony series parameters
         Ginf, G1, tau, _, _ = calculate_prony(SS_mean, DR_mean, 50.0)
-        print(f"Segment {i}: SS={SS_mean:.3f}, DR={DR_mean:.3f}, Ginf={Ginf:.3f}, G1={G1:.3f}, tau={tau:.3f}")
+        print(
+            f"Segment {i}: SS={SS_mean:.3f}, DR={DR_mean:.3f}, Ginf={Ginf:.3f}, G1={G1:.3f}, tau={tau:.3f}"
+        )
 
         ROI_means["index"].append(i)
         ROI_means["Ginf"].append(Ginf / 1000)
@@ -212,6 +252,7 @@ def segment_MRE_regions(SS_img, DR_img, n_segs: int = 5):
         ROI_means["Tau"].append(tau)
 
     return ROI_means
+
 
 def run_MRE_pipeline(geom, DR_list, SS_list, n_segs=5, imgout=None):
     """Run full MRE pipeline: coregistration + segmentation + Prony analysis.
@@ -226,45 +267,11 @@ def run_MRE_pipeline(geom, DR_list, SS_list, n_segs=5, imgout=None):
     Returns:
         Tuple of coregistration results and ROI statistics per image pair.
     """
-    coreg_results = coregister_MRE_images(geom=geom, gp_list=SS_list, gpp_list=DR_list, imgout=imgout)
+    coreg_results = coregister_MRE_images(
+        geom=geom, gp_list=SS_list, gpp_list=DR_list, imgout=imgout
+    )
     all_results = []
     for result in coreg_results:
         ROI_means = segment_MRE_regions(result["gp"], result["gpp"], n_segs)
         all_results.append(ROI_means)
     return coreg_results, all_results
-
-def meshio_to_femodel(mesh: meshio.Mesh, title: str = "", source: str = "", default_part_id: int = 1) -> FEModel:
-    """
-    Convert a meshio.Mesh object into a custom FEModel object.
-
-    Args:
-        mesh: meshio.Mesh object
-        title: Metadata title for FEModel
-        source: Metadata source for FEModel
-        default_part_id: Default part ID for all elements
-
-    Returns:
-        FEModel instance with custom nodes and elements
-    """
-    femodel = FEModel(title=title, source=source)
-
-    # Add nodes
-    for node_id, (x, y, z) in enumerate(mesh.points, start=1):
-        femodel.add_node(node_id, x, y, z)
-
-    # Handle only one type of element for now (ex. "tetra")
-    supported_keys = ["tetra", "triangle", "hexahedron", "quad"]
-    found = False
-    for key in supported_keys:
-        if key in mesh.cells_dict:
-            elements = mesh.cells_dict[key]
-            for elem_id, node_ids in enumerate(elements, start=1):
-                # FIXED: + 1 offset since meshio is zero indexed but FEModel is one indexed
-                femodel.add_element(elem_id, [i + 1 for i in node_ids], default_part_id)
-            found = True
-            break
-
-    if not found:
-        raise ValueError(f"No supported cell types found in mesh. Supported: {supported_keys}")
-
-    return femodel

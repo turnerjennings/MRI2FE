@@ -1,7 +1,6 @@
 import numpy as np
 import ants
 from typing import Union
-from ants.core.ants_image import ANTsImage
 
 
 def COM_align(
