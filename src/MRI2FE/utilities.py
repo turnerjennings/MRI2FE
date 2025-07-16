@@ -281,8 +281,9 @@ def spatial_map(infile: ants.core.ants_image.ANTsImage) -> np.ndarray:
     return coordinates_and_values
 
 
-def element_centroids(elnodes:Union[np.ndarray,tuple,list], 
-                      node_coords:np.ndarray) -> np.ndarray:
+def element_centroids(
+    elnodes: Union[np.ndarray, tuple, list], node_coords: np.ndarray
+) -> np.ndarray:
     """Calculate the centroid of an element
 
     Args:
@@ -297,11 +298,11 @@ def element_centroids(elnodes:Union[np.ndarray,tuple,list],
         centroid (np.array): (3,) array containing average coordinate of the element
     """
     # Validate input types
-    if not isinstance(elnodes, (np.ndarray,tuple,list)):
+    if not isinstance(elnodes, (np.ndarray, tuple, list)):
         raise TypeError("elnodes must be a numpy array, tuple, or list")
     if not isinstance(node_coords, np.ndarray):
         raise TypeError("node_coords must be a numpy array")
-    
+
     elnodes = np.asarray(elnodes)
 
     # Validate array dimensions
@@ -315,18 +316,19 @@ def element_centroids(elnodes:Union[np.ndarray,tuple,list],
 
     nodes = np.unique(elnodes[2:])
 
-    coords=[]
+    coords = []
     for node in nodes:
-        if node not in node_coords[:,0]:
-            raise ValueError(f"Point {node} not found in node array during centroid calculation")
-        coords.append(node_coords[node_coords[:,0] == node,1:])
+        if node not in node_coords[:, 0]:
+            raise ValueError(
+                f"Point {node} not found in node array during centroid calculation"
+            )
+        coords.append(node_coords[node_coords[:, 0] == node, 1:])
     coords = np.array(coords)
 
     n = len(coords)
     if n < 2:
         raise ValueError(f"only {n} points found during centroid calculation")
-    
-    cx = np.mean(coords,axis=0).flatten()
+
+    cx = np.mean(coords, axis=0).flatten()
 
     return cx.tolist()
-        

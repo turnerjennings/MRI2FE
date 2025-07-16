@@ -1,17 +1,19 @@
 import numpy as np
-import meshio
-from typing import List, Tuple, Union
+from typing import List, Union
 from ..utilities import element_centroids
 
 
 class FEModel:
-    def __init__(self, title: str = "", 
-                 source: str = "", 
-                 nodes: Union[list,np.ndarray] = None,
-                 elements: Union[list,np.ndarray] = None,
-                 parts: dict = None,
-                 materials: List[dict] = None,
-                 sections: List[dict] = None):
+    def __init__(
+        self,
+        title: str = "",
+        source: str = "",
+        nodes: Union[list, np.ndarray] = None,
+        elements: Union[list, np.ndarray] = None,
+        parts: dict = None,
+        materials: List[dict] = None,
+        sections: List[dict] = None,
+    ):
         """Initialize the FEModel data structure."""
         self.metadata = {
             "title": title,
@@ -20,105 +22,96 @@ class FEModel:
             "num_elements": 0,
         }
 
-        #create node table - List of nodes: [node_id, x, y, z]
+        # create node table - List of nodes: [node_id, x, y, z]
         if nodes is not None:
-            if type(nodes) == np.ndarray:
+            if isinstance(nodes,np.ndarray):
                 self.node_table = nodes.tolist()
-            elif type(nodes) == list:
+            elif isinstance(nodes,np.ndarray):
                 self.node_table = nodes
             else:
                 raise ValueError("Nodes must be a list or numpy array")
         else:
-            self.node_table: List[
-                list
-            ] = []  
+            self.node_table: List[list] = []
 
-
-        #create element table - List of elements: [element_id, part_id, node1, node2, node3, node4]
+        # create element table - List of elements: [element_id, part_id, node1, node2, node3, node4]
         if elements is not None:
-            if type(elements) == np.ndarray:
+            if isinstance(elements, np.ndarray):
                 self.element_table = elements.tolist()
-            elif type(elements) == list:
+            elif isinstance(elements,list):
                 self.element_table = elements
             else:
                 raise ValueError("Elements must be a list or numpy array")
 
         else:
-            self.element_table: List[
-                list
-            ] = [] 
+            self.element_table: List[list] = []
 
-        
-        #create centroid table - List of centroids: [x,y,z]
+        # create centroid table - List of centroids: [x,y,z]
         self.centroid_table: List[list] = []
         if len(self.element_table) > 0:
             for element in self.element_table:
-                self.centroid_table.append(element_centroids(element,np.array(self.node_table)))
+                self.centroid_table.append(
+                    element_centroids(element, np.array(self.node_table))
+                )
 
-        
-        #create part info - Dictionary with keys "part id" and dictionary of "name":str and "constants":list
+        # create part info - Dictionary with keys "part id" and dictionary of "name":str and "constants":list
         if parts is not None:
-            if type(parts) == dict:
+            if isinstance(parts,dict):
                 self.part_info = parts
             else:
                 raise ValueError("Parts must be a dictionary")
         else:
-            self.part_info: dict = {} 
+            self.part_info: dict = {}
 
-        
-        #create material info - List of Dictionaries with three entries: "type":str, "ID":int, and "constants":list[int,float]
+        # create material info - List of Dictionaries with three entries: "type":str, "ID":int, and "constants":list[int,float]
         if materials is not None:
-            if type(parts) == list:
+            if isinstance(materials,list):
                 self.material_info = materials
             else:
                 raise ValueError("Materials must be a list of dictionaries")
         else:
-            self.material_info: List[
-                dict
-            ] = []  
-        
+            self.material_info: List[dict] = []
 
-        #create section info - List of Dictionaries with two entries: "ID": str and "constants":list[int, float]
+        # create section info - List of Dictionaries with two entries: "ID": str and "constants":list[int, float]
         if sections is not None:
-            if type(parts) == list:
+            if isinstance(sections,list):
                 self.section_info = sections
             else:
                 raise ValueError("Sections must be a list of dictionaries")
         else:
-            self.section_info: List[
-                dict
-            ] = []
+            self.section_info: List[dict] = []
 
-
-    def add_nodes(self, 
-                  node_id: int = None, 
-                  x: float = None, 
-                  y: float = None, 
-                  z: float = None, 
-                  node_array: np.ndarray = None):
+    def add_nodes(
+        self,
+        node_id: int = None,
+        x: float = None,
+        y: float = None,
+        z: float = None,
+        node_array: np.ndarray = None,
+    ):
         """Add a node to the node table."""
-        #check which input type is provided
-        if all(var is not None for var in [node_id,x,y,z]):
+        # check which input type is provided
+        if all(var is not None for var in [node_id, x, y, z]):
             indiv_input = True
             node_id_list = [node_id]
 
         elif node_array is not None:
             indiv_input = False
             node_array = np.atleast_2d(node_array)
-            node_id_list = node_array[:,0]
+            node_id_list = node_array[:, 0]
 
         else:
-            raise ValueError("Must provide either (node_id,x,y,z) or node_array")
+            raise ValueError(
+                "Must provide either (node_id,x,y,z) or node_array"
+            )
 
-
-        #check if node already in the table
+        # check if node already in the table
         node_table = self.get_node_table()
         node_table = np.atleast_2d(node_table)
         for n in node_id_list:
-            if node_table.shape[0] > 1 and n in node_table[:,0]:
+            if node_table.shape[0] > 1 and n in node_table[:, 0]:
                 raise ValueError(f"Node ID {n} already exists, cannot append")
 
-        #add nodes to node table
+        # add nodes to node table
         if indiv_input:
             self.node_table.append([node_id, x, y, z])
             self.metadata["num_nodes"] += 1
@@ -129,11 +122,13 @@ class FEModel:
                 self.node_table.append(node)
                 self.metadata["num_nodes"] += 1
 
-    def add_elements(self, 
-                     element_id: int = None, 
-                     part_id: int = None,
-                     nodes: list = None,
-                     element_array:np.ndarray = None):
+    def add_elements(
+        self,
+        element_id: int = None,
+        part_id: int = None,
+        nodes: list = None,
+        element_array: np.ndarray = None,
+    ):
         """Add an element to the element table.
 
         Args:
@@ -150,39 +145,45 @@ class FEModel:
             indiv_input = False
 
             element_array = np.atleast_2d(element_array)
-            element_id_list = element_array[:,0]
+            element_id_list = element_array[:, 0]
 
         else:
-            raise ValueError("Must provide either (element_id, part_id, nodes) or element_array")
+            raise ValueError(
+                "Must provide either (element_id, part_id, nodes) or element_array"
+            )
 
-        #check if element already exists
+        # check if element already exists
         element_table = self.get_element_table()
         element_table = np.atleast_2d(element_table)
         for e in element_id_list:
-            if element_table.shape[0] > 1 and e in element_table[:,0]:
-                raise ValueError(f"Element ID {e} already exists, cannot insert")
-        
+            if element_table.shape[0] > 1 and e in element_table[:, 0]:
+                raise ValueError(
+                    f"Element ID {e} already exists, cannot insert"
+                )
+
         if indiv_input:
             self.element_table.append([element_id, part_id] + nodes)
             self.metadata["num_elements"] += 1
-            self.centroid_table.append(element_centroids([element_id,part_id] + nodes, np.array(self.node_table)))
+            self.centroid_table.append(
+                element_centroids(
+                    [element_id, part_id] + nodes, np.array(self.node_table)
+                )
+            )
         else:
             element_list = element_array.tolist()
 
             for element in element_list:
                 self.element_table.append(element)
                 self.metadata["num_elements"] += 1
-                self.centroid_table.append(element_centroids(element, np.array(self.node_table)))
+                self.centroid_table.append(
+                    element_centroids(element, np.array(self.node_table))
+                )
 
-
-
-
-    def add_part(self, part_id: int, name:str, material_constants: list):
+    def add_part(self, part_id: int, name: str, material_constants: list):
         """Add part information (e.g., material constants)."""
         self.part_info[part_id] = {}
         self.part_info[part_id]["name"] = name
         self.part_info[part_id]["constants"] = material_constants
-
 
     def get_node_table(self):
         """Return the node table."""
@@ -237,8 +238,8 @@ class FEModel:
                 last_node = row[-1]
                 for i in range(len(row), 10):
                     f.write(f"{last_node:>8d}")
-                
-                #zero padding for n9 and n10
+
+                # zero padding for n9 and n10
                 f.write(f"{0:>8d}{0:>8d}")
 
                 f.write("\n")
@@ -281,7 +282,7 @@ class FEModel:
                         f"Error in material id {mat_id}: multi-line input cards not supported"
                     )
 
-                mat_insert = [0., 0., 0., 0., 0., 0., 0., 0.]
+                mat_insert = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
                 mat_insert[0] = mat_id
                 for idx, item in enumerate(props):
                     mat_insert[idx + 1] = item
@@ -295,7 +296,9 @@ class FEModel:
                     elif isinstance(item, float):
                         f.write(f"{item:>10.2E}")
                     else:
-                        raise ValueError(f"Unsupported type in material constants: {type(item)}")
+                        raise ValueError(
+                            f"Unsupported type in material constants: {type(item)}"
+                        )
 
                 f.write("\n")
 
