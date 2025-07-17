@@ -69,7 +69,7 @@ class TestMeshing:
 
         mdl: FEModel = model_from_meshio(mesh, title="test", source="test")
 
-        print(mdl.get_node_table().shape)
-        print(mdl.get_element_table().shape)
+        print(mdl.node_table.shape)
+        print(mdl.element_table.shape)
 
-        assert mdl.get_node_table().shape[0] > 1
+        assert mdl.node_table.shape[0] > 1

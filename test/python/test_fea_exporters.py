@@ -23,11 +23,8 @@ def sample_model():
     model = FEModel(title="Test model", source="test")
 
     model.add_nodes(1, 0.0, 0.0, 0.0)
-    print(model.node_table)
     model.add_nodes(2, 1.0, 0.0, 0.0)
-    print(model.node_table)
     model.add_nodes(3, 0.0, 1.0, 0.0)
-    print(model.node_table)
     model.add_nodes(4, 0.0, 0.0, 1.0)
     model.add_nodes(5, 1.0, 1.0, 1.0)
 
@@ -58,10 +55,12 @@ class TestFEModel:
     def test_femodel(self):
         mdl = sample_model()
         print(mdl)
+        print(mdl.node_table)
+        print(mdl.element_table)
 
         # check
-        assert mdl.get_node_table().shape == (5, 4)
-        assert mdl.get_element_table().shape == (2, 6)
+        assert mdl.node_table.shape == (5, 4)
+        assert mdl.element_table.shape == (2, 6)
 
         mdl.update_centroids()
         print(mdl.centroid_table)
@@ -77,7 +76,7 @@ class TestFEModel:
         mdl.add_nodes(6, 2.0, 3.0, 4.0)
 
         np.testing.assert_equal(
-            mdl.get_node_table()[-1, :], np.array([6, 2.0, 3.0, 4.0])
+            mdl.node_table[-1, :], np.array([6, 2.0, 3.0, 4.0])
         )
 
         # incomplete individual input
@@ -101,8 +100,8 @@ class TestFEModel:
         node_arr = np.array([[6, 5.0, 5.0, 5.0], [7, 7.0, 7.0, 7.0]])
 
         mdl.add_nodes(node_array=node_arr)
-        print(mdl.get_node_table())
-        assert mdl.get_node_table().shape == (7, 4)
+        print(mdl.node_table)
+        assert mdl.node_table.shape == (7, 4)
 
         node_arr = np.array([[6, 5.0, 5.0, 5.0], [8, 7.0, 7.0, 7.0]])
         # array input with repeat value
@@ -115,7 +114,7 @@ class TestFEModel:
         mdl.add_elements(3, 1, [1, 2, 3, 4])
 
         np.testing.assert_equal(
-            mdl.get_element_table()[-1, :],
+            mdl.element_table[-1, :],
             np.array([3, 1, 1.0, 2.0, 3.0, 4.0]),
         )
 

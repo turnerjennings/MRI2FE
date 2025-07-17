@@ -34,11 +34,9 @@ class TestMRECoreg:
         gp = image_read(get_ants_data("r27"))
         gpp = image_read(get_ants_data("r27"))
 
-
         test_dict = coregister_MRE_images(
             geom=geom, gp_list=[gp, gp, gp], gpp_list=[gpp, gpp, gpp]
         )
-
 
         for out in test_dict:
             assert "gp" in out
@@ -60,11 +58,9 @@ class TestMRECoreg:
         mu = get_ants_data("r27")
         xi = get_ants_data("r27")
 
-
         test_dict = coregister_MRE_images(
             geom=geom, mu_list=[mu], xi_list=[xi]
         )
-
 
         assert "mu" in test_dict
         assert "xi" in test_dict
@@ -85,7 +81,6 @@ class TestMRECoreg:
         xi = get_ants_data("r27")
 
         with pytest.raises(ValueError):
-
             test_dict = coregister_MRE_images(
                 geom=geom, gp_list=mu, xi_list=xi
             )
@@ -94,7 +89,6 @@ class TestMRECoreg:
             test_dict = coregister_MRE_images(
                 geom=geom, mu_list=mu, gpp_list=xi
             )
-
 
         with pytest.raises(FileNotFoundError):
             test_dict = coregister_MRE_images(geom="nonexistent_file.nii.gz")
