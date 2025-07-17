@@ -43,11 +43,10 @@ class FEModel:
             else:
                 raise ValueError("Elements must be a list or numpy array")
         else:
-            self.element_table= None
+            self.element_table = None
 
         # create centroid table - List of centroids: [x,y,z]
         self.centroid_table = None
-
 
         # create part info - Dictionary with keys "part id" and dictionary of "name":str and "constants":list
         if parts is not None:
@@ -102,11 +101,14 @@ class FEModel:
             )
 
         # check array dimensions match
-        if not indiv_input and not node_array.shape[1] == self.node_table.shape[1]:
+        if (
+            not indiv_input
+            and not node_array.shape[1] == self.node_table.shape[1]
+        ):
             raise ValueError(
                 "Node array dimensions do not match node table dimensions"
             )
-        
+
         if not force_insert and self.node_table is not None:
             # check if node already in the table
             node_table = np.atleast_2d(self.node_table)
@@ -118,9 +120,9 @@ class FEModel:
                     f"The following inserted nodes have duplicate IDs: {matches}"
                 )
 
-        #if node array is none, inserted nodes becomes array
+        # if node array is none, inserted nodes becomes array
         if self.node_table is None and indiv_input:
-            self.node_table = np.array([node_id,x,y,z])
+            self.node_table = np.array([node_id, x, y, z])
             self.metadata["num_nodes"] = 1
 
         elif self.node_table is None:
@@ -129,13 +131,13 @@ class FEModel:
 
         # add nodes to node table
         elif indiv_input:
-            self.node_table = np.row_stack((self.node_table,
-                                            np.array([node_id, x, y, z])))
-            
+            self.node_table = np.row_stack(
+                (self.node_table, np.array([node_id, x, y, z]))
+            )
+
             self.metadata["num_nodes"] += 1
         else:
-            self.node_table = np.row_stack((self.node_table,
-                                            node_array))
+            self.node_table = np.row_stack((self.node_table, node_array))
             self.metadata["num_nodes"] += node_array.shape[0]
 
     def add_elements(
@@ -169,8 +171,11 @@ class FEModel:
                 "Must provide either (element_id, part_id, nodes) or element_array"
             )
 
-        #check if array dimensions match
-        if not indiv_input and not element_array.shape[1] == self.element_table.shape[1]:
+        # check if array dimensions match
+        if (
+            not indiv_input
+            and not element_array.shape[1] == self.element_table.shape[1]
+        ):
             raise ValueError(
                 "Element array dimensions do not match self.element_table dimensions"
             )
@@ -187,7 +192,7 @@ class FEModel:
                     f"The following inserted nodes have duplicate IDs: {matches}"
                 )
 
-        #if element array is none, inserted element becomes array
+        # if element array is none, inserted element becomes array
         if self.element_table is None and indiv_input:
             self.element_table = np.array([element_id, part_id] + nodes)
             self.metadata["num_elements"] = 1
@@ -201,8 +206,10 @@ class FEModel:
             self.element_table = np.row_stack((self.element_table, row_insert))
             self.metadata["num_elements"] += 1
         else:
-                self.element_table = np.row_stack((self.element_table, element_array))
-                self.metadata["num_elements"] += element_array.shape[0]
+            self.element_table = np.row_stack(
+                (self.element_table, element_array)
+            )
+            self.metadata["num_elements"] += element_array.shape[0]
 
     def update_centroids(self):
         if self.element_table.size > 0:
@@ -255,7 +262,9 @@ class FEModel:
             # Write elements
             f.write("*ELEMENT_SOLID\n")
             for row in self.element_table:
-                f.write(f"{int(row[0]):>8d}{int(row[1]):>8d}\n")  # eid and part id
+                f.write(
+                    f"{int(row[0]):>8d}{int(row[1]):>8d}\n"
+                )  # eid and part id
 
                 # write element connectivity, padding to 10-node format
                 for i in range(2, len(row)):
