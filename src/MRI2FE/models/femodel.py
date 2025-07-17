@@ -1,5 +1,5 @@
 import numpy as np
-from typing import List, Union
+from typing import List, Union, Literal
 from ..utilities import element_centroids
 import meshio
 
@@ -31,6 +31,8 @@ class FEModel:
                 self.node_table = nodes
             else:
                 raise ValueError("Nodes must be a list or numpy array")
+            
+            self.metadata["num_nodes"] = self.node_table.shape[0]
         else:
             self.node_table = None
 
@@ -42,6 +44,7 @@ class FEModel:
                 self.element_table = np.array(elements)
             else:
                 raise ValueError("Elements must be a list or numpy array")
+            self.metadata["num_nodes"] = self.element_table.shape[0]
         else:
             self.element_table = None
 
@@ -343,7 +346,10 @@ class FEModel:
 
 
 def model_from_meshio(
-    mesh: Union[meshio.Mesh, str], title: str = "", source: str = ""
+    mesh: Union[meshio.Mesh, str], 
+    title: str = "", 
+    source: str = "",
+    element_type: Literal["tetra"] = "tetra"
 ) -> FEModel:
     """
     Convert a meshio.Mesh object into a custom FEModel object.
@@ -368,29 +374,29 @@ def model_from_meshio(
     nids = np.arange(1, n_points + 1)
     new_nodes = np.column_stack((nids, mesh_nodes))
 
-    # Handle only one type of element for now (ex. "tetra")
-    supported_keys = ["tetra"]
+    #find element type in cells
+    connectivity_index = 0
     found = False
-    for key in supported_keys:
-        if key in mesh.cells_dict:
-            # extract meshio cells and create node numbering
-
-            mesh_elements = mesh.cells_dict[key]
-            n_elems = mesh_elements.shape[0]
-
-            # apply offsets
-            eids = np.arange(1, n_elems + 1)
-            mesh_elements = mesh_elements + 1
-
-            new_elements = np.column_stack((eids, mesh_elements))
-
+    for idx,item in enumerate(mesh.cells):
+        if item.type == element_type:
+            node_connectivity = item.data
+            connectivity_index = idx
             found = True
-            break
-
+    
     if not found:
-        raise ValueError(
-            f"No supported cell types found in mesh. Supported: {supported_keys}"
-        )
+        raise ValueError(f"Element type {element_type} not found in mesh cells")
+
+    n_elements = node_connectivity.shape[0]
+    eids = np.arange(1,n_elements + 1)
+    
+    #find pids
+
+    pid = mesh.cell_data["medit:ref"][connectivity_index]
+
+    new_elements = np.column_stack((eids, pid, node_connectivity))
+
+    if not pid.shape[0] == node_connectivity.shape[0]:
+        raise ValueError(f"pid and node_connectivity lengths do not match")
 
     out_mesh = FEModel(
         title=title, source=source, nodes=new_nodes, elements=new_elements

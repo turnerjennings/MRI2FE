@@ -50,7 +50,7 @@ class NewModel:
                 )
 
             result = coregister_MRE_images(
-                geom=geom_image,
+                segmented_geom=geom_image,
                 geom_mask=None,
                 gp_list=complex_modulus_path,
                 gpp_list=complex_modulus_path,
@@ -66,7 +66,7 @@ class NewModel:
                 )
 
             result = coregister_MRE_images(
-                geom=geom_image,
+                segmented_geom=geom_image,
                 geom_mask=None,
                 gp_list=None,
                 gpp_list=None,

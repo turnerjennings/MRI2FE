@@ -34,7 +34,10 @@ def _entry_to_list(entry):
 
 
 def coregister_MRE_images(
-    geom: Union[str, ANTsImage],
+    segmented_geom: Union[str, ANTsImage],
+    target_label:int = 0,
+    segmented_mask:Union[str,ANTsImage] = None,
+    MRE_geom: List[Union[str, ANTsImage]] = None,
     geom_mask: Union[str, ANTsImage] = None,
     gp_list: List[Union[str, ANTsImage]] = None,
     gpp_list: List[Union[str, ANTsImage]] = None,
@@ -45,8 +48,11 @@ def coregister_MRE_images(
     """Coregister multiple MRE images to MRI geometry.
 
     Args:
-        geom: Image or filepath to the geometry MRI file.
-        geom_mask: Image or filepath to the geometry mask.
+        segmented_geom: Image or filepath to the segmented MRI file associated with the FE mesh.
+        segmented_mask: Image or filepath to a binary mask associated with the target region of the segmented geometry.
+        target_label: integer label of the target region in the segmented MRI file, will be used to generate a binary mask.
+        MRE_geom: List of images or filepaths to MRE geometry images.
+        geom_mask: Image or filepath to the MRE geometry mask.
         gp_list: List of storage modulus maps.
         gpp_list: List of loss modulus maps.
         mu_list: List of mu parameter maps.
@@ -56,7 +62,10 @@ def coregister_MRE_images(
     Returns:
         List of dicts with coregistered results and transformation metadata.
     """
-    if geom is None:
+    if segmented_geom is None:
+        raise ValueError("Geometry image is required")
+
+    if MRE_geom is None:
         raise ValueError("Geometry image is required")
 
     # check if entries are not lists
@@ -66,15 +75,28 @@ def coregister_MRE_images(
     xi_list = _entry_to_list(xi_list)
 
     # Load geometry image
-    if isinstance(geom, str):
-        if not os.path.exists(geom):
-            raise FileNotFoundError(f"Geometry image file not found: {geom}")
-        geom = image_read(geom)
-    elif not isinstance(geom, ANTsImage):
+    if isinstance(segmented_geom, str):
+        if not os.path.exists(segmented_geom):
+            raise FileNotFoundError(f"Geometry image file not found: {segmented_geom}")
+        segmented_geom = image_read(segmented_geom)
+    elif not isinstance(segmented_geom, ANTsImage):
         raise TypeError(
             "geom must be either a filepath string or ANTsImage object"
         )
 
+    # Load optional segmented geometry mask
+    if geom_mask is not None:
+        if isinstance(geom_mask, str):
+            if not os.path.exists(geom_mask):
+                raise FileNotFoundError(
+                    f"Geometry mask file not found: {geom_mask}"
+                )
+            geom_mask = image_read(geom_mask)
+        elif not isinstance(geom_mask, ANTsImage):
+            raise TypeError(
+                "geom_mask must be either a filepath string or ANTsImage object"
+            )
+    
     # Load optional geometry mask
     if geom_mask is not None:
         if isinstance(geom_mask, str):
@@ -108,7 +130,7 @@ def coregister_MRE_images(
             )
 
             # Resample geometry to match moving image resolution
-            geom_ants = resample_image_to_target(geom, gp)
+            geom_ants = resample_image_to_target(segmented_geom, gp)
 
             # Perform registration
             tx = registration(
@@ -122,7 +144,7 @@ def coregister_MRE_images(
             # Apply transformation to both gp and gpp
             gp_out = tx["warpedmovout"]
             gpp_out = apply_transforms(
-                fixed=geom, moving=gpp, transformlist=tx["fwdtransforms"]
+                fixed=segmented_geom, moving=gpp, transformlist=tx["fwdtransforms"]
             )
 
             results.append(
@@ -140,7 +162,7 @@ def coregister_MRE_images(
                 else:
                     base = f"{imgout + 'MRE{idx}_coreg.jpg'}"
                     plot(
-                        geom,
+                        segmented_geom,
                         overlay=gp_out,
                         overlay_cmap="Dark2",
                         overlay_alpha=0.8,
@@ -165,7 +187,7 @@ def coregister_MRE_images(
             )
 
             # Resample geometry to match moving image resolution
-            geom_ants = resample_image_to_target(geom, mu)
+            geom_ants = resample_image_to_target(segmented_geom, mu)
 
             # Perform registration
             tx = registration(
@@ -179,7 +201,7 @@ def coregister_MRE_images(
             # Apply transformation to both mu and xi
             mu_out = tx["warpedmovout"]
             xi_out = apply_transforms(
-                fixed=geom, moving=xi, transformlist=tx["fwdtransforms"]
+                fixed=segmented_geom, moving=xi, transformlist=tx["fwdtransforms"]
             )
 
             results.append(
@@ -194,7 +216,7 @@ def coregister_MRE_images(
                 else:
                     base = f"{imgout + 'MRE{idx}_coreg.jpg'}"
                     plot(
-                        geom,
+                        segmented_geom,
                         overlay=gp_out,
                         overlay_cmap="Dark2",
                         overlay_alpha=0.8,
@@ -280,7 +302,7 @@ def run_MRE_pipeline(geom, DR_list, SS_list, n_segs=5, imgout=None):
         Tuple of coregistration results and ROI statistics per image pair.
     """
     coreg_results = coregister_MRE_images(
-        geom=geom, gp_list=SS_list, gpp_list=DR_list, imgout=imgout
+        segmented_geom=geom, gp_list=SS_list, gpp_list=DR_list, imgout=imgout
     )
     all_results = []
     for result in coreg_results:
