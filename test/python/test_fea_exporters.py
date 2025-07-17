@@ -1,109 +1,164 @@
 import pytest
-from MRI2FE import FEAModel, write_abaqus, write_lsdyna
+from MRI2FE import FEModel
+import numpy as np
+import os
 
 
-def cube_nodes():
-    return {
-        1: (0, 0, 0),
-        2: (1, 0, 0),
-        3: (1, 1, 0),
-        4: (0, 1, 0),
-        5: (0, 0, 1),
-        6: (1, 0, 1),
-        7: (1, 1, 1),
-        8: (0, 1, 1),
-    }
+def cube_nodes() -> np.ndarray:
+    return np.array(
+        [
+            [1, 0.0, 0.0, 0.0],
+            [2, 1.0, 0.0, 0.0],
+            [3, 1.0, 1.0, 0.0],
+            [4, 0.0, 1.0, 0.0],
+            [5, 0.0, 0.0, 1.0],
+            [6, 1.0, 0.0, 1.0],
+            [7, 1.0, 1.0, 1.0],
+            [8, 0.0, 1.0, 1.0],
+        ]
+    )
 
 
-@pytest.fixture
 def sample_model():
-    return FEAModel(
-        title="Test",
-        nodes=cube_nodes(),
-        elements={
-            1: {
-                "type": "C3D8",
-                "elements": [[1, 2, 3, 4, 5, 6, 7, 8]],
-                "material": "steel",
-                "elform": 1,
-                "aet": 0,
-            }
-        },
-        materials={
-            "steel": {
-                "type": "elastic",
-                "properties": {"E": 210e9, "nu": 0.3, "density": 7850},
-            }
-        },
+    model = FEModel(title="Test model", source="test")
+
+    model.add_nodes(1, 0.0, 0.0, 0.0)
+    print(model.node_table)
+    model.add_nodes(2, 1.0, 0.0, 0.0)
+    print(model.node_table)
+    model.add_nodes(3, 0.0, 1.0, 0.0)
+    print(model.node_table)
+    model.add_nodes(4, 0.0, 0.0, 1.0)
+    model.add_nodes(5, 1.0, 1.0, 1.0)
+
+    model.add_elements(1, 1, [1, 2, 3, 4])
+    model.add_elements(2, 2, [2, 3, 4, 5])
+    model.add_part(part_id=1, name="part1", material_constants=[1, 1])
+    model.add_part(part_id=2, name="part2", material_constants=[2, 1])
+
+    model.section_info.append({"ID": 1, "constants": [1]})
+    model.section_info.append({"ID": 2, "constants": [1]})
+
+    model.material_info.append(
+        {"type": "ELASTIC", "ID": 1, "constants": [1000.0, 210000.0, 0.3]}
     )
 
-
-@pytest.fixture
-def visco_model():
-    return FEAModel(
-        title="Viscoelastic Test",
-        nodes=cube_nodes(),
-        elements={
-            1: {
-                "type": "C3D8",
-                "elements": [[1, 2, 3, 4, 5, 6, 7, 8]],
-                "material": "visco",
-                "elform": 1,
-                "aet": 0,
-            }
-        },
-        materials={
-            "visco": {
-                "type": "kelvin_maxwell",
-                "properties": {
-                    "E": 50e6,
-                    "nu": 0.45,
-                    "eta": 500.0,
-                    "density": 1200,
-                },
-            }
-        },
+    model.material_info.append(
+        {
+            "type": "KELVIN-MAXWELL_VISCOELASTIC",
+            "ID": 2,
+            "constants": [1000.0, 210000.0, 0.3, 1.0, 1.0, 1.0, 1.0],
+        }
     )
 
-
-def test_write_abaqus_creates_file(tmp_path, sample_model):
-    out_file = tmp_path / "test.inp"
-    write_abaqus(sample_model, str(out_file))
-    assert out_file.exists()
-
-    content = out_file.read_text()
-    assert "*NODE" in content or "*Node" in content
-    assert "*ELEMENT" in content or "*Element" in content
-    assert "*MATERIAL" in content
-    assert "*SOLID SECTION" in content
+    return model
 
 
-def test_write_lsdyna_creates_file(tmp_path, sample_model):
-    out_file = tmp_path / "test.k"
-    write_lsdyna(sample_model, str(out_file))
-    assert out_file.exists()
+class TestFEModel:
+    def test_femodel(self):
+        mdl = sample_model()
+        print(mdl)
 
-    content = out_file.read_text()
-    assert "*KEYWORD" in content
-    assert "*NODE" in content
-    assert "*ELEMENT_SOLID" in content
-    assert "*PART" in content
-    assert "*SECTION_SOLID" in content
-    assert "*MAT_ELASTIC" in content
-    assert (
-        "7.8500e+03" in content or "7850.0000e+00" in content
-    )  # density value check
-    assert "2.1000e+11" in content  # E value
+        # check
+        assert mdl.get_node_table().shape == (5, 4)
+        assert mdl.get_element_table().shape == (2, 6)
 
+        mdl.update_centroids()
+        print(mdl.centroid_table)
+        assert np.array(mdl.centroid_table).shape == (2, 3)
 
-def test_write_lsdyna_viscoelastic(tmp_path, visco_model):
-    out_file = tmp_path / "visco.k"
-    write_lsdyna(visco_model, str(out_file))
-    assert out_file.exists()
+        assert len(mdl.part_info) == 2
+        assert len(mdl.section_info) == 2
+        assert len(mdl.material_info) == 2
 
-    content = out_file.read_text()
-    assert "*MAT_KELVIN_MAXWELL_VISCOELASTIC" in content
-    assert "5.0000e+02" in content  # eta
-    assert "1.2000e+03" in content or "1200.0000e+00" in content  # density
-    assert "5.0000e+07" in content  # E
-    assert "4.5000e-01" in content  # nu
+    def test_add_nodes_single(self):
+        # complete individual input
+        mdl = sample_model()
+        mdl.add_nodes(6, 2.0, 3.0, 4.0)
+
+        np.testing.assert_equal(
+            mdl.get_node_table()[-1, :], np.array([6, 2.0, 3.0, 4.0])
+        )
+
+        # incomplete individual input
+        with pytest.raises(ValueError):
+            mdl.add_nodes(node_id=7, x=1.0, z=1.0)
+
+        # repeat node ID
+        with pytest.raises(ValueError):
+            mdl.add_nodes(node_id=1, x=1.0, y=2.0, z=3.0)
+
+        # complete array input
+        mdl.add_nodes(node_array=np.array([7, 1.0, 2.0, 3.0]))
+
+        # repeat node ID array
+        with pytest.raises(ValueError):
+            mdl.add_nodes(node_array=np.array([1, 1.0, 1.0, 1.0]))
+
+    def test_add_nodes_multiple(self):
+        mdl = sample_model()
+        # array input
+        node_arr = np.array([[6, 5.0, 5.0, 5.0], [7, 7.0, 7.0, 7.0]])
+
+        mdl.add_nodes(node_array=node_arr)
+        print(mdl.get_node_table())
+        assert mdl.get_node_table().shape == (7, 4)
+
+        node_arr = np.array([[6, 5.0, 5.0, 5.0], [8, 7.0, 7.0, 7.0]])
+        # array input with repeat value
+        with pytest.raises(ValueError):
+            mdl.add_nodes(node_array=node_arr)
+
+    def test_add_elements(self):
+        # complete individual input
+        mdl = sample_model()
+        mdl.add_elements(3, 1, [1, 2, 3, 4])
+
+        np.testing.assert_equal(
+            mdl.get_element_table()[-1, :],
+            np.array([3, 1, 1.0, 2.0, 3.0, 4.0]),
+        )
+
+        # incomplete individual input
+        with pytest.raises(ValueError):
+            mdl.add_elements(element_id=3, nodes=[1, 2, 3, 4])
+
+        # repeat node ID
+        with pytest.raises(ValueError):
+            mdl.add_elements(
+                element_id=1,
+                part_id=1,
+                nodes=[
+                    1.0,
+                    2.0,
+                    3.0,
+                    4.0,
+                ],
+            )
+
+        # complete array input
+        mdl.add_elements(
+            element_array=np.array([[5, 1, 1, 2, 3, 4], [6, 2, 1, 2, 3, 4]])
+        )
+
+        # repeat node ID array
+        with pytest.raises(ValueError):
+            mdl.add_elements(
+                element_array=np.array(
+                    [[1, 1, 1, 2, 3, 4], [7, 1, 1, 2, 3, 4]]
+                )
+            )
+
+    def test_write_lsdyna_creates_file(self, tmp_path):
+        mdl = sample_model()
+        out_file = tmp_path / "test.k"
+        mdl.write_lsdyna(os.path.join(tmp_path, "test.k"))
+        assert out_file.exists()
+
+        content = out_file.read_text()
+        assert "*KEYWORD" in content
+        assert "*NODE" in content
+        assert "*ELEMENT_SOLID" in content
+        assert "*PART" in content
+        assert "*SECTION_SOLID" in content
+        assert "*MAT_ELASTIC" in content

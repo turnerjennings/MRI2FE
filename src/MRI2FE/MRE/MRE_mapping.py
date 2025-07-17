@@ -2,7 +2,7 @@ import numpy as np
 from ants.core.ants_image import ANTsImage
 import scipy.spatial as sp
 from ..utilities import COM_align, spatial_map
-from ..FEModel.femodel import FEModel
+from ..models.femodel import FEModel
 import os
 from datetime import datetime
 

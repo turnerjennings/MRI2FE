@@ -28,9 +28,11 @@ def _entry_to_list(entry):
         list: list form of input
     """
 
-    if entry is not None and isinstance(entry,(str,ANTsImage)):
+
+    if entry is not None and isinstance(entry, (str, ANTsImage)):
         return [entry]
     return entry
+
 
 def coregister_MRE_images(
     geom: Union[str, ANTsImage],
@@ -80,7 +82,10 @@ def coregister_MRE_images(
                 raise FileNotFoundError(f"Geometry mask file not found: {geom_mask}")
             geom_mask = image_read(geom_mask)
         elif not isinstance(geom_mask, ANTsImage):
-            raise TypeError("geom_mask must be either a filepath string or ANTsImage object")
+
+            raise TypeError(
+                "geom_mask must be either a filepath string or ANTsImage object"
+            )
 
     results = []
 
@@ -94,7 +99,12 @@ def coregister_MRE_images(
                 gpp = image_read(gpp)
 
             # Create binary mask for moving image
-            gp_mask = threshold_image(gp, np.min(np.nonzero(gp.numpy())), np.max(np.nonzero(gp.numpy())))
+
+            gp_mask = threshold_image(
+                gp,
+                np.min(np.nonzero(gp.numpy())),
+                np.max(np.nonzero(gp.numpy())),
+            )
 
             # Resample geometry to match moving image resolution
             geom_ants = resample_image_to_target(geom, gp)
@@ -106,22 +116,37 @@ def coregister_MRE_images(
                 moving_mask=gp_mask,
                 mask=geom_mask,
                 type_of_transform="Elastic",
+
             )
 
             # Apply transformation to both gp and gpp
             gp_out = tx["warpedmovout"]
-            gpp_out = apply_transforms(fixed=geom, moving=gpp, transformlist=tx["fwdtransforms"])
+            gpp_out = apply_transforms(
+                fixed=geom, moving=gpp, transformlist=tx["fwdtransforms"]
+            )
 
-            results.append({"gp": gp_out, "gpp": gpp_out, "transform": tx["fwdtransforms"]})
+            results.append(
+                {
+                    "gp": gp_out,
+                    "gpp": gpp_out,
+                    "transform": tx["fwdtransforms"],
+                }
+            )
 
-            #save imgout
+            # save imgout
             if imgout is not None:
                 if not os.path.exists(imgout):
                     raise ValueError("imgout directory does not exist")
                 else:
-                    base = f"{imgout + "MRE{idx}_coreg.jpg"}"
-                    plot(geom, overlay=gp_out, overlay_cmap="Dark2", overlay_alpha=0.8, filename=base, axis=0)
-
+                    base = f"{imgout + 'MRE{idx}_coreg.jpg'}"
+                    plot(
+                        geom,
+                        overlay=gp_out,
+                        overlay_cmap="Dark2",
+                        overlay_alpha=0.8,
+                        filename=base,
+                        axis=0,
+                    )
 
 
     # Coregistration for shear stiffness and damping ratio (mu + xi)
@@ -133,8 +158,13 @@ def coregister_MRE_images(
             if isinstance(xi, str):
                 xi = image_read(xi)
 
+
             # Create binary mask for moving image
-            mu_mask = threshold_image(mu, np.min(np.nonzero(mu.numpy())), np.max(np.nonzero(mu.numpy())))
+            mu_mask = threshold_image(
+                mu,
+                np.min(np.nonzero(mu.numpy())),
+                np.max(np.nonzero(mu.numpy())),
+            )
 
             # Resample geometry to match moving image resolution
             geom_ants = resample_image_to_target(geom, mu)
@@ -150,19 +180,42 @@ def coregister_MRE_images(
 
             # Apply transformation to both mu and xi
             mu_out = tx["warpedmovout"]
-            xi_out = apply_transforms(fixed=geom, moving=xi, transformlist=tx["fwdtransforms"])
+            xi_out = apply_transforms(
+                fixed=geom, moving=xi, transformlist=tx["fwdtransforms"]
+            )
 
-            results.append({"mu": mu_out, "xi": xi_out, "transform": tx["fwdtransforms"]})
+            results.append(
+                {"mu": mu_out, "xi": xi_out, "transform": tx["fwdtransforms"]}
+            )
 
-            #save imgout
+            # save imgout
+
             if imgout is not None:
                 if not os.path.exists(imgout):
                     raise ValueError("imgout directory does not exist")
                 else:
-                    base = f"{imgout + "MRE{idx}_coreg.jpg"}"
-                    plot(geom, overlay=gp_out, overlay_cmap="Dark2", overlay_alpha=0.8, filename=base, axis=0)
+
+                    base = f"{imgout + 'MRE{idx}_coreg.jpg'}"
+                    plot(
+                        geom,
+                        overlay=gp_out,
+                        overlay_cmap="Dark2",
+                        overlay_alpha=0.8,
+                        filename=base,
+                        axis=0,
+                    )
     else:
-        raise ValueError("Must provide either (gp_list, gpp_list) or (mu_list, xi_list)")
+        raise ValueError(
+            "Must provide either (gp_list, gpp_list) or (mu_list, xi_list)"
+        )
+
+    # return single dict or list of dicts
+    if len(results) == 0:
+        raise ValueError("No results generated from MRE coregistration")
+    elif len(results) == 1:
+        return results[0]
+    else:
+        return results
 
 
     #return single dict or list of dicts
@@ -268,3 +321,4 @@ def meshio_to_femodel(mesh: meshio.Mesh, title: str = "", source: str = "", defa
         raise ValueError(f"No supported cell types found in mesh. Supported: {supported_keys}")
 
     return femodel
+
