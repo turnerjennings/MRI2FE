@@ -8,6 +8,23 @@ repo_url: https://github.com/turnerjennings/MRI2FE
 
 nav:
   - Home: index.md
+  - Getting Started:
+      - Installation: getting-started/installation.md
+      - Quick Start: getting-started/quick-start.md
+  - User Guide:
+      - Meshing: user-guide/meshing.md
+      - Model Creation: user-guide/model-creation.md
+      - Input/Output: user-guide/io.md
+  # - API Reference:
+  #   - Core Modules: api/core.md
+  #   - MRE Processing: api/mre.md
+  #   - Utilities: api/utilities.md
+  #   - Output Formats: api/output.md
+  - Examples:
+      - Basic Workflow: examples/basic-workflow.md
+      - MRE Integration: examples/mre-integration.md
+  - Development:
+      - Contributing: development/contributing.md
 
 theme:
   name: material
@@ -39,6 +56,11 @@ plugins:
   - search
   - bibtex:
       bib_file: "docs/refs.bib"
-  - mkdocstrings
+  # - mkdocstrings:
+  #     handlers:
+  #       python:
+  #         options:
+  #           show_source: true
+  #           show_root_heading: true
 markdown_extensions:
   - footnotes
