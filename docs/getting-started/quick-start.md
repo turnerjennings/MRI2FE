@@ -190,10 +190,9 @@ mesh = mesh_from_nifti(
 
 Now that you have the basics, explore:
 
-- [Meshing Guide](../user-guide/meshing.md) - Detailed mesh generation options
-- [Model Creation](../user-guide/model-creation.md) - Advanced FE model features
-- [Input/Output](../user-guide/io.md) - Working with different file formats
-- [Examples](../examples/) - Complete workflow examples
+- [User Guide](../user-guide.md) - Detailed meshing, model creation, and I/O operations
+- [Examples](../examples.md) - Complete workflow examples
+- [Installation Guide](installation.md) - Troubleshooting and advanced installation
 
 ## Troubleshooting
 

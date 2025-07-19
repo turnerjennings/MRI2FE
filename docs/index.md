@@ -69,14 +69,11 @@ For a complete workflow example, see the [Quick Start Guide](getting-started/qui
 
 ### User Guide
 
-- **[Meshing](user-guide/meshing.md)** - Generate high-quality meshes from medical images
-- **[Model Creation](user-guide/model-creation.md)** - Create and manage finite element models
-- **[Input/Output](user-guide/io.md)** - Work with various file formats and data
+- **[User Guide](user-guide.md)** - Complete guide to meshing, model creation, and I/O operations
 
 ### Examples
 
-- **[Basic Workflow](examples/basic-workflow.md)** - Complete workflow from MRI to FE model
-- **[MRE Integration](examples/mre-integration.md)** - Advanced workflows with MRE data
+- **[Examples](examples.md)** - Complete workflow examples including basic and MRE integration
 
 ## Installation
 
@@ -216,7 +213,7 @@ If you use MRI2FE in your research, please cite:
 
 - **Documentation**: This site provides comprehensive documentation
 - **Issues**: Report bugs and request features on [GitHub](https://github.com/turnerjennings/MRI2FE/issues)
-- **Examples**: See the [Examples](examples/) section for complete workflows
+- **Examples**: See the [Examples](examples.md) section for complete workflows
 
 ## License
 

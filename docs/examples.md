@@ -1,18 +1,195 @@
-# MRE Integration Example
+# Examples
 
-This example demonstrates how to integrate Magnetic Resonance Elastography (MRE) data to create patient-specific finite element models with accurate material properties.
+This page provides complete examples for common MRI2FE workflows.
 
-## Overview
+## Table of Contents
 
-MRE integration involves:
+- [Basic Workflow](#basic-workflow)
+- [MRE Integration](#mre-integration)
 
-1. Registering MRE data to MRI geometry
-2. Segmenting MRE regions
-3. Calculating material constants (Prony series parameters)
-4. Mapping properties to mesh elements
-5. Creating a complete FE model
+## Basic Workflow
 
-## Complete MRE Workflow
+Complete workflow from MRI data to a finite element model ready for simulation.
+
+### Complete Example
+
+```python
+import numpy as np
+import ants
+from MRI2FE.generate_mesh import mesh_from_nifti
+from MRI2FE.models.femodel import model_from_meshio
+from MRI2FE.output.k_file_operations import edit_control_keyword
+
+def create_brain_model(mri_path, output_dir):
+    """
+    Create a complete brain FE model from MRI data.
+
+    Args:
+        mri_path (str): Path to MRI NIfTI file
+        output_dir (str): Directory for output files
+
+    Returns:
+        FEModel: The created finite element model
+    """
+
+    print("=== MRI2FE Basic Workflow ===")
+
+    # Step 1: Load and validate MRI data
+    print("\n1. Loading MRI data...")
+    img = ants.image_read(mri_path)
+    print(f"   Image shape: {img.shape}")
+    print(f"   Voxel spacing: {img.spacing}")
+
+    # Step 2: Generate mesh
+    print("\n2. Generating mesh...")
+    mesh = mesh_from_nifti(
+        filepath=mri_path,
+        optimize=True,
+        facetAngle=30.0,
+        facetSize=1.0,
+        facetDistance=4.0,
+        cellRadiusEdgeRatio=3.0,
+        cellSize=1.0
+    )
+
+    print(f"   Mesh generated: {len(mesh.points)} nodes, {len(mesh.cells[0][1])} elements")
+
+    # Step 3: Create finite element model
+    print("\n3. Creating finite element model...")
+    femodel = model_from_meshio(
+        mesh=mesh,
+        title="Brain FE Model",
+        source="MRI2FE Basic Workflow"
+    )
+
+    # Step 4: Add material properties
+    print("\n4. Adding material properties...")
+    femodel.add_part(
+        part_id=1,
+        name="brain_tissue",
+        material_constants=[1.0, 0.5, 0.1]  # Example viscoelastic parameters
+    )
+
+    # Step 5: Save model
+    print("\n5. Saving model...")
+    model_path = f"{output_dir}/brain_model.k"
+    femodel.write_lsdyna(model_path)
+    print(f"   Model saved to: {model_path}")
+
+    # Step 6: Create control file
+    print("\n6. Creating control file...")
+    control_path = f"{output_dir}/control.k"
+    edit_control_keyword(
+        template="template.k",
+        fpath=control_path,
+        matprops={
+            "brain_tissue": {
+                "Ginf": 1.0,    # Long-term shear modulus
+                "G1": 0.5,      # Short-term shear modulus
+                "tau": 0.1      # Relaxation time
+            }
+        },
+        includepath=model_path,
+        title="Brain Impact Simulation"
+    )
+    print(f"   Control file saved to: {control_path}")
+
+    print("\n=== Workflow Complete ===")
+    return femodel
+
+# Usage example
+if __name__ == "__main__":
+    import os
+
+    # Create output directory
+    output_dir = "output/basic_workflow"
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Run workflow
+    model = create_brain_model(
+        mri_path="data/brain_mri.nii",
+        output_dir=output_dir
+    )
+```
+
+### Parameter Tuning
+
+**High-quality mesh (slower, more accurate):**
+
+```python
+mesh_high_quality = mesh_from_nifti(
+    filepath="brain.nii",
+    optimize=True,
+    facetAngle=20.0,    # Smoother surfaces
+    facetSize=0.5,      # Finer surface mesh
+    facetDistance=2.0,  # More accurate surface
+    cellRadiusEdgeRatio=2.0,  # Higher quality elements
+    cellSize=0.5        # Finer volume mesh
+)
+```
+
+**Coarse mesh (faster, less accurate):**
+
+```python
+mesh_coarse = mesh_from_nifti(
+    filepath="brain.nii",
+    optimize=False,
+    facetAngle=45.0,    # Coarser surfaces
+    facetSize=2.0,      # Coarser surface mesh
+    facetDistance=8.0,  # Less accurate surface
+    cellRadiusEdgeRatio=4.0,  # Lower quality elements
+    cellSize=2.0        # Coarser volume mesh
+)
+```
+
+### Error Handling
+
+```python
+def robust_workflow(mri_path, output_dir):
+    """Robust workflow with error handling."""
+
+    try:
+        # Step 1: Validate input
+        if not os.path.exists(mri_path):
+            raise FileNotFoundError(f"MRI file not found: {mri_path}")
+
+        img = ants.image_read(mri_path)
+        if img.numpy().size == 0:
+            raise ValueError("MRI file is empty")
+
+        # Step 2: Generate mesh with fallback
+        try:
+            mesh = mesh_from_nifti(mri_path, optimize=True)
+        except MemoryError:
+            print("Memory error, trying with conservative parameters...")
+            mesh = mesh_from_nifti(
+                mri_path,
+                optimize=False,
+                cellSize=3.0,
+                facetSize=3.0
+            )
+
+        # Step 3: Create model
+        femodel = model_from_meshio(mesh, title="Brain Model")
+        femodel.add_part(1, "brain_tissue", [1.0, 0.5, 0.1])
+
+        # Step 4: Save with validation
+        model_path = f"{output_dir}/brain_model.k"
+        femodel.write_lsdyna(model_path)
+
+        print("Workflow completed successfully!")
+        return femodel
+
+    except Exception as e:
+        print(f"Workflow failed: {e}")
+        return None
+```
+
+## MRE Integration
+
+Integrate Magnetic Resonance Elastography (MRE) data to create patient-specific finite element models with accurate material properties.
+
+### Complete MRE Workflow
 
 ```python
 import numpy as np
@@ -59,8 +236,6 @@ def create_mre_enhanced_model(
         output_viz_path=f"{output_dir}/registration/"
     )
 
-    print("   Registration complete")
-
     # Step 2: Segment MRE regions
     print("\n2. Segmenting MRE regions...")
     segmented_data = pipeline.segment_MRE_images(
@@ -68,8 +243,6 @@ def create_mre_enhanced_model(
         mre_type="stiffness_damping",
         n_segments=n_segments
     )
-
-    print(f"   Created {n_segments} MRE segments")
 
     # Step 3: Calculate material constants
     print("\n3. Calculating material constants...")
@@ -93,8 +266,6 @@ def create_mre_enhanced_model(
         cellSize=1.0
     )
 
-    print(f"   Mesh: {len(mesh.points)} nodes, {len(mesh.cells[0][1])} elements")
-
     # Step 5: Calculate element centroids
     print("\n5. Calculating element centroids...")
     mesh_data = pipeline.calculate_element_centroids("temp_mesh.k")
@@ -113,14 +284,10 @@ def create_mre_enhanced_model(
         output_csv=f"{output_dir}/material_mapping.csv"
     )
 
-    print("   Material properties assigned")
-
     # Step 7: Save final model
     print("\n7. Saving model...")
     model_path = f"{output_dir}/mre_enhanced_model.k"
     femodel.write_lsdyna(model_path)
-
-    print(f"   Model saved to: {model_path}")
 
     # Clean up temporary file
     import os
@@ -149,111 +316,7 @@ if __name__ == "__main__":
     )
 ```
 
-## Step-by-Step Breakdown
-
-### Step 1: MRE Registration
-
-```python
-from MRI2FE.Pipelines.new_model import NewModel
-
-pipeline = NewModel()
-
-# Register MRE data to MRI geometry
-registered_data = pipeline.mre_mri_registration(
-    mri_geometry_path="brain_mri.nii",
-    mre_type="stiffness_damping",
-    stiffness_path="stiffness.nii",
-    damping_ratio_path="damping_ratio.nii",
-    output_viz_path="registration_output/"
-)
-
-# Access registered images
-stiffness_registered = registered_data["mu"]
-damping_registered = registered_data["xi"]
-```
-
-### Step 2: MRE Segmentation
-
-```python
-# Segment MRE data into regions
-segmented_data = pipeline.segment_MRE_images(
-    registered_images=registered_data,
-    mre_type="stiffness_damping",
-    n_segments=5
-)
-
-# Access segmentation results
-segmentation_map = segmented_data["segmentation"]
-prony_parameters = segmented_data["prony_parameters"]
-```
-
-### Step 3: Material Constant Calculation
-
-```python
-# Calculate Prony series parameters
-material_constants = pipeline.calculate_material_constants(
-    registered_images=registered_data,
-    mre_type="stiffness_damping",
-    mre_frequency=50.0
-)
-
-# Access material constants
-for region, constants in material_constants.items():
-    Ginf = constants["Ginf"]  # Long-term shear modulus
-    G1 = constants["G1"]      # Short-term shear modulus
-    tau = constants["tau"]    # Relaxation time
-    print(f"Region {region}: Ginf={Ginf:.3f}, G1={G1:.3f}, tau={tau:.3f}")
-```
-
-### Step 4: Property Assignment
-
-```python
-# Calculate element centroids for mapping
-mesh_data = pipeline.calculate_element_centroids("mesh.k")
-
-# Assign material properties to elements
-femodel = pipeline.assign_material_properties(
-    material_constants=material_constants,
-    mesh_data=mesh_data,
-    mre_map=registered_data["mu"],
-    offset=3,
-    output_csv="material_mapping.csv"
-)
-```
-
-## Advanced MRE Processing
-
-### Complex Shear Modulus Format
-
-```python
-# For complex shear modulus format
-registered_data = pipeline.mre_mri_registration(
-    mri_geometry_path="brain_mri.nii",
-    mre_type="complex_shear",
-    complex_modulus_path="complex_modulus.nii"
-)
-
-material_constants = pipeline.calculate_material_constants(
-    registered_images=registered_data,
-    mre_type="complex_shear",
-    mre_frequency=50.0
-)
-```
-
-### Custom Segmentation
-
-```python
-from MRI2FE.MRE.MRE_coregistration import segment_MRE_regions
-
-# Custom segmentation with specific parameters
-segmented_data = segment_MRE_regions(
-    SS_img=registered_data["mu"],      # Storage modulus
-    DR_img=registered_data["xi"],      # Damping ratio
-    n_segs=7                          # Custom number of segments
-)
-```
-
-### Quality Control
+### MRE Data Validation
 
 ```python
 def validate_mre_data(stiffness_path, damping_path):
@@ -287,9 +350,24 @@ def validate_mre_data(stiffness_path, damping_path):
 validate_mre_data("stiffness.nii", "damping_ratio.nii")
 ```
 
-## Material Property Analysis
+### Complex Shear Modulus Format
 
-### Regional Analysis
+```python
+# For complex shear modulus format
+registered_data = pipeline.mre_mri_registration(
+    mri_geometry_path="brain_mri.nii",
+    mre_type="complex_shear",
+    complex_modulus_path="complex_modulus.nii"
+)
+
+material_constants = pipeline.calculate_material_constants(
+    registered_images=registered_data,
+    mre_type="complex_shear",
+    mre_frequency=50.0
+)
+```
+
+### Material Property Analysis
 
 ```python
 def analyze_regional_properties(femodel, material_mapping_csv):
@@ -316,47 +394,7 @@ def analyze_regional_properties(femodel, material_mapping_csv):
 stats = analyze_regional_properties(model, "material_mapping.csv")
 ```
 
-### Property Distribution
-
-```python
-import matplotlib.pyplot as plt
-
-def plot_property_distribution(material_mapping_csv):
-    """Plot distribution of material properties."""
-
-    import pandas as pd
-
-    mapping_df = pd.read_csv(material_mapping_csv)
-
-    fig, axes = plt.subplots(1, 3, figsize=(15, 5))
-
-    # Plot Ginf distribution
-    axes[0].hist(mapping_df['Ginf'], bins=50, alpha=0.7)
-    axes[0].set_title('Long-term Shear Modulus (Ginf)')
-    axes[0].set_xlabel('Ginf (kPa)')
-    axes[0].set_ylabel('Frequency')
-
-    # Plot G1 distribution
-    axes[1].hist(mapping_df['G1'], bins=50, alpha=0.7)
-    axes[1].set_title('Short-term Shear Modulus (G1)')
-    axes[1].set_xlabel('G1 (kPa)')
-    axes[1].set_ylabel('Frequency')
-
-    # Plot tau distribution
-    axes[2].hist(mapping_df['tau'], bins=50, alpha=0.7)
-    axes[2].set_title('Relaxation Time (tau)')
-    axes[2].set_xlabel('tau (s)')
-    axes[2].set_ylabel('Frequency')
-
-    plt.tight_layout()
-    plt.savefig('material_property_distribution.png', dpi=300)
-    plt.show()
-
-# Usage
-plot_property_distribution("material_mapping.csv")
-```
-
-## Error Handling
+### Robust MRE Workflow
 
 ```python
 def robust_mre_workflow(mri_path, stiffness_path, damping_path, output_dir):
@@ -412,22 +450,11 @@ def robust_mre_workflow(mri_path, stiffness_path, damping_path, output_dir):
 
 ## Best Practices
 
-1. **Validate MRE data** before processing
-2. **Use appropriate segmentation** for your tissue types
-3. **Check material constants** for physical reasonableness
-4. **Document MRE parameters** (frequency, acquisition details)
-5. **Compare with literature values** for validation
-6. **Use multiple frequency data** when available
-7. **Consider tissue anisotropy** for advanced models
-
-## Next Steps
-
-After MRE integration:
-
-1. **Add boundary conditions** for your specific simulation
-2. **Validate against experimental data**
-3. **Perform sensitivity analysis** on material parameters
-4. **Consider multi-scale modeling** approaches
-5. **Integrate with other imaging modalities** (DTI, fMRI)
-
-For more advanced workflows, see the [Basic Workflow Example](basic-workflow.md) and [API Reference](../api/mre.md).
+1. **Start with basic workflow** before attempting MRE integration
+2. **Validate all input data** before processing
+3. **Use appropriate mesh parameters** for your use case
+4. **Monitor memory usage** for large datasets
+5. **Document processing parameters** for reproducibility
+6. **Test with small datasets** before processing large files
+7. **Backup important data** before processing
+8. **Use error handling** for robust workflows
