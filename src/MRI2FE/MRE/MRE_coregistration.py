@@ -2,18 +2,16 @@ from ants import (
     image_read,
     resample_image_to_target,
     threshold_image,
-    mask_image,
     registration,
     plot,
-    kmeans_segmentation,
     apply_transforms,
+    new_image_like,
 )
 from ants.core.ants_image import ANTsImage
 import meshio
 from ..models.femodel import FEModel
 import numpy as np
-from .calculate_prony import calculate_prony
-from datetime import datetime
+from sklearn.cluster import KMeans
 from typing import Union, List, Tuple
 import os
 
@@ -222,70 +220,64 @@ def coregister_MRE_images(
         return transformations, transformed_images
 
 
-def segment_MRE_regions(SS_img, DR_img, n_segs: int = 5):
-    """Segment MRE images and calculate Prony model parameters for each region.
+def segment_MRE_regions(img_list: List[Tuple[ANTsImage]], n_segs: int = 5):
+    """Kmeans segmentation of MRE images
 
     Args:
-        SS_img: ANTsImage of shear stiffness.
-        DR_img: ANTsImage of damping ratio.
-        n_segs (int): Number of segments.
+        img_list (List[Tuple[ANTsImage]]): List of tuples of ANTsImage, each tuple representing the two images available for MRE at a given frequency.
+        n_segs (int, optional): Number of segments to generate. Defaults to 5.
 
     Returns:
-        dict: Dictionary of segment means and Prony parameters.
+        AntsImage: Image containing integer labels for each region of the MRE images.
+        dict: dictionary containing average properties for each region.  Keys are "1" and "2" for the two input images for each tuple, each key contains a list of length n_tuples which has the average properties for that cluster
     """
-    print(f"{datetime.now()}\t\tSegmenting MRE image...")
-    segments = kmeans_segmentation(SS_img, n_segs)["segmentation"]
-    ROI_means = {"index": [], "Ginf": [], "G1": [], "Tau": []}
 
-    print(f"{datetime.now()}\t\tCalculating segment means...")
-    for i in range(1, n_segs + 1):
-        # Threshold to create mask for each region
-        threshold = threshold_image(segments, low_thresh=i, high_thresh=i + 1)
-        SS_ROI = mask_image(SS_img, threshold)
-        DR_ROI = mask_image(DR_img, threshold)
+    # check image list contents:
+    for tup in img_list:
+        for entry in tup:
+            if not isinstance(entry, ANTsImage):
+                raise ValueError(
+                    "All entries in img_list must be tuples of AntsImage"
+                )
 
-        # Extract non-zero voxels and calculate means
-        SS_vals = SS_ROI.numpy()[SS_ROI.numpy() > 0.0]
-        DR_vals = DR_ROI.numpy()[DR_ROI.numpy() > 0.0]
+    # calculate array dimensions
+    ants_size = img_list[0][0].numpy().size
+    ants_shape = img_list[0][0].numpy().shape
+    n_img = 2
+    n_features = len(img_list)
 
-        SS_mean = np.mean(SS_vals) / 1000
-        DR_mean = np.mean(DR_vals)
+    # build kmeans array
+    samples = []
+    for tup in img_list:
+        samples.append(tup[0].numpy().flatten())
+        samples.append(tup[1].numpy().flatten())
 
-        # Compute Prony series parameters
-        Ginf, G1, tau, _, _ = calculate_prony(SS_mean, DR_mean, 50.0)
-        print(
-            f"Segment {i}: SS={SS_mean:.3f}, DR={DR_mean:.3f}, Ginf={Ginf:.3f}, G1={G1:.3f}, tau={tau:.3f}"
+    samples = np.array(
+        samples
+    ).T  # rows = samples (voxels), columns = features (MRE values)
+
+    if not samples.shape == (ants_size, n_features * n_img):
+        raise ValueError(
+            "internal error: sample dimensions do not match post k-means array assembly"
         )
 
-        ROI_means["index"].append(i)
-        ROI_means["Ginf"].append(Ginf / 1000)
-        ROI_means["G1"].append(G1 / 1000)
-        ROI_means["Tau"].append(tau)
+    kmeans = KMeans(n_clusters=n_segs).fit(samples)
+    # create label image
+    km_label_array = kmeans.labels_.reshape(ants_shape)
 
-    return ROI_means
+    km_label_ants = new_image_like(img_list[0][0], km_label_array)
 
+    # create region average properties
+    print(kmeans.cluster_centers_.shape)
+    km_avgs = {"1": [], "2": []}
+    for row in kmeans.cluster_centers_:
+        label_1 = row[::2].tolist()
+        label_2 = row[1::2].tolist()
 
-def run_MRE_pipeline(geom, DR_list, SS_list, n_segs=5, imgout=None):
-    """Run full MRE pipeline: coregistration + segmentation + Prony analysis.
+        km_avgs["1"].append(label_1)
+        km_avgs["2"].append(label_2)
 
-    Args:
-        geom: Geometry MRI file (str or ANTsImage).
-        DR_list: List of damping ratio (G'') images.
-        SS_list: List of shear stiffness (G') images.
-        n_segs (int): Number of segments for clustering.
-        imgout: Optional prefix for saving visualization images.
-
-    Returns:
-        Tuple of coregistration results and ROI statistics per image pair.
-    """
-    coreg_results = coregister_MRE_images(
-        segmented_geom=geom, gp_list=SS_list, gpp_list=DR_list, imgout=imgout
-    )
-    all_results = []
-    for result in coreg_results:
-        ROI_means = segment_MRE_regions(result["gp"], result["gpp"], n_segs)
-        all_results.append(ROI_means)
-    return coreg_results, all_results
+    return km_label_ants, km_avgs
 
 
 def meshio_to_femodel(

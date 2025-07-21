@@ -3,7 +3,7 @@ import numpy as np
 
 from ants import get_ants_data, image_read, threshold_image
 
-from MRI2FE.MRE import coregister_MRE_images
+from MRI2FE.MRE import coregister_MRE_images, segment_MRE_regions
 
 
 class TestMRECoreg:
@@ -121,3 +121,48 @@ class TestMRECoreg:
                 MRE_mask=self.MRE_mask,
                 MRE_to_transform=MRE_images,
             )
+
+
+class TestMRESegmentation:
+    def test_seg_single(self):
+        ss = image_read("test/test_data/test_stiffness.nii")
+
+        dr = image_read("test/test_data/test_damping_ratio.nii")
+
+        img_list = [(ss, dr)]
+
+        test_img, test_dict = segment_MRE_regions(img_list=img_list, n_segs=5)
+
+        print(test_dict["1"])
+        print(test_dict["2"])
+
+        assert len(test_dict["1"]) == 5
+        assert len(test_dict["2"]) == 5
+
+        for list in test_dict["1"]:
+            assert len(list) == 1
+
+        for list in test_dict["2"]:
+            assert len(list) == 1
+
+        assert test_img.max() == 4
+
+    def test_seg_multiple(self):
+        ss = image_read("test/test_data/test_stiffness.nii")
+
+        dr = image_read("test/test_data/test_damping_ratio.nii")
+
+        img_list = [(ss, dr), (ss, dr), (ss, dr)]
+
+        test_img, test_dict = segment_MRE_regions(img_list=img_list, n_segs=5)
+
+        assert len(test_dict["1"]) == 5
+        assert len(test_dict["2"]) == 5
+
+        for list in test_dict["1"]:
+            assert len(list) == 3
+
+        for list in test_dict["2"]:
+            assert len(list) == 3
+
+        assert test_img.max() == 4
