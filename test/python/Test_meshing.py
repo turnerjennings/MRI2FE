@@ -63,17 +63,14 @@ class TestMeshing:
             root_dir, "test", "test_data", "test_mesh_out.mesh"
         )
 
-        mesh:meshio.Mesh = meshio.read(inpath)
+        mesh: meshio.Mesh = meshio.read(inpath)
 
-        for idx,item in enumerate(mesh.cells):
+        for idx, item in enumerate(mesh.cells):
             if item.type == "tetra":
                 shp = item.data.shape
-        
 
         mdl: FEModel = model_from_meshio(mesh, title="test", source="test")
 
         assert mdl.node_table.shape[0] == mesh.points.shape[0]
 
         assert mdl.element_table.shape[0] == shp[0]
-
-        

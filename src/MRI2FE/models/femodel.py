@@ -31,7 +31,7 @@ class FEModel:
                 self.node_table = nodes
             else:
                 raise ValueError("Nodes must be a list or numpy array")
-            
+
             self.metadata["num_nodes"] = self.node_table.shape[0]
         else:
             self.node_table = None
@@ -346,10 +346,10 @@ class FEModel:
 
 
 def model_from_meshio(
-    mesh: Union[meshio.Mesh, str], 
-    title: str = "", 
+    mesh: Union[meshio.Mesh, str],
+    title: str = "",
     source: str = "",
-    element_type: Literal["tetra"] = "tetra"
+    element_type: Literal["tetra"] = "tetra",
 ) -> FEModel:
     """
     Convert a meshio.Mesh object into a custom FEModel object.
@@ -374,29 +374,31 @@ def model_from_meshio(
     nids = np.arange(1, n_points + 1)
     new_nodes = np.column_stack((nids, mesh_nodes))
 
-    #find element type in cells
+    # find element type in cells
     connectivity_index = 0
     found = False
-    for idx,item in enumerate(mesh.cells):
+    for idx, item in enumerate(mesh.cells):
         if item.type == element_type:
             node_connectivity = item.data
             connectivity_index = idx
             found = True
-    
+
     if not found:
-        raise ValueError(f"Element type {element_type} not found in mesh cells")
+        raise ValueError(
+            f"Element type {element_type} not found in mesh cells"
+        )
 
     n_elements = node_connectivity.shape[0]
-    eids = np.arange(1,n_elements + 1)
-    
-    #find pids
+    eids = np.arange(1, n_elements + 1)
+
+    # find pids
 
     pid = mesh.cell_data["medit:ref"][connectivity_index]
 
     new_elements = np.column_stack((eids, pid, node_connectivity))
 
     if not pid.shape[0] == node_connectivity.shape[0]:
-        raise ValueError(f"pid and node_connectivity lengths do not match")
+        raise ValueError("pid and node_connectivity lengths do not match")
 
     out_mesh = FEModel(
         title=title, source=source, nodes=new_nodes, elements=new_elements
