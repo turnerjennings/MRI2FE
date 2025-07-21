@@ -63,7 +63,7 @@ def calculate_prony(
         gpp = np.asarray(gpp)
         w = np.asarray(w)
 
-    if first_set_type:
+    if second_set_type:
         mu = np.asarray(mu)
         xi = np.asarray(xi)
         w = np.asarray(w)
@@ -91,14 +91,14 @@ def calculate_prony(
 
     # calculate complex modulus from stiffness and damping ratio (array)
     elif second_set_valid:
-        a = np.sqrt(1.0 + 4.0 * xi**2.0)
+        a = np.sqrt(1.0 + 4.0 * np.square(xi))
 
-        gp = ((1.0 + a) * mu) / (2.0 * a**2)
+        gp = ((1.0 + a) * mu) / (2.0 * np.square(a))
         gpp = 2.0 * xi * gp
-        gmag = np.sqrt(gp**2 + gpp**2)
+        gmag = np.sqrt(np.square(gp) + np.square(gpp))
 
         # back-calculate mu and xi to check calculation, raise error if they don't match
-        mu_bc = 2.0 * gmag**2 / (gp + gmag)
+        mu_bc = 2.0 * np.square(gmag) / (gp + gmag)
         xi_bc = gpp / (2.0 * gp)
 
         if np.sum((mu - mu_bc) ** 2) >= tol:
