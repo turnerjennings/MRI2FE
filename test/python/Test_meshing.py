@@ -6,6 +6,8 @@ import os
 
 import meshio
 
+from ants import image_read
+
 from MRI2FE import mesh_from_nifti, nifti_to_inr, FEModel, model_from_meshio
 
 
@@ -17,7 +19,9 @@ class TestMeshing:
             root_dir, "test", "test_data", "test_concentric_spheres.nii"
         )
 
-        outpath = nifti_to_inr(path)
+        img = image_read(path)        
+
+        outpath = nifti_to_inr(img)
 
         assert os.path.exists(outpath)
 
@@ -26,7 +30,7 @@ class TestMeshing:
 
         path = os.path.join(root_dir, "test", "test_data", "not_real_file.nii")
         with pytest.raises(ValueError):
-            outpath = nifti_to_inr(path)
+            outpath = mesh_from_nifti(path)
 
     def test_mesh_creation(self):
         root_dir = os.getcwd()
@@ -71,6 +75,14 @@ class TestMeshing:
 
         mdl: FEModel = model_from_meshio(mesh, title="test", source="test")
 
+
         assert mdl.node_table.shape[0] == mesh.points.shape[0]
 
         assert mdl.element_table.shape[0] == shp[0]
+
+        #check for zero nodes and node range
+        assert np.min(mdl.node_table[:,0]) > 0
+
+        assert np.min(mdl.element_table[:,2:]) == np.min(mdl.node_table[:,0])
+
+        assert np.max(mdl.element_table[:,2:]) == np.max(mdl.node_table[:,0])

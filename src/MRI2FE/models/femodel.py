@@ -380,6 +380,7 @@ def model_from_meshio(
     for idx, item in enumerate(mesh.cells):
         if item.type == element_type:
             node_connectivity = item.data
+            node_connectivity = node_connectivity + 1
             connectivity_index = idx
             found = True
 

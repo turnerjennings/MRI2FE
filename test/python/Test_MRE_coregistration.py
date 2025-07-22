@@ -136,8 +136,8 @@ class TestMRESegmentation:
         print(test_dict["1"])
         print(test_dict["2"])
 
-        assert len(test_dict["1"]) == 5
-        assert len(test_dict["2"]) == 5
+        assert len(test_dict["1"]) == 6
+        assert len(test_dict["2"]) == 6
 
         for list in test_dict["1"]:
             assert len(list) == 1
@@ -145,7 +145,7 @@ class TestMRESegmentation:
         for list in test_dict["2"]:
             assert len(list) == 1
 
-        assert test_img.max() == 4
+        assert test_img.max() == 5
 
     def test_seg_multiple(self):
         ss = image_read("test/test_data/test_stiffness.nii")
@@ -156,8 +156,8 @@ class TestMRESegmentation:
 
         test_img, test_dict = segment_MRE_regions(img_list=img_list, n_segs=5)
 
-        assert len(test_dict["1"]) == 5
-        assert len(test_dict["2"]) == 5
+        assert len(test_dict["1"]) == 6
+        assert len(test_dict["2"]) == 6
 
         for list in test_dict["1"]:
             assert len(list) == 3
@@ -165,4 +165,4 @@ class TestMRESegmentation:
         for list in test_dict["2"]:
             assert len(list) == 3
 
-        assert test_img.max() == 4
+        assert test_img.max() == 5

@@ -2,16 +2,16 @@ import meshio
 
 from ants import image_read
 
+from ants.core.ants_image import ANTsImage
+
 import os
+
+import numpy as np
 
 from ._MESHUTILS import mesh_wrapper
 
 
-def nifti_to_inr(filepath: str) -> str:
-    if not os.path.exists(filepath):
-        raise ValueError(f"input filepath {filepath} does not exist")
-
-    image = image_read(filepath)
+def nifti_to_inr(image:ANTsImage) -> str:
 
     # get dimensions and spacing
     xdim, ydim, zdim = image.shape
@@ -79,7 +79,14 @@ def mesh_from_nifti(
     cellRadiusEdgeRatio: float = 3.0,
     cellSize: float = 1.0,
 ) -> meshio.Mesh:
-    transfer_path = nifti_to_inr(filepath=filepath)
+    if not os.path.exists(filepath):
+        raise ValueError(f"input filepath {filepath} does not exist")
+
+    image = image_read(filepath)
+
+    origin = image.origin
+
+    transfer_path = nifti_to_inr(image=image)
 
     mesh_path = mesh_wrapper(
         transfer_path,
@@ -95,7 +102,10 @@ def mesh_from_nifti(
         raise ValueError(f"Mesh wrapper did not create mesh at {mesh_path}")
 
     try:
-        mesh = meshio.read(mesh_path)
+        mesh:meshio.Mesh = meshio.read(mesh_path)
+
+        mesh.points = mesh.points - np.array(origin)
+
         return mesh
     except ValueError:
         raise ValueError(
