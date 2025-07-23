@@ -297,13 +297,12 @@ def element_centroids(
     Returns:
         centroid (np.array): (3,) array containing average coordinate of the element
     """
+    """
     # Validate input types
     if not isinstance(elnodes, (np.ndarray, tuple, list)):
         raise TypeError("elnodes must be a numpy array, tuple, or list")
     if not isinstance(node_coords, np.ndarray):
         raise TypeError("node_coords must be a numpy array")
-
-    elnodes = np.asarray(elnodes)
 
     # Validate array dimensions
     if len(elnodes.shape) != 1:
@@ -313,22 +312,14 @@ def element_centroids(
 
     if node_coords.shape[1] != 4:  # Must have NID and xyz coordinates
         raise ValueError("node_coords must have 4 columns (NID, x, y, z)")
+    """
+
+    elnodes = np.asarray(elnodes)
 
     nodes = np.unique(elnodes[2:])
 
-    coords = []
-    for node in nodes:
-        if node not in node_coords[:, 0]:
-            raise ValueError(
-                f"Point {node} not found in node array during centroid calculation"
-            )
-        coords.append(node_coords[node_coords[:, 0] == node, 1:])
-    coords = np.array(coords)
+    mask = np.isin(node_coords[:, 0], nodes)
 
-    n = len(coords)
-    if n < 2:
-        raise ValueError(f"only {n} points found during centroid calculation")
-
-    cx = np.mean(coords, axis=0).flatten()
+    cx = np.mean(node_coords[mask, 1:], axis=0)
 
     return cx.tolist()

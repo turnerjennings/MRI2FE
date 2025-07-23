@@ -119,7 +119,7 @@ def tests(session):
             f'-DVCPKG_MANIFEST_DIR="{project_root}" '
       
         os.environ["CMAKE_ARGS"] = cmake_args
-        session.install(".")
+        session.install("-e",".")
 
     session.run("pytest")
 
