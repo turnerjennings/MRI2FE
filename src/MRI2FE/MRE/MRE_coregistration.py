@@ -8,8 +8,6 @@ from ants import (
     new_image_like,
 )
 from ants.core.ants_image import ANTsImage
-import meshio
-from ..models.femodel import FEModel
 import numpy as np
 from sklearn.cluster import KMeans
 from typing import Union, List, Tuple
@@ -161,8 +159,12 @@ def coregister_MRE_images(
     transformed_images = []
     for idx, (geom, img_tuple) in enumerate(zip(MRE_geom, MRE_transform_imgs)):
         # resample geometry to MRE image
-        geom_resample = resample_image(segmented_geom, geom.shape, use_voxels=True)
-        mask_resample = resample_image(segmented_mask, geom.shape, use_voxels=True)
+        geom_resample = resample_image(
+            segmented_geom, geom.shape, use_voxels=True
+        )
+        mask_resample = resample_image(
+            segmented_mask, geom.shape, use_voxels=True
+        )
 
         # calculate transform
         try:
@@ -261,7 +263,7 @@ def segment_MRE_regions(img_list: List[Tuple[ANTsImage]], n_segs: int = 5):
             "internal error: sample dimensions do not match post k-means array assembly"
         )
 
-    kmeans = KMeans(n_clusters=n_segs+1).fit(samples)
+    kmeans = KMeans(n_clusters=n_segs + 1).fit(samples)
     # create label image
     km_label_array = kmeans.labels_.reshape(ants_shape)
 

@@ -1,7 +1,7 @@
 import numpy as np
 from ants import from_numpy, image_write
 import os
-from ..src.MRI2FE.generate_mesh import mesh_from_nifti
+from MRI2FE.generate_mesh import mesh_from_nifti
 import meshio
 
 

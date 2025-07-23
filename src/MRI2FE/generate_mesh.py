@@ -11,8 +11,7 @@ import numpy as np
 from ._MESHUTILS import mesh_wrapper
 
 
-def nifti_to_inr(image:ANTsImage) -> str:
-
+def nifti_to_inr(image: ANTsImage) -> str:
     # get dimensions and spacing
     xdim, ydim, zdim = image.shape
 
@@ -102,7 +101,7 @@ def mesh_from_nifti(
         raise ValueError(f"Mesh wrapper did not create mesh at {mesh_path}")
 
     try:
-        mesh:meshio.Mesh = meshio.read(mesh_path)
+        mesh: meshio.Mesh = meshio.read(mesh_path)
 
         mesh.points = mesh.points - np.array(origin)
 

@@ -102,6 +102,7 @@ def validate_fe_model(fe_model):
                 "Extra node references should be zero for TET4 elements"
             )
 
+
 @pytest.mark.skip(reason="Deprecated until the pipeline is updated")
 def test_mre_pipeline():
     test_data_dir = "test/test_data/"

@@ -51,7 +51,6 @@ class Test_prony_series:
         assert (g1 - ref_g1) ** 2 <= tolerance
         assert (tau - ref_tau) ** 2 <= tolerance
 
-
     def test_raises(self):
         with pytest.raises(ValueError):
             g0, g1, tau = calculate_prony(mu=1.0, gp=1.0)

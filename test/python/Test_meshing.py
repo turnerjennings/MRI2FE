@@ -19,7 +19,7 @@ class TestMeshing:
             root_dir, "test", "test_data", "test_concentric_spheres.nii"
         )
 
-        img = image_read(path)        
+        img = image_read(path)
 
         outpath = nifti_to_inr(img)
 
@@ -75,14 +75,13 @@ class TestMeshing:
 
         mdl: FEModel = model_from_meshio(mesh, title="test", source="test")
 
-
         assert mdl.node_table.shape[0] == mesh.points.shape[0]
 
         assert mdl.element_table.shape[0] == shp[0]
 
-        #check for zero nodes and node range
-        assert np.min(mdl.node_table[:,0]) > 0
+        # check for zero nodes and node range
+        assert np.min(mdl.node_table[:, 0]) > 0
 
-        assert np.min(mdl.element_table[:,2:]) == np.min(mdl.node_table[:,0])
+        assert np.min(mdl.element_table[:, 2:]) == np.min(mdl.node_table[:, 0])
 
-        assert np.max(mdl.element_table[:,2:]) == np.max(mdl.node_table[:,0])
+        assert np.max(mdl.element_table[:, 2:]) == np.max(mdl.node_table[:, 0])
