@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 
-from ants import get_ants_data, image_read, threshold_image, from_numpy, plot
+from ants import image_read, threshold_image, from_numpy
 
 from MRI2FE.MRE import (
     coregister_MRE_images,
@@ -18,25 +18,61 @@ import meshio
 class TestMRECoreg:
     @pytest.fixture(autouse=True)
     def problem_setup(self):
-        self.geom = image_read(get_ants_data("r16"))
-        self.geom_mask = threshold_image(
-            self.geom,
-            low_thresh=np.min(np.nonzero(self.geom.numpy())),
-            high_thresh=np.max(self.geom.numpy()),
+        self.geom_path = os.path.join(
+            "test", "test_data", "test_concentric_spheres.nii"
         )
-        print(self.geom)
-        self.MRE_geom = image_read(get_ants_data("r27"))
-        self.MRE_mask = threshold_image(
-            self.MRE_geom,
-            low_thresh=np.min(np.nonzero(self.MRE_geom.numpy())),
-            high_thresh=np.max(self.geom.numpy()),
+
+        self.MRE_geom_path = os.path.join(
+            "test", "test_data", "test_concentric_spheres.nii"
         )
-        print(self.MRE_geom)
-        self.gp = image_read(get_ants_data("r27"))
-        self.gpp = image_read(get_ants_data("r27"))
+
+        self.gp_path = os.path.join("test", "test_data", "test_stiffness.nii")
+
+        self.gpp_path = os.path.join(
+            "test", "test_data", "test_damping_ratio.nii"
+        )
+
+        self.geom = image_read(self.geom_path)
+
+        geom_data = self.geom.numpy()
+
+        geom_data[geom_data > 0] = 1
+
+        self.geom_mask = from_numpy(geom_data,
+                                    origin=self.geom.origin,
+                                    spacing=self.geom.spacing,
+                                    direction=self.geom.direction)
+
+        self.MRE_geom = image_read(self.MRE_geom_path)
+
+        geom_data = self.MRE_geom.numpy()
+
+        geom_data[geom_data > 0] = 1
+
+        self.MRE_mask = from_numpy(geom_data,
+                                    origin=self.MRE_geom.origin,
+                                    spacing=self.MRE_geom.spacing,
+                                    direction=self.MRE_geom.direction)
+
+        self.gp = image_read(self.gp_path)
+        self.gpp = image_read(self.gpp_path)
 
     def test_coreg_single(self):
         MRE_images = [(self.gp, self.gpp)]
+
+        transforms, images = coregister_MRE_images(
+            segmented_geom=self.geom,
+            segmented_mask=self.geom_mask,
+            MRE_geom=self.MRE_geom,
+            MRE_mask=self.MRE_mask,
+            MRE_to_transform=MRE_images,
+        )
+
+        assert len(transforms) == 1
+        assert len(images) == 2
+
+    def test_coreg_single_fromstring(self):
+        MRE_images = [(self.gp_path, self.gpp_path)]
 
         transforms, images = coregister_MRE_images(
             segmented_geom=self.geom,
@@ -55,6 +91,32 @@ class TestMRECoreg:
             (self.gp, self.gpp),
             (self.gp, self.gpp),
             (self.gp, self.gpp),
+        ]
+
+        MRE_geoms = [
+            self.MRE_geom,
+            self.MRE_geom,
+            self.MRE_geom,
+            self.MRE_geom,
+        ]
+
+        transforms, images = coregister_MRE_images(
+            segmented_geom=self.geom,
+            segmented_mask=self.geom_mask,
+            MRE_geom=MRE_geoms,
+            MRE_mask=self.MRE_mask,
+            MRE_to_transform=MRE_images,
+        )
+
+        assert len(transforms) == 4
+        assert len(images) == 4
+
+    def test_coreg_multiple_frompath(self):
+        MRE_images = [
+            (self.gp_path, self.gpp_path),
+            (self.gp_path, self.gpp_path),
+            (self.gp_path, self.gpp_path),
+            (self.gp_path, self.gpp_path),
         ]
 
         MRE_geoms = [
