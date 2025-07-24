@@ -3,28 +3,33 @@ from ants.core.ants_image import ANTsImage
 import scipy.spatial as sp
 from ..utilities import spatial_map
 from ..models.femodel import FEModel
+from typing import List
 
 
 def map_MRE_to_mesh(
-    mdl: FEModel, label_img: ANTsImage, target_region_id: int = 4
+    mdl: FEModel,
+    label_img: ANTsImage,
+    region_properties: List,
+    target_region_id: int = 4,
+    label_background_id: int = 0,
+    region_prefix: str = None,
 ) -> FEModel:
-    """Map elements to parts from a segmented spatial map
+    """Map MRE properties onto FE mesh and store associated material properties in the model material array
 
     Args:
-        fe_model (FEModel): Finite element model object
-        map (AntsImage): segmented spatial map in voxel space
-        elcentroids (np.ndarray): (3,n_elements) array of the coordinates of each element centroid
-        ect (np.ndarray): element connectivity table in 10-node LS-Dyna format
-        offset (int, optional): optional filter if it is not desired to remap all pids, will skip mapping any elements belonging to pid <= offset. Defaults to 3.
-        csvpath (str, optional): Path to save CSV output files. Defaults to None.
+        mdl (FEModel): FE model to map MRE regions onto
+        label_img (ANTsImage): MRI image with integer labels for each MRE region
+        region_properties (List): List of prony series properties for each MRE region
+        target_region_id (int, optional): Target PID in the FE model to replace with segmented MRE IDs   .
+        label_background_id (int, optional): Integer label in the label_img associated with the background. Defaults to 0.
+        region_prefix (str, optional): name prefix for the new part assignment names
 
     Raises:
-        TypeError: If input types are invalid
-        ValueError: If input dimensions or values are invalid
-        FileNotFoundError: If CSV directory doesn't exist
+        TypeError: Input not the right type
+        ValueError: negative target region
 
     Returns:
-        ect (np.ndarray): new ect in 10-node LS-DYNA format with updated PIDs
+        FEModel: Model with updated PIDs for the target region and material properties added
     """
     if not isinstance(mdl, FEModel):
         raise TypeError("mdl must be a FEModel object")
@@ -47,24 +52,17 @@ def map_MRE_to_mesh(
     max_id = np.max(mdl.element_table[:, 1])
 
     # create filtered space map and centroids for ROI only
-    label_img_long_nonzero = label_img_long[label_img_long[:, 3] > 0]
+    label_img_long_nobackground = label_img_long[
+        label_img_long[:, 3] != label_background_id
+    ]
 
     # find elements and centroids within target label region
     ect_region_mask = mdl.element_table[:, 1] == target_region_id
     elcentroids_ROI = mdl.centroid_table[ect_region_mask, :]
 
-    print(f"elements in the ROI: {elcentroids_ROI.shape}")
-    print(f"points from the MRE label image: {label_img_long_nonzero.shape}")
-    print(
-        f"min/max of ROI: {np.min(elcentroids_ROI, axis=0)},{np.max(elcentroids_ROI, axis=0)}"
-    )
-    print(
-        f"min/max of points in the MRE label image: {np.min(label_img_long_nonzero, axis=0)},{np.max(label_img_long_nonzero, axis=0)}"
-    )
-
     # create KDTree
     physical_space_tree = sp.KDTree(
-        label_img_long_nonzero[:, 0:3], leafsize=15
+        label_img_long_nobackground[:, 0:3], leafsize=15
     )
 
     d, idx = physical_space_tree.query(elcentroids_ROI, k=1)
@@ -74,11 +72,45 @@ def map_MRE_to_mesh(
     else:
         offset = max_id
 
-    print(f"idx shape: {idx.shape}\nunique indices found:{np.unique(idx)}")
-
-    new_pids = label_img_long_nonzero[idx, 3] + offset
-    print(f"min/max of new pids: {np.min(new_pids)},{np.max(new_pids)}")
+    new_pids = label_img_long_nobackground[idx, 3] + offset
 
     mdl.element_table[ect_region_mask, 1] = new_pids
+
+    # map part IDs and material ids
+
+    for idx, mat in enumerate(region_properties):
+        if idx is not label_background_id:
+            mat_id = idx + offset
+
+            # create part
+            if region_prefix is not None:
+                mdl.part_info[str(mat_id)] = {
+                    "name": f"{region_prefix}_{idx}",
+                    "constants": [mat_id],
+                }
+            else:
+                mdl.part_info[str(mat_id)] = {
+                    "name": f"{target_region_id}_{idx}",
+                    "constants": [mat_id],
+                }
+
+            # create material
+            if region_prefix is not None:
+                mdl.material_info.append(
+                    {
+                        "type": "KELVIN-MAXWELL_VISCOELASTIC",
+                        "name": f"{target_region_id}_{idx}",
+                        "ID": mat_id,
+                        "constants": [0, 0] + list(mat),
+                    }
+                )
+            else:
+                mdl.material_info.append(
+                    {
+                        "type": "KELVIN-MAXWELL_VISCOELASTIC",
+                        "ID": mat_id,
+                        "constants": [0, 0] + list(mat),
+                    }
+                )
 
     return mdl

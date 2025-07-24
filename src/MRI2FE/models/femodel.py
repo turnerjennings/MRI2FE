@@ -328,8 +328,18 @@ class FEModel:
                 for idx, item in enumerate(props):
                     mat_insert[idx + 1] = item
 
-                f.write(f"*MAT_{mat_type}\n")
+                if "name" in mat:
+                    f.write(f"*MAT_{mat_type}_TITLE\n")
+                    f.write(f"{mat["name"]}\n")
+                else:
+                    f.write(f"*MAT_{mat_type}\n")
                 for item in mat_insert:
+
+                    #convert from numpy types
+                    if hasattr(item, 'item'):  # numpy scalars have .item() method
+                        item = item.item()
+
+                    #check and write type
                     if isinstance(item, int):
                         f.write(f"{item:>10d}")
                     elif isinstance(item, float) and item == 0.0:
@@ -350,18 +360,18 @@ class FEModel:
         self,
         mesh: Union[meshio.Mesh, str],
         element_type: Literal["tetra"] = "tetra",
+        region_names: List[str] = None,
     ):
-        """
-        Convert a meshio.Mesh object into a custom FEModel object.
+        """Load a mesh from a meshio mesh object into the FEModel format
 
         Args:
-            mesh: meshio.Mesh object
-            title: Metadata title for FEModel
-            source: Metadata source for FEModel
-            default_part_id: Default part ID for all elements
+            mesh (meshio.Mesh, str): Mesh object or filepath to mesh object
+            element_type ("tetra", optional): Element type desired for mesh. Currently, only "tetra" is supported.
+            region_names (List[str], optional): Optional part names for each region to be stored in the model. Defaults to None.
 
-        Returns:
-            FEModel instance with custom nodes and elements
+        Raises:
+            ValueError: No tetra elements found in the model
+            ValueError: Node connectivity does not share the same dimension as the part IDs
         """
         if isinstance(mesh, str):
             mesh = meshio.read(mesh)
@@ -369,6 +379,7 @@ class FEModel:
         # extract meshio points and create node numbering
         mesh_nodes = mesh.points
         n_points = mesh.points.shape[0]
+        self.metadata["num_nodes"] += n_points
 
         # apply offsets
         nids = np.arange(1, n_points + 1)
@@ -392,14 +403,32 @@ class FEModel:
         n_elements = node_connectivity.shape[0]
         eids = np.arange(1, n_elements + 1)
 
+        self.metadata["num_elements"] += n_elements
+
         # find pids
 
         pid = mesh.cell_data["medit:ref"][connectivity_index]
 
         new_elements = np.column_stack((eids, pid, node_connectivity))
 
+        #filter pid zero
+        mask = pid > 0
+
+        new_elements = new_elements[mask,:]
+
         if not pid.shape[0] == node_connectivity.shape[0]:
             raise ValueError("pid and node_connectivity lengths do not match")
+
+        # create parts
+        unique_pids = np.unique(new_elements[:,1])
+        for idx, id in enumerate(unique_pids):
+            if region_names is not None:
+                self.part_info[str(id)] = {
+                    "name": region_names[idx],
+                    "constants": [],
+                }
+            else:
+                self.part_info[str(id)] = {"name": str(id), "constants": []}
 
         # TODO enable appending new nodes and elements
         self.node_table = new_nodes

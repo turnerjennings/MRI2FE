@@ -87,15 +87,19 @@ class TestMeshing:
 
         for idx, item in enumerate(mesh.cells):
             if item.type == "tetra":
-                shp = item.data.shape
+                dt = item.data 
+                connectivity_index = idx
+                
+        pid = mesh.cell_data["medit:ref"][connectivity_index]
+        shp = np.count_nonzero(pid > 0)
 
         mdl = FEModel(title="test", source="test")
 
         mdl.from_meshio(mesh)
-
+        
         assert mdl.node_table.shape[0] == mesh.points.shape[0]
 
-        assert mdl.element_table.shape[0] == shp[0]
+        assert mdl.element_table.shape[0] == shp
 
         # check for zero nodes and node range
         assert np.min(mdl.node_table[:, 0]) > 0
@@ -127,3 +131,8 @@ class TestMeshing:
             np.testing.assert_array_less(
                 center_dist_mesh[points_in_region], radii[i - 1] + 0.1
             )
+
+        # check part ids
+        assert len(np.unique(mdl.element_table[:, 1])) == len(
+            mdl.part_info.keys()
+        )

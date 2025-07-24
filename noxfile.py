@@ -4,7 +4,7 @@ import os
 import pybind11
 import platform
 
-nox.options.reuse_venv = "yes"  # or "yes"
+nox.options.reuse_venv = "yes"
 
 @nox.session(name="cpptest")
 def cpptest(session):
@@ -119,7 +119,7 @@ def tests(session):
             f'-DVCPKG_MANIFEST_DIR="{project_root}" '
       
         os.environ["CMAKE_ARGS"] = cmake_args
-        session.install("-e",".")
+        session.install(".")
 
     session.run("pytest")
 
