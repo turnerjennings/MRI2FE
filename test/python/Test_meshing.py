@@ -8,7 +8,7 @@ import meshio
 
 from ants import image_read
 
-from MRI2FE import mesh_from_nifti, nifti_to_inr, FEModel, model_from_meshio
+from MRI2FE import mesh_from_nifti, nifti_to_inr, FEModel, spatial_map
 
 
 class TestMeshing:
@@ -52,13 +52,29 @@ class TestMeshing:
 
         mesh.write(out_path)
 
-        centered_points = mesh.points - np.array([32.0, 32.0, 32.0])
+        # create spatial map from original image
+        img_map = spatial_map(image_read(path))
 
-        dist = np.linalg.norm(centered_points, axis=1)
+        # img_map = img_map[img_map[:,3] > 0,:]
 
-        ref_dist = 33 * np.ones_like(dist)
+        img_map_min_max = [
+            np.min(img_map[:, :3], axis=0),
+            np.max(img_map[:, :3], axis=0),
+        ]
 
-        np.testing.assert_array_less(dist, ref_dist)
+        mesh_min_max = [
+            np.min(mesh.points, axis=0),
+            np.max(mesh.points, axis=0),
+        ]
+
+        print(image_read(path))
+        print("nifti min max:")
+        print(img_map_min_max)
+        print("mesh min max:")
+        print(mesh_min_max)
+
+        np.testing.assert_array_less(img_map_min_max[0], mesh_min_max[0])
+        np.testing.assert_array_less(mesh_min_max[1], img_map_min_max[1])
 
     def test_femodel_from_meshio(self):
         root_dir = os.getcwd()
@@ -73,7 +89,10 @@ class TestMeshing:
             if item.type == "tetra":
                 shp = item.data.shape
 
-        mdl: FEModel = model_from_meshio(mesh, title="test", source="test")
+        mdl = FEModel(title="test", source="test")
+
+        mdl.from_meshio(mesh)
+
 
         assert mdl.node_table.shape[0] == mesh.points.shape[0]
 
@@ -85,3 +104,27 @@ class TestMeshing:
         assert np.min(mdl.element_table[:, 2:]) == np.min(mdl.node_table[:, 0])
 
         assert np.max(mdl.element_table[:, 2:]) == np.max(mdl.node_table[:, 0])
+
+        # check mesh regions
+        shape = (64, 64, 64)
+        radii = [5, 10, 15, 20]  # Radii for spheres
+        center = np.array(shape) // 2
+        origin = (4.0, -1.0, 2.0)
+
+        mdl.update_centroids()
+
+        center_dist_mesh = np.linalg.norm(
+            mdl.centroid_table - (center + origin), axis=1
+        )
+
+        for i in range(1, 5):
+            print(i)
+            points_in_region = mdl.element_table[:, 1] == i
+            print(mdl.centroid_table[points_in_region, :])
+            print(center + origin)
+            print(mdl.centroid_table[points_in_region, :] - (center + origin))
+            print(center_dist_mesh[points_in_region])
+
+            np.testing.assert_array_less(
+                center_dist_mesh[points_in_region], radii[i - 1] + 0.1
+            )

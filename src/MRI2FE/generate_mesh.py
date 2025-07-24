@@ -103,7 +103,7 @@ def mesh_from_nifti(
     try:
         mesh: meshio.Mesh = meshio.read(mesh_path)
 
-        mesh.points = mesh.points - np.array(origin)
+        mesh.points = mesh.points + np.array(origin)
 
         return mesh
     except ValueError:

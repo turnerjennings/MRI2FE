@@ -195,6 +195,50 @@ class TestSpatialMap:
         assert result.shape[1] == 4
         assert len(result) == np.prod(test_data.shape)
 
+        np.testing.assert_almost_equal(
+            np.min(result[:, :3], axis=0), np.array([0, 0, 0])
+        )
+        np.testing.assert_almost_equal(
+            np.max(result[:, :3], axis=0), np.array([1, 1, 1])
+        )
+
+        # different origin point
+        test_img = ants.from_numpy(
+            data=test_data,
+            origin=(-1, -1, -1),
+            spacing=(2, 2, 2),
+            direction=np.eye(3),
+        )
+
+        result = spatial_map(test_img)
+        assert result.shape[1] == 4
+        assert len(result) == np.prod(test_data.shape)
+
+        np.testing.assert_almost_equal(
+            np.min(result[:, :3], axis=0), np.array([-1, -1, -1])
+        )
+        np.testing.assert_almost_equal(
+            np.max(result[:, :3], axis=0), np.array([1, 1, 1])
+        )
+
+        # larger image
+        test_data2 = np.ones((10, 10, 10))
+        test_img = ants.from_numpy(
+            data=test_data2,
+            origin=(-1, -1, -1),
+            spacing=(10, 10, 10),
+            direction=np.eye(3),
+        )
+
+        result = spatial_map(test_img)
+
+        np.testing.assert_almost_equal(
+            np.min(result[:, :3], axis=0), np.array([-1, -1, -1])
+        )
+        np.testing.assert_almost_equal(
+            np.max(result[:, :3], axis=0), np.array([89, 89, 89])
+        )
+
 
 class TestElementCentroids:
     def test_centroids(self):

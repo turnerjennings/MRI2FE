@@ -1,20 +1,13 @@
 import numpy as np
 from ants.core.ants_image import ANTsImage
 import scipy.spatial as sp
-from ..utilities import COM_align, spatial_map
+from ..utilities import spatial_map
 from ..models.femodel import FEModel
-import os
-from datetime import datetime
 
 
 def map_MRE_to_mesh(
-    fe_model: FEModel,
-    map: ANTsImage,
-    elcentroids: np.ndarray,
-    ect: np.ndarray,
-    offset: int = 3,
-    csvpath: str = None,
-):
+    mdl: FEModel, label_img: ANTsImage, target_region_id: int = 4
+) -> FEModel:
     """Map elements to parts from a segmented spatial map
 
     Args:
@@ -33,129 +26,59 @@ def map_MRE_to_mesh(
     Returns:
         ect (np.ndarray): new ect in 10-node LS-DYNA format with updated PIDs
     """
-    if not isinstance(fe_model, FEModel):
-        raise TypeError("fe_model must be a FEModel object")
+    if not isinstance(mdl, FEModel):
+        raise TypeError("mdl must be a FEModel object")
 
-    if not isinstance(map, ANTsImage):
+    if not isinstance(label_img, ANTsImage):
         raise TypeError("map must be an ANTsImage object")
 
-    if not isinstance(elcentroids, np.ndarray):
-        raise TypeError("elcentroids must be a numpy array")
-    if not isinstance(ect, np.ndarray):
-        raise TypeError("ect must be a numpy array")
-
-    if len(elcentroids.shape) != 2 or elcentroids.shape[1] != 3:
-        raise ValueError(
-            "elcentroids must be a 2D array with shape (n_elements, 3)"
-        )
-    if len(ect.shape) != 2:
-        raise ValueError("ect must be a 2D array")
-
-    if not isinstance(offset, int):
+    if not isinstance(target_region_id, int):
         raise TypeError("offset must be an integer")
-    if offset < 0:
+    if target_region_id < 0:
         raise ValueError("offset must be non-negative")
 
-    if csvpath is not None:
-        if not isinstance(csvpath, str):
-            raise TypeError("csvpath must be a string")
-        csv_dir = os.path.dirname(csvpath)
-        if csv_dir and not os.path.exists(csv_dir):
-            raise FileNotFoundError(
-                f"CSV output directory does not exist: {csv_dir}"
-            )
+    # check for centroids
+    if mdl.centroid_table is None:
+        mdl.update_centroids()
 
-    physical_space_map = spatial_map(map)
+    label_img_long = spatial_map(label_img)
 
-    # create filtered space map and centroids for brain only
-    physical_space_map_nonzero = physical_space_map[
-        physical_space_map[:, 3] > 0
-    ]
-    physical_space_map_nonzero[:, [0, 1]] = physical_space_map_nonzero[
-        :, [1, 0]
-    ]
+    # find max ID in existing model to use as offset
+    max_id = np.max(mdl.element_table[:, 1])
 
-    ect_brain_mask = ect[:, 1] > 3
-    elcentroids_brain = elcentroids[ect_brain_mask, :]
+    # create filtered space map and centroids for ROI only
+    label_img_long_nonzero = label_img_long[label_img_long[:, 3] > 0]
 
-    print(f"{datetime.now()}\t\tAligning COM...")
-    physical_space_map_transformed = COM_align(
-        elcentroids,
-        physical_space_map_nonzero[:, 0:3],
-        fixed_mask=elcentroids_brain,
+    # find elements and centroids within target label region
+    ect_region_mask = mdl.element_table[:, 1] == target_region_id
+    elcentroids_ROI = mdl.centroid_table[ect_region_mask, :]
+
+    print(f"elements in the ROI: {elcentroids_ROI.shape}")
+    print(f"points from the MRE label image: {label_img_long_nonzero.shape}")
+    print(
+        f"min/max of ROI: {np.min(elcentroids_ROI, axis=0)},{np.max(elcentroids_ROI, axis=0)}"
     )
-
-    physical_space_map_nonzero[:, 0:3] = physical_space_map_transformed
-
-    # write csv output if requested
-    if csvpath is not None:
-        elcentroids_brain_out = np.hstack(
-            (
-                elcentroids_brain,
-                (np.max(physical_space_map_nonzero[:, 3]) + 1)
-                * np.ones((elcentroids_brain.shape[0], 1)),
-            )
-        )
-        np.savetxt(
-            csvpath + "_braincentroids.csv",
-            elcentroids_brain_out,
-            delimiter=",",
-            header="X,Y,Z,ID",
-        )
-        np.savetxt(
-            csvpath + "_MREvoxels.csv",
-            physical_space_map_nonzero,
-            delimiter=",",
-            header="X,Y,Z,ID",
-        )
+    print(
+        f"min/max of points in the MRE label image: {np.min(label_img_long_nonzero, axis=0)},{np.max(label_img_long_nonzero, axis=0)}"
+    )
 
     # create KDTree
     physical_space_tree = sp.KDTree(
-        physical_space_map_nonzero[:, 0:3], leafsize=15
+        label_img_long_nonzero[:, 0:3], leafsize=15
     )
 
-    query_mask = ect[:, 1] > offset
+    d, idx = physical_space_tree.query(elcentroids_ROI, k=1)
+    # calculate correct PID offset
+    if max_id == target_region_id:
+        offset = max_id - 1
+    else:
+        offset = max_id
 
-    element_query = elcentroids[query_mask, :]
+    print(f"idx shape: {idx.shape}\nunique indices found:{np.unique(idx)}")
 
-    d, idx = physical_space_tree.query(element_query, k=1)
+    new_pids = label_img_long_nonzero[idx, 3] + offset
+    print(f"min/max of new pids: {np.min(new_pids)},{np.max(new_pids)}")
 
-    new_pids = physical_space_map_nonzero[idx, 3] + offset
+    mdl.element_table[ect_region_mask, 1] = new_pids
 
-    ect_copy = ect.copy()
-    ect_copy[query_mask, 1] = new_pids
-
-    for element_id, part_id in enumerate(ect_copy[:, 1]):
-        element_data = ect_copy[element_id]
-        node_refs = element_data[2:].tolist()
-        is_tet4 = all(node == 0 for node in node_refs[4:])
-        active_nodes = node_refs[:4] if is_tet4 else node_refs
-
-        fe_model.add_element(
-            element_id=int(element_data[0]),
-            nodes=active_nodes,
-            part_id=int(part_id),
-        )
-
-    return fe_model
-
-
-def map_to_part_id(
-    centroid: np.ndarray, physical_space_map: np.ndarray, offset: int = 3
-) -> int:
-    """Map an element centroid to a part ID based on the spatial map.
-
-    Args:
-        centroid (np.ndarray): A 1D array representing the (x, y, z) coordinates of the element centroid.
-        physical_space_map (np.ndarray): A 2D array where each row contains (x, y, z, part_id) for the spatial map.
-        offset (int, optional): Offset to adjust part IDs. Defaults to 3.
-
-    Returns:
-        int: The part ID corresponding to the centroid.
-    """
-    # Create a KD tree to find the nearest neighbors
-    physical_space_tree = sp.KDTree(physical_space_map[:, :3], leafsize=15)
-    _, index = physical_space_tree.query(centroid, k=1)
-    part_id = int(physical_space_map[index, 3]) + offset
-
-    return part_id
+    return mdl

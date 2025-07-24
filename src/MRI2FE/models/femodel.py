@@ -23,6 +23,8 @@ class FEModel:
             "num_elements": 0,
         }
 
+        self.centroid_table = None
+
         # create node table - array of shape (n,4) where each column has the format: [node_id, x, y, z]
         if nodes is not None:
             if isinstance(nodes, list):
@@ -222,7 +224,7 @@ class FEModel:
                 np.array(np.atleast_2d(self.element_table)),
                 np.array(np.atleast_2d(self.node_table)),
             )
-            self.centroid_table = self.centroid_table.tolist()
+            self.centroid_table = self.centroid_table
 
     def add_part(self, part_id: int, name: str, material_constants: list):
         """Add part information (e.g., material constants)."""
@@ -344,65 +346,61 @@ class FEModel:
             # End of file
             f.write("*END\n")
 
+    def from_meshio(
+        self,
+        mesh: Union[meshio.Mesh, str],
+        element_type: Literal["tetra"] = "tetra",
+    ):
+        """
+        Convert a meshio.Mesh object into a custom FEModel object.
 
-def model_from_meshio(
-    mesh: Union[meshio.Mesh, str],
-    title: str = "",
-    source: str = "",
-    element_type: Literal["tetra"] = "tetra",
-) -> FEModel:
-    """
-    Convert a meshio.Mesh object into a custom FEModel object.
+        Args:
+            mesh: meshio.Mesh object
+            title: Metadata title for FEModel
+            source: Metadata source for FEModel
+            default_part_id: Default part ID for all elements
 
-    Args:
-        mesh: meshio.Mesh object
-        title: Metadata title for FEModel
-        source: Metadata source for FEModel
-        default_part_id: Default part ID for all elements
+        Returns:
+            FEModel instance with custom nodes and elements
+        """
+        if isinstance(mesh, str):
+            mesh = meshio.read(mesh)
 
-    Returns:
-        FEModel instance with custom nodes and elements
-    """
-    if isinstance(mesh, str):
-        mesh = meshio.read(mesh)
+        # extract meshio points and create node numbering
+        mesh_nodes = mesh.points
+        n_points = mesh.points.shape[0]
 
-    # extract meshio points and create node numbering
-    mesh_nodes = mesh.points
-    n_points = mesh.points.shape[0]
+        # apply offsets
+        nids = np.arange(1, n_points + 1)
+        new_nodes = np.column_stack((nids, mesh_nodes))
 
-    # apply offsets
-    nids = np.arange(1, n_points + 1)
-    new_nodes = np.column_stack((nids, mesh_nodes))
+        # find element type in cells
+        connectivity_index = 0
+        found = False
+        for idx, item in enumerate(mesh.cells):
+            if item.type == element_type:
+                node_connectivity = item.data
+                node_connectivity = node_connectivity + 1
+                connectivity_index = idx
+                found = True
 
-    # find element type in cells
-    connectivity_index = 0
-    found = False
-    for idx, item in enumerate(mesh.cells):
-        if item.type == element_type:
-            node_connectivity = item.data
-            node_connectivity = node_connectivity + 1
-            connectivity_index = idx
-            found = True
+        if not found:
+            raise ValueError(
+                f"Element type {element_type} not found in mesh cells"
+            )
 
-    if not found:
-        raise ValueError(
-            f"Element type {element_type} not found in mesh cells"
-        )
+        n_elements = node_connectivity.shape[0]
+        eids = np.arange(1, n_elements + 1)
 
-    n_elements = node_connectivity.shape[0]
-    eids = np.arange(1, n_elements + 1)
+        # find pids
 
-    # find pids
+        pid = mesh.cell_data["medit:ref"][connectivity_index]
 
-    pid = mesh.cell_data["medit:ref"][connectivity_index]
+        new_elements = np.column_stack((eids, pid, node_connectivity))
 
-    new_elements = np.column_stack((eids, pid, node_connectivity))
+        if not pid.shape[0] == node_connectivity.shape[0]:
+            raise ValueError("pid and node_connectivity lengths do not match")
 
-    if not pid.shape[0] == node_connectivity.shape[0]:
-        raise ValueError("pid and node_connectivity lengths do not match")
-
-    out_mesh = FEModel(
-        title=title, source=source, nodes=new_nodes, elements=new_elements
-    )
-
-    return out_mesh
+        # TODO enable appending new nodes and elements
+        self.node_table = new_nodes
+        self.element_table = new_elements
