@@ -330,16 +330,17 @@ class FEModel:
 
                 if "name" in mat:
                     f.write(f"*MAT_{mat_type}_TITLE\n")
-                    f.write(f"{mat["name"]}\n")
+                    f.write(f"{mat['name']}\n")
                 else:
                     f.write(f"*MAT_{mat_type}\n")
                 for item in mat_insert:
-
-                    #convert from numpy types
-                    if hasattr(item, 'item'):  # numpy scalars have .item() method
+                    # convert from numpy types
+                    if hasattr(
+                        item, "item"
+                    ):  # numpy scalars have .item() method
                         item = item.item()
 
-                    #check and write type
+                    # check and write type
                     if isinstance(item, int):
                         f.write(f"{item:>10d}")
                     elif isinstance(item, float) and item == 0.0:
@@ -411,16 +412,16 @@ class FEModel:
 
         new_elements = np.column_stack((eids, pid, node_connectivity))
 
-        #filter pid zero
+        # filter pid zero
         mask = pid > 0
 
-        new_elements = new_elements[mask,:]
+        new_elements = new_elements[mask, :]
 
         if not pid.shape[0] == node_connectivity.shape[0]:
             raise ValueError("pid and node_connectivity lengths do not match")
 
         # create parts
-        unique_pids = np.unique(new_elements[:,1])
+        unique_pids = np.unique(new_elements[:, 1])
         for idx, id in enumerate(unique_pids):
             if region_names is not None:
                 self.part_info[str(id)] = {

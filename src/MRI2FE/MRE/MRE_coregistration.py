@@ -157,7 +157,9 @@ def coregister_MRE_images(
     # create each transform and image
     transformations = []
     transformed_images = []
-    for idx, (geom, img_tuple) in enumerate(zip(MRE_geom, MRE_transform_imgs)):
+    for idx, (geom, img_tuple) in enumerate(
+        zip(MRE_geom_imgs, MRE_transform_imgs)
+    ):
         # resample geometry to MRE image
         geom_resample = resample_image(
             segmented_geom, geom.shape, use_voxels=True

@@ -87,16 +87,15 @@ class TestMeshing:
 
         for idx, item in enumerate(mesh.cells):
             if item.type == "tetra":
-                dt = item.data 
+                dt = item.data
                 connectivity_index = idx
-                
+
         pid = mesh.cell_data["medit:ref"][connectivity_index]
         shp = np.count_nonzero(pid > 0)
 
         mdl = FEModel(title="test", source="test")
 
         mdl.from_meshio(mesh)
-
 
         assert mdl.node_table.shape[0] == mesh.points.shape[0]
 

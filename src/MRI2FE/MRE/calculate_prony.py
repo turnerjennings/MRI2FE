@@ -70,6 +70,9 @@ def calculate_prony(
 
     # calculate complex modulus from stiffness and damping ratio (single)
     if second_set_valid and not second_set_type:
+        mu = abs(mu)
+        xi = abs(xi)
+
         a = sqrt(1.0 + 4.0 * xi**2)
 
         gp = ((1.0 + a) * mu) / (2.0 * a**2)
@@ -82,15 +85,18 @@ def calculate_prony(
 
         if (mu - mu_bc) ** 2 >= tol:
             raise ValueError(
-                "Error in mu back-calculation, values do not match."
+                f"Error in mu back-calculation: mu = {mu}, mu_bc = {mu_bc}."
             )
         if (xi - xi_bc) ** 2 >= tol:
             raise ValueError(
-                "Error in xi back-calculation, values do not match."
+                f"Error in xi back-calculation, xi = {xi}, xi_bc = {xi_bc}.."
             )
 
     # calculate complex modulus from stiffness and damping ratio (array)
     elif second_set_valid:
+        mu = np.abs(mu)
+        xi = np.abs(xi)
+
         a = np.sqrt(1.0 + 4.0 * np.square(xi))
 
         gp = ((1.0 + a) * mu) / (2.0 * np.square(a))
@@ -103,11 +109,11 @@ def calculate_prony(
 
         if np.sum((mu - mu_bc) ** 2) >= tol:
             raise ValueError(
-                "Error in mu back-calculation, values do not match."
+                f"Error in mu back-calculation: mu = {mu}, mu_bc = {mu_bc}."
             )
         if np.sum((xi - xi_bc) ** 2) >= tol:
             raise ValueError(
-                "Error in xi back-calculation, values do not match."
+                f"Error in xi back-calculation, xi = {xi}, xi_bc = {xi_bc}.."
             )
 
     # calculate te prony series constants

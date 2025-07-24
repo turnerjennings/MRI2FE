@@ -295,18 +295,13 @@ class TestMREMapping:
             )
 
     def test_mapping(self):
-        region_props = [
-            [0,0,0],
-            [1,2,3],
-            [1,2,3],
-            [1,2,3]
-        ]
+        region_props = [[0, 0, 0], [1, 2, 3], [1, 2, 3], [1, 2, 3]]
 
         test_mdl = map_MRE_to_mesh(
-            self.mdl, 
-            label_img=self.mre_labels, 
+            self.mdl,
+            label_img=self.mre_labels,
             target_region_id=1,
-            region_properties=region_props
+            region_properties=region_props,
         )
 
         # check part ID range
@@ -338,6 +333,5 @@ class TestMREMapping:
                 <= 5.0
             )
 
-        #check material assignments
+        # check material assignments
         assert len(test_mdl.material_info) == 3
-
