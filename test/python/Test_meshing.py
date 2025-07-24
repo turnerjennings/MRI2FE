@@ -96,7 +96,8 @@ class TestMeshing:
         mdl = FEModel(title="test", source="test")
 
         mdl.from_meshio(mesh)
-        
+
+
         assert mdl.node_table.shape[0] == mesh.points.shape[0]
 
         assert mdl.element_table.shape[0] == shp
