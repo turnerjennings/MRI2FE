@@ -38,10 +38,12 @@ class TestMRECoreg:
 
         geom_data[geom_data > 0] = 1
 
-        self.geom_mask = from_numpy(geom_data,
-                                    origin=self.geom.origin,
-                                    spacing=self.geom.spacing,
-                                    direction=self.geom.direction)
+        self.geom_mask = from_numpy(
+            geom_data,
+            origin=self.geom.origin,
+            spacing=self.geom.spacing,
+            direction=self.geom.direction,
+        )
 
         self.MRE_geom = image_read(self.MRE_geom_path)
 
@@ -49,10 +51,12 @@ class TestMRECoreg:
 
         geom_data[geom_data > 0] = 1
 
-        self.MRE_mask = from_numpy(geom_data,
-                                    origin=self.MRE_geom.origin,
-                                    spacing=self.MRE_geom.spacing,
-                                    direction=self.MRE_geom.direction)
+        self.MRE_mask = from_numpy(
+            geom_data,
+            origin=self.MRE_geom.origin,
+            spacing=self.MRE_geom.spacing,
+            direction=self.MRE_geom.direction,
+        )
 
         self.gp = image_read(self.gp_path)
         self.gpp = image_read(self.gpp_path)
