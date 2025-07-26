@@ -1,6 +1,5 @@
 from MRI2FE.Pipelines.new_model import FEModelbuilder
 import os
-import numpy as np
 from ants import image_read
 import pytest
 

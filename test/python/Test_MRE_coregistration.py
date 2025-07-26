@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 
-from ants import image_read, threshold_image, from_numpy
+from ants import image_read, from_numpy
 
 from MRI2FE.MRE import (
     coregister_MRE_images,

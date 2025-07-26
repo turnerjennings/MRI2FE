@@ -30,7 +30,7 @@ class TestMeshing:
 
         path = os.path.join(root_dir, "test", "test_data", "not_real_file.nii")
         with pytest.raises(ValueError):
-            outpath = mesh_from_nifti(path)
+            _ = mesh_from_nifti(path)
 
     def test_mesh_creation(self):
         root_dir = os.getcwd()
@@ -87,7 +87,7 @@ class TestMeshing:
 
         for idx, item in enumerate(mesh.cells):
             if item.type == "tetra":
-                dt = item.data
+                _ = item.data
                 connectivity_index = idx
 
         pid = mesh.cell_data["medit:ref"][connectivity_index]

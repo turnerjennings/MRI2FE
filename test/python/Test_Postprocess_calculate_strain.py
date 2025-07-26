@@ -88,4 +88,4 @@ class TestMRIStrain:
         with pytest.raises(TypeError):
             e_out = MRI_strain(img_u1, invalid_array, img_u3)
         with pytest.raises(TypeError):
-            e_out = MRI_strain(img_u1, img_u2, invalid_array)
+            _ = MRI_strain(img_u1, img_u2, invalid_array)
