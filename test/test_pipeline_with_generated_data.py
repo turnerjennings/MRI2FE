@@ -76,7 +76,7 @@ class Test_FEModelbuilder:
 
         MRE_to_transform = [(mu, xi)]
 
-        test_mdl = (
+        _ = (
             FEModelbuilder()
             .mesh(
                 img_path=self.labeled_geom_path,

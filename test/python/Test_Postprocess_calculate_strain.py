@@ -57,7 +57,7 @@ class TestMRIStrain:
         img_u1.set_spacing((2.0, 1.0, 1.0))
 
         with pytest.raises(ValueError):
-            e_out = MRI_strain(img_u1, img_u2, img_u3)
+            _ = MRI_strain(img_u1, img_u2, img_u3)
 
         # check inconsistent origin
         img_u1, img_u2, img_u3, _ = image_setup()
@@ -65,7 +65,7 @@ class TestMRIStrain:
         img_u1.set_origin((-1.0, -1.0, -1.0))
 
         with pytest.raises(ValueError):
-            e_out = MRI_strain(img_u1, img_u2, img_u3)
+            _ = MRI_strain(img_u1, img_u2, img_u3)
 
         # check inconsistent direction
         img_u1, img_u2, img_u3, _ = image_setup()
@@ -73,19 +73,19 @@ class TestMRIStrain:
         img_u1.set_direction(np.array([[-1, 0, 0], [0, -1, 0], [0, 0, -1]]))
 
         with pytest.raises(ValueError):
-            e_out = MRI_strain(img_u1, img_u2, img_u3)
+            _ = MRI_strain(img_u1, img_u2, img_u3)
 
         with pytest.raises(ValueError):
-            e_out = MRI_strain(None, img_u2, img_u3)
+            _ = MRI_strain(None, img_u2, img_u3)
         with pytest.raises(ValueError):
-            e_out = MRI_strain(img_u1, None, img_u3)
+            _ = MRI_strain(img_u1, None, img_u3)
         with pytest.raises(ValueError):
-            e_out = MRI_strain(img_u1, img_u2, None)
+            _ = MRI_strain(img_u1, img_u2, None)
 
         invalid_array = np.random.rand(100, 100, 100)
         with pytest.raises(TypeError):
-            e_out = MRI_strain(invalid_array, img_u2, img_u3)
+            _ = MRI_strain(invalid_array, img_u2, img_u3)
         with pytest.raises(TypeError):
-            e_out = MRI_strain(img_u1, invalid_array, img_u3)
+            _ = MRI_strain(img_u1, invalid_array, img_u3)
         with pytest.raises(TypeError):
             _ = MRI_strain(img_u1, img_u2, invalid_array)
