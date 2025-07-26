@@ -235,7 +235,7 @@ def create_all_test_files(output_dir: str = "test/test_data"):
     mesh_path = create_test_mesh_file(output_dir)
     meshio_path = create_meshio_mesh(output_dir)
 
-    print(f"Created test files:")
+    print("Created test files:")
     print(f"Stiffness file: {stiffness_path}")
     print(f"Damping ratio file: {damping_path}")
     print(f"Keyword Mesh file: {mesh_path}")

@@ -1,6 +1,5 @@
 from MRI2FE.Pipelines.new_model import FEModelbuilder
 import os
-import numpy as np
 from ants import image_read
 import pytest
 
@@ -77,7 +76,7 @@ class Test_FEModelbuilder:
 
         MRE_to_transform = [(mu, xi)]
 
-        test_mdl = (
+        _ = (
             FEModelbuilder()
             .mesh(
                 img_path=self.labeled_geom_path,
