@@ -135,6 +135,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+venv-remote/
 
 # Spyder project settings
 .spyderproject
@@ -178,6 +179,10 @@ cython_debug/
 .benchmark/*
 test/test_data/
 .vscode/
+*.pptx
+*.k
+*.db
+*.cfile
 .idea/
 *.pptx
 *.csv

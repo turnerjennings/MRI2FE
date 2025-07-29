@@ -1,18 +1,16 @@
 from ants import (
     image_read,
-    resample_image_to_target,
+    resample_image,
     threshold_image,
-    mask_image,
     registration,
     plot,
-    kmeans_segmentation,
     apply_transforms,
+    new_image_like,
 )
 from ants.core.ants_image import ANTsImage
 import numpy as np
-from .calculate_prony import calculate_prony
-from datetime import datetime
-from typing import Union, List
+from sklearn.cluster import KMeans
+from typing import Union, List, Tuple
 import os
 
 def _create_min_max_mask(img:ANTsImage) -> ANTsImage:
@@ -110,290 +108,271 @@ def _segment_MRE_list(geom: ANTsImage, im1:List[str], im2:List[str]):
 
 
 
-def coregister_MRE_images(
-    geom: str,
-    geom_mask: str = None,
-    gp: Union[str, List[str]] = None,
-    gpp: Union[str, List[str]] = None,
-    mu: Union[str, List[str]] = None,
-    xi: Union[str, List[str]] = None,
-    imgout: str = None,
-):
-    """Coregister MRE images to MRI geometry.
+def _entry_to_list(entry):
+    """Check if an input is a single item and convert to a list if so.
 
     Args:
-        geom (str or ANTsImage): filepath to the geometry MRI file.
-        geom_mask (str or ANTsImage, optional): filepath to the geometry mask.
-        gp (str or ANTsImage): filepath or list of filepaths to the storage modulus map.
-        gpp (str or ANTsImage): filepath or list of filepaths to the loss modulus map.
-        mu (str or ANTsImage): filepath or list of filepaths to the mu parameter map.
-        xi (str or ANTsImage): filepath or list of filepaths to the xi parameter map.
-        imgout (str, optional): Filepath prefix to save visualization images.
-
-    Raises:
-        ValueError: incorrect input formats
-        TypeError: If input types are invalid
-        FileNotFoundError: If image files don't exist
+        entry (any): function input argument for parent function
 
     Returns:
-        dict: Contains coregistered SS, DR images and transformation metadata.
+        list: list form of input
     """
-    if geom is None:
-        raise ValueError("Geometry image is required")
 
-    # Validate and load geometry image
-    if isinstance(geom, str):
-        if not os.path.exists(geom):
-            raise FileNotFoundError(f"Geometry image file not found: {geom}")
-        geom_check = image_read(geom)
+    if entry is not None and isinstance(entry, (str, ANTsImage)):
+        return [entry]
+    return entry
+
+
+def _ensure_image(img: Union[str, ANTsImage]):
+    """Ensure a correctly loaded Antsimage from an input which may
+    contain an image or filepath string, or tuple of image or filepath strings
+
+    Args:
+        entry (str or AntsImage): Entry to check
+
+    Raises:
+        ValueError: File does not exist
+        ValueError: entry is not str or AntsImage
+    """
+    if isinstance(img, str):
+        if not os.path.exists(img):
+            raise ValueError(f"No MRE image found at {img}")
+        return image_read(img)
+    elif isinstance(img, ANTsImage):
+        return img
     else:
+        raise ValueError("MRE_geom must include only str or AntsImage")
+
+
+def _ensure_tuple(tup: Tuple[Union[str, ANTsImage]]):
+    return tuple(_ensure_image(img) for img in tup)
+
+
+def coregister_MRE_images(
+    segmented_geom: Union[str, ANTsImage],
+    target_label: int = 4,
+    segmented_mask: Union[str, ANTsImage] = None,
+    MRE_geom: List[Union[str, ANTsImage]] = None,
+    MRE_mask: Union[str, ANTsImage] = None,
+    MRE_to_transform: List[Tuple[Union[str, ANTsImage]]] = None,
+    imgout: str = None,
+    type_of_transform: str = "Affine",
+):
+    """Coregister MRE geometry image to segmented geometry image, and transform corresponding MRE images.
+
+    Args:
+        segmented_geom (Union[str, ANTsImage]): Segmented geometry image used for mesh creation
+        target_label (int, optional): Label for ROI on geometry image. Used to create geometry mask if one is not provided. Defaults to 4.
+        segmented_mask (Union[str,ANTsImage], optional): Binary mask for ROI on geometry image. Defaults to None.
+        MRE_geom (List[Union[str, ANTsImage]], optional): List of geometry images associated with MRE at different frequencies. Defaults to None.
+        MRE_mask (Union[str, ANTsImage], optional): Binary mask associated with ROI in MRE images. Defaults to None.
+        MRE_to_transform (List[Tuple[Union[str, ANTsImage]]], optional): List of tuples, each tuple containing MRE images associated with one of the MRE_geom images provided. Defaults to None.
+        imgout (str, optional): Filepath to save validation images of the transformations applied. Defaults to None.
+        type_of_transform (str, optional): Type of transform, see Antspy registration documentation for guidance. Defaults to "Affine".
+
+    Raises:
+        ValueError: No MRE/segmented geometry image provided
+        FileNotFoundError: MRE/segmented geometry files not found
+        TypeError: Image files are not a filepath string or AntsImage
+        ValueError: Transform could not be resolved
+        ValueError: MRE_geom and MRE_to_Transform are different lengths
+        ValueError: imgout path could not be found
+
+    Returns:
+        List: list of transformations
+        List[tuple]: list of transformed image tuples
+    """
+    if segmented_geom is None:
+        raise ValueError("Segmented geometry image is required")
+
+    if MRE_geom is None:
+        raise ValueError("MRE geometry image is required")
+
+    MRE_geom = _entry_to_list(MRE_geom)
+    MRE_to_transform = _entry_to_list(MRE_to_transform)
+
+    # Load segmented geometry
+    if isinstance(segmented_geom, str):
+        if not os.path.exists(segmented_geom):
+            raise FileNotFoundError(
+                f"Geometry mask file not found: {segmented_geom}"
+            )
+        segmented_geom = image_read(segmented_geom)
+    elif not isinstance(segmented_geom, ANTsImage):
+        raise TypeError(
+            "geom_mask must be either a filepath string or ANTsImage object"
+        )
+
+    # Load segmented mask or threshold image
+    if segmented_mask is None:
+        segmented_mask = threshold_image(
+            segmented_geom,
+            low_thresh=target_label - 0.01,
+            high_thresh=target_label + 1.01,
+        )
+    elif isinstance(segmented_mask, str):
+        if not os.path.exists(segmented_mask):
+            raise FileNotFoundError(
+                f"Geometry image file not found: {segmented_mask}"
+            )
+        segmented_geom = image_read(segmented_geom)
+    elif not isinstance(segmented_geom, ANTsImage):
         raise TypeError(
             "geom must be a filepath string"
         )
 
-    # Validate and load geometry mask if provided
-    if geom_mask is not None:
-        if isinstance(geom_mask, str):
-            if not os.path.exists(geom_mask):
-                raise FileNotFoundError(
-                    f"Geometry mask file not found: {geom_mask}"
-                )
-            geom_mask_check = image_read(geom_mask)
-        else:
-            raise TypeError(
-                "geom_mask must be a filepath string"
+    # load MRE geometries
+    MRE_geom_imgs = []
+    for img in MRE_geom:
+        MRE_geom_imgs.append(_ensure_image(img))
+
+    # load MRE mask
+    if MRE_mask is not None and isinstance(MRE_mask, str):
+        if not os.path.exists(MRE_mask):
+            raise FileNotFoundError(
+                f"Geometry image file not found: {MRE_mask}"
             )
+        MRE_mask = image_read(MRE_mask)
+    elif not isinstance(segmented_geom, ANTsImage):
+        raise TypeError(
+            "geom must be either a filepath string or ANTsImage object"
+        )
 
-        # Check mask dimensions match geometry
-        if geom_mask_check.dimension != geom_check.dimension:
-            raise ValueError(
-                f"Geometry mask dimensions ({geom_mask.dimension}) do not match geometry image dimensions ({geom.dimension})"
-            )
+    # load images to transform
+    MRE_transform_imgs = []
+    for imgs in MRE_to_transform:
+        MRE_transform_imgs.append(_ensure_tuple(imgs))
 
-    # Validate output path if provided
-    if imgout is not None:
-        output_dir = os.path.dirname(imgout)
-        if output_dir and not os.path.exists(output_dir):
-            raise ValueError(f"Output directory does not exist: {output_dir}")
-
-    # check for valid input parameter sets
-    first_set_valid = all(param is not None for param in [geom, gp, gpp])
-    second_set_valid = all(param is not None for param in [geom, mu, xi])
-
-    # Raise error if neither parameter set is complete
-    if not (first_set_valid or second_set_valid):
+    if len(MRE_transform_imgs) != len(MRE_geom_imgs):
         raise ValueError(
-            "You must provide either (gp, gpp, w) or (mu, xi, w) as inputs"
+            f"{len(MRE_geom_imgs)} geometry images were provided but {len(MRE_transform_imgs)} transform tuples were provided"
         )
 
-    # load geometry and mask (if applicable)
-    if type(geom) is str:
-        geom = image_read(geom)
-
-    if geom_mask is not None and type(geom_mask) is str:
-        geom_mask = image_read(geom_mask)
-
-    # if complex shear modulus is provided
-    if first_set_valid:
-        # load images
-        if type(gp) is str:
-            gp_list = [image_read(gp)]
-        else:
-            gp_list = []
-            for file in gp:
-                gp_list.append(image_read(file))
-
-
-        if type(gpp) is str:
-            gpp_list = [image_read(gpp)]
-        else:
-            gpp_list = []
-            for file in gpp:
-                gpp_list.append(image_read(file))
-
-
-        # find threshold limits and generate binary mask
-        gp_thresh = gp_list[0]
-        gp_arr = np.nonzero(gp_thresh.numpy())
-        gp_min = np.min(gp_arr)
-        gp_max = np.max(gp_arr)
-        gp_mask = threshold_image(gp, gp_min, gp_max)
-
-        # generate transformation
-        geom_ants = resample_image_to_target(geom, gp)
-
-        if geom_mask is not None:
-            tx = registration(
-                fixed=geom_ants,
-                mask=geom_mask,
-                moving=gp,
-                moving_mask=gp_mask,
-                type_of_transform="Elastic",
-            )
-
-        else:
-            tx = registration(
-                fixed=geom_ants,
-                moving=gp,
-                moving_mask=gp_mask,
-                type_of_transform="Elastic",
-            )
-
-        gp_out = tx["warpedmovout"]
-
-        transform = tx["fwdtransforms"]
-
-        gpp_out = apply_transforms(
-            fixed=geom, moving=gpp, transformlist=transform
+    # create each transform and image
+    transformations = []
+    transformed_images = []
+    for idx, (geom, img_tuple) in enumerate(
+        zip(MRE_geom_imgs, MRE_transform_imgs)
+    ):
+        # resample geometry to MRE image
+        geom_resample = resample_image(
+            segmented_geom, geom.shape, use_voxels=True
+        )
+        mask_resample = resample_image(
+            segmented_mask, geom.shape, use_voxels=True
         )
 
-        out_dict = {"gp": gp_out, "gpp": gpp_out, "transform": transform}
+        # calculate transform
+        try:
+            if MRE_mask is not None:
+                tx = registration(
+                    fixed=geom_resample,
+                    moving=geom,
+                    type_of_transform=type_of_transform,
+                    mask=mask_resample,
+                    moving_mask=MRE_mask,
+                )
+            else:
+                tx = registration(
+                    fixed=geom_resample,
+                    moving=geom,
+                    type_of_transform=type_of_transform,
+                    mask=mask_resample,
+                )
+        except ValueError:
+            print(f"transformation failed on image {idx}")
 
-        # write images to file if requested
+        transformations.append(tx["fwdtransforms"])
+
+        # apply transforms
+        transformed_tuple = tuple(
+            apply_transforms(
+                fixed=geom_resample,
+                moving=img,
+                transformlist=tx["fwdtransforms"],
+            )
+            for img in img_tuple
+        )
+        transformed_images.append(transformed_tuple)
+
         if imgout is not None:
-            plot(
-                geom,
-                overlay=gp_out,
-                overlay_cmap="Dark2",
-                overlay_alpha=0.8,
-                filename=imgout + "_sagittal.jpg",
-                axis=0,
-            )
-            plot(
-                geom,
-                overlay=gp_out,
-                overlay_cmap="Dark2",
-                overlay_alpha=0.8,
-                filename=imgout + "_coronal.jpg",
-                axis=1,
-            )
-            plot(
-                geom,
-                overlay=gp_out,
-                overlay_cmap="Dark2",
-                overlay_alpha=0.8,
-                filename=imgout + "_transverse.jpg",
-                axis=2,
-            )
+            if not os.path.exists(imgout):
+                raise ValueError("imgout directory does not exist")
+            else:
+                base = f"{imgout + 'MRE{idx}_coreg.jpg'}"
+                plot(
+                    segmented_geom,
+                    overlay=tx["warpedmovout"],
+                    overlay_cmap="Dark2",
+                    overlay_alpha=0.8,
+                    filename=base,
+                    axis=0,
+                )
 
-        return out_dict
-
-    # if ss/dr is provided
+    # return single dict or list of dicts
+    if len(transformed_images) == 0:
+        raise ValueError("No results generated from MRE coregistration")
+    elif len(transformed_images) == 1:
+        return transformations[0], transformed_images[0]
     else:
-        # load images
-        if type(mu) is str:
-            mu = image_read(mu)
-
-        if type(xi) is str:
-            xi = image_read(xi)
-
-        # find threshold limits and generate binary mask
-        mu_arr = np.nonzero(mu.numpy())
-        mu_min = np.min(mu_arr)
-        mu_max = np.max(mu_arr)
-        mu_mask = threshold_image(mu, mu_min, mu_max)
-
-        # generate transformation
-        geom_ants = resample_image_to_target(geom, mu)
-
-        if geom_mask is not None:
-            tx = registration(
-                fixed=geom_ants,
-                mask=geom_mask,
-                moving=mu,
-                moving_mask=mu_mask,
-                type_of_transform="Elastic",
-            )
-
-        else:
-            tx = registration(
-                fixed=geom_ants,
-                moving=mu,
-                moving_mask=mu_mask,
-                type_of_transform="Elastic",
-            )
-
-        mu_out = tx["warpedmovout"]
-
-        transform = tx["fwdtransforms"]
-
-        xi_out = apply_transforms(
-            fixed=geom, moving=xi, transformlist=transform
-        )
-
-        out_dict = {"mu": mu_out, "xi": xi_out, "transform": transform}
-
-        # write images to file if requested
-        if imgout is not None:
-            plot(
-                geom,
-                overlay=mu_out,
-                overlay_cmap="Dark2",
-                overlay_alpha=0.8,
-                filename=imgout + "_sagittal.jpg",
-                axis=0,
-            )
-            plot(
-                geom,
-                overlay=mu_out,
-                overlay_cmap="Dark2",
-                overlay_alpha=0.8,
-                filename=imgout + "_coronal.jpg",
-                axis=1,
-            )
-            plot(
-                geom,
-                overlay=mu_out,
-                overlay_cmap="Dark2",
-                overlay_alpha=0.8,
-                filename=imgout + "_transverse.jpg",
-                axis=2,
-            )
-
-        return out_dict
+        return transformations, transformed_images
 
 
-def segment_MRE_regions(SS_img, DR_img, n_segs: int = 5):
-    """Segment MRE images and calculate Prony model parameters for each region.
+def segment_MRE_regions(img_list: List[Tuple[ANTsImage]], n_segs: int = 5):
+    """Kmeans segmentation of MRE images
 
     Args:
-        SS_img: ANTsImage of shear stiffness.
-        DR_img: ANTsImage of damping ratio.
-        n_segs (int): Number of segments.
+        img_list (List[Tuple[ANTsImage]]): List of tuples of ANTsImage, each tuple representing the two images available for MRE at a given frequency.
+        n_segs (int, optional): Number of segments to generate. Defaults to 5.
 
     Returns:
-        dict: Dictionary of segment means and Prony parameters.
+        AntsImage: Image containing integer labels for each region of the MRE images.
+        dict: dictionary containing average properties for each region.  Keys are "1" and "2" for the two input images for each tuple, each key contains a list of length n_tuples which has the average properties for that cluster
     """
-    print(f"{datetime.now()}\t\tSegmenting MRE image...")
-    segments = kmeans_segmentation(SS_img, n_segs)["segmentation"]
-    ROI_means = {"index": [], "Ginf": [], "G1": [], "Tau": []}
 
-    print(f"{datetime.now()}\t\tCalculating segment means...")
-    for i in range(1, n_segs + 1):
-        threshold = threshold_image(segments, low_thresh=i, high_thresh=i + 1)
-        SS_ROI = mask_image(SS_img, threshold)
-        DR_ROI = mask_image(DR_img, threshold)
+    # check image list contents:
+    for tup in img_list:
+        for entry in tup:
+            if not isinstance(entry, ANTsImage):
+                raise ValueError(
+                    "All entries in img_list must be tuples of AntsImage"
+                )
 
-        SS_vals = SS_ROI.numpy()[SS_ROI.numpy() > 0.0]
-        DR_vals = DR_ROI.numpy()[DR_ROI.numpy() > 0.0]
+    # calculate array dimensions
+    ants_size = img_list[0][0].numpy().size
+    ants_shape = img_list[0][0].numpy().shape
+    n_img = 2
+    n_features = len(img_list)
 
-        SS_mean = np.mean(SS_vals) / 1000
-        DR_mean = np.mean(DR_vals)
+    # build kmeans array
+    samples = []
+    for tup in img_list:
+        samples.append(tup[0].numpy().flatten())
+        samples.append(tup[1].numpy().flatten())
 
-        Ginf, G1, tau, _, _ = calculate_prony(SS_mean, DR_mean, 50.0)
-        print(
-            f"Segment {i}: SS={SS_mean:.3f}, DR={DR_mean:.3f}, Ginf={Ginf:.3f}, G1={G1:.3f}, tau={tau:.3f}"
+    samples = np.array(
+        samples
+    ).T  # rows = samples (voxels), columns = features (MRE values)
+
+    if not samples.shape == (ants_size, n_features * n_img):
+        raise ValueError(
+            "internal error: sample dimensions do not match post k-means array assembly"
         )
 
-        ROI_means["index"].append(i)
-        ROI_means["Ginf"].append(Ginf / 1000)
-        ROI_means["G1"].append(G1 / 1000)
-        ROI_means["Tau"].append(tau)
+    kmeans = KMeans(n_clusters=n_segs + 1).fit(samples)
+    # create label image
+    km_label_array = kmeans.labels_.reshape(ants_shape)
 
-    return ROI_means
+    km_label_ants = new_image_like(img_list[0][0], km_label_array)
 
+    # create region average properties
+    print(kmeans.cluster_centers_.shape)
+    km_avgs = {"1": [], "2": []}
+    for row in kmeans.cluster_centers_:
+        label_1 = row[::2].tolist()
+        label_2 = row[1::2].tolist()
 
-def run_MRE_pipeline(geom, DR, SS, n_segs=5, imgout=None):
-    coreg = coregister_MRE_images(geom, DR, SS, imgout)
-    ROI_means = segment_MRE_regions(coreg["SS"], coreg["DR"], n_segs)
-    return coreg["SS"], ROI_means
+        km_avgs["1"].append(label_1)
+        km_avgs["2"].append(label_2)
+
+    return km_label_ants, km_avgs

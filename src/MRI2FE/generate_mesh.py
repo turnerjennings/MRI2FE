@@ -2,17 +2,16 @@ import meshio
 
 from ants import image_read
 
+from ants.core.ants_image import ANTsImage
+
 import os
+
+import numpy as np
 
 from ._MESHUTILS import mesh_wrapper
 
 
-def nifti_to_inr(filepath: str) -> str:
-    if not os.path.exists(filepath):
-        raise ValueError(f"input filepath {filepath} does not exist")
-
-    image = image_read(filepath)
-
+def nifti_to_inr(image: ANTsImage) -> str:
     # get dimensions and spacing
     xdim, ydim, zdim = image.shape
 
@@ -79,31 +78,14 @@ def mesh_from_nifti(
     cellRadiusEdgeRatio: float = 3.0,
     cellSize: float = 1.0,
 ) -> meshio.Mesh:
-    """Generate a tetrahedral mesh from a segmented 3D image
+    if not os.path.exists(filepath):
+        raise ValueError(f"input filepath {filepath} does not exist")
 
-    Parameters
-    ----------
-    filepath: string
-        Path to segmented input nifti image, where each integer value represents a unique segment.
-    optimize : bool, optional
-        Whether to perform postprocessing mesh optimization. Defaults to False.
-    facetAngle: float, optional
-        Minimum tetrahedral facet angle permissible. Defaults to 30.0.
-    facetSize: float, optional
-        Minimum tetrahedral facet size permissible. Defaults to 1.0.
-    facetDistance: float, optional
-        Maximum distance between the facet circumcenter and its surface. Defaults to 4.0.
-    cellRadiusEdgeRatio: float, optional
-        Maximum radius-edge ratio. Defaults to 3.0.
-    cellSize: float, optional
-        Maximum circumradii for the tetrahedra. Defaults to 1.0.
+    image = image_read(filepath)
 
-    Returns
-    -------
-    meshio.Mesh
-        Resultant tetrahedral mesh in meshio mesh format.
-    """
-    transfer_path = nifti_to_inr(filepath=filepath)
+    origin = image.origin
+
+    transfer_path = nifti_to_inr(image=image)
 
     mesh_path = mesh_wrapper(
         transfer_path,
@@ -119,7 +101,10 @@ def mesh_from_nifti(
         raise ValueError(f"Mesh wrapper did not create mesh at {mesh_path}")
 
     try:
-        mesh = meshio.read(mesh_path)
+        mesh: meshio.Mesh = meshio.read(mesh_path)
+
+        mesh.points = mesh.points + np.array(origin)
+
         return mesh
     except ValueError:
         raise ValueError(
