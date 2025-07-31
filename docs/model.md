@@ -9,3 +9,17 @@ to be inserted.
 # API Reference
 
 ::: MRI2FE.FEModel
+
+::: MRI2FE.FEModel
+
+::: MRI2FE.FEModel.add_node
+
+::: MRI2FE.FEModel.add_element
+
+::: MRI2FE.FEModel.add_part
+
+::: MRI2FE.FEModel.add_material
+
+::: MRI2FE.FEModel.add_section
+
+::: MRI2FE.FEModel.from_meshio

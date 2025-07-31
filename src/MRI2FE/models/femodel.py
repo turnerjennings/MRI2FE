@@ -5,6 +5,9 @@ import meshio
 
 
 class FEModel:
+    """Model object storing the generated FE model.
+    """
+    
     def __init__(
         self,
         title: str = "",
@@ -15,7 +18,20 @@ class FEModel:
         materials: List[dict] = None,
         sections: List[dict] = None,
     ):
-        """Initialize the FEModel data structure."""
+        """Initialize the FE model
+
+        Args:
+            title (str, optional): Name for model, will be inserted as solver deck title on output. Defaults to "".
+            source (str, optional): Source file for model, optional. Defaults to "".
+            nodes (Union[list, np.ndarray], optional): Array with shape (n,4) containing node ID, x, y, z coordinates. Defaults to None.
+            elements (Union[list, np.ndarray], optional): Array with shape (n,m+2) containing element ID, part/group ID, and m connected nodes. Defaults to None.
+            parts (dict, optional): Part definitions.  Dictionary keys are the part ID.  Each key is linked to a dictionary with entries "name" and "constants". Defaults to None.
+            materials (List[dict], optional): Material definitions.  List of dictionaries.  Each dictionary must contain the keys "name", "ID", and "constants". Defaults to None.
+            sections (List[dict], optional): Material section definitions.  List of dictionaries.  Each dictionary must contain the keys "ID" and "constants". Defaults to None.
+
+        Raises:
+            ValueError: Wrong input type.
+        """
         self.metadata = {
             "title": title,
             "source": source,
@@ -89,7 +105,21 @@ class FEModel:
         node_array: np.ndarray = None,
         force_insert: bool = False,
     ):
-        """Add a node to the node table."""
+        """Add a node to the node table
+
+        Args:
+            node_id (int, optional): ID of the new node to add, must provide x-, y- and z- coordinates if specified. Defaults to None.
+            x (float, optional): x-coordinate of the node, must also provide y- and z-coordinates. Defaults to None.
+            y (float, optional): y-coordinate of the node, must also provide x- and z-coordinates. Defaults to None.
+            z (float, optional): z-coordinate of the node, must also provide x- and y-coordinates. Defaults to None.
+            node_array (np.ndarray, optional): (4,) array containing node_id,x,y,z coordinates. Defaults to None.
+            force_insert (bool, optional): Whether to overwrite existing node with the same ID. Defaults to False.
+
+        Raises:
+            ValueError: Wrong input type.
+            ValueError: Wrong array size.
+            ValueError: Node ID already exists and force_insert false.
+        """
         # check which input type is provided
         if all(var is not None for var in [node_id, x, y, z]):
             indiv_input = True
@@ -156,9 +186,16 @@ class FEModel:
         """Add an element to the element table.
 
         Args:
-            element_id: The ID of the element
-            nodes: List of node references
-            part_id: The part ID for this element
+            element_id (int, optional): Element ID, must also provide part_id and nodes if not None. Defaults to None.
+            part_id (int, optional): Connected part ID, must also provide element_id and nodes if not None. Defaults to None.
+            nodes (list, optional): Connected node IDs, must also provide element_id and part_id. Defaults to None.
+            element_array (np.ndarray, optional): Array of shape (n+2,) containing element_id, part_id, n connected node ids. Defaults to None.
+            force_insert (bool, optional): Whether to overwrite if element already exists with the same ID. Defaults to False.
+
+        Raises:
+            ValueError: Wrong input type.  
+            ValueError: Input shape mismatch with element table.
+            ValueError: Element ID already exists and force_insert is False.
         """
 
         if all(var is not None for var in [element_id, part_id, nodes]):
@@ -217,6 +254,8 @@ class FEModel:
             self.metadata["num_elements"] += element_array.shape[0]
 
     def update_centroids(self):
+        """Update the centroid table with all elements in the element table.
+        """
         if self.element_table.size > 0:
             self.centroid_table = np.apply_along_axis(
                 element_centroids,
