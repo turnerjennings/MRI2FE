@@ -8,7 +8,7 @@ This package provides workflows for the generation of finite element (FE) models
 
 ## Installation
 
-Package installation is confirmed working for Windows and MacOS.  To install the package, download or clone the repository to your local machine.  For windows machines, run the script ```install_windows.bat```.  For mac machines, run the ```install_mac.sh``` script.  Each script will install and compile the required dependency libraries before installing the package.
+Package installation is confirmed working for Windows and MacOS.  To install the package, download or clone the repository to your local machine.  Run the appropriate installation script for your system, which will install all dependencies as well as the package.
 
 ```shell
 git clone https://github.com/turnerjennings/MRI2FE
@@ -25,13 +25,8 @@ cd MRI2FE
 ./install_linux.sh
 ```
 
-## Getting Started
+### Troubleshooting installation
 
-This toolkit encompasses functions to perform the following tasks:
+On Windows, after installation you may run into an error stating "DLL load failed".  This issue occurs intermittently on Windows and is due to the dependencies for the CGAL library not linking correctly.  To address the issue, try reinstalling.  If the issue persists, find the location of the DLLs "gmp-10.dll" and "mpfr6.dll" in the ./vcpkg directory and copy them to the installation location.
 
-1. Generating a tetrahedral FE mesh from a segmented MRI image.
-2. Segmenting a MRE image or set of MRE images into discrete regions and calculating prony series material model parameters for each region.
-3. Co-registering MRE data to a segmented MRI image and mapping the associated material properties onto a mesh.
-4. Writing the resultant mesh to an output file compatible with commercial FE solvers (ABAQUS or LS-DYNA).
-
-The tabs at the top contain instructions on how to use each step in the workflow with your data.  The pipeline tab shows how to use all steps of the process in conjunction to procedurally generate models start-to-finish.  The examples tab contains complete examples of the workflow applied to data. 
+On Windows, there is an intermittent issue during installation where certain boost libraries cannot be located.  Re-running the installation consistently fixes this issue.

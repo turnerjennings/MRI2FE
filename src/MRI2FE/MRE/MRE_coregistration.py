@@ -179,8 +179,8 @@ def coregister_MRE_images(
         ValueError: imgout path could not be found
 
     Returns:
-        List: list of transformations
-        List[tuple]: list of transformed image tuples
+        Transformations (List): list of transformations
+        Transformed_images (List): list of transformed image tuples
     """
     if segmented_geom is None:
         raise ValueError("Segmented geometry image is required")
@@ -326,8 +326,8 @@ def segment_MRE_regions(img_list: List[Tuple[ANTsImage]], n_segs: int = 5):
         n_segs (int, optional): Number of segments to generate. Defaults to 5.
 
     Returns:
-        AntsImage: Image containing integer labels for each region of the MRE images.
-        dict: dictionary containing average properties for each region.  Keys are "1" and "2" for the two input images for each tuple, each key contains a list of length n_tuples which has the average properties for that cluster
+        Labels (ANTsImage): Image containing integer labels for each region of the MRE images.
+        km_ants (dict): Dictionary containing average properties for each region.  Keys are "1" and "2" for the two input images for each tuple, each key contains a list of length n_tuples which has the average properties for that cluster
     """
 
     # check image list contents:

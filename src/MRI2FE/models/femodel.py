@@ -289,7 +289,6 @@ class FEModel:
         Write FE model data to an LS-DYNA .k file.
 
         Args:
-            model (FEAModel): Model containing nodes, elements, and materials.
             filename (str): Output file path for the .k file.
         """
         with open(filename, "w") as f:
