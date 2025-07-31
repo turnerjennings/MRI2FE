@@ -3,7 +3,13 @@ import pytest
 import numpy as np
 import ants
 
-from MRI2FE import COM_align, point_cloud_spacing, ants_affine, spatial_map
+from MRI2FE import (
+    COM_align,
+    point_cloud_spacing,
+    ants_affine,
+    spatial_map,
+    element_centroids,
+)
 
 
 def generate_test_array():
@@ -188,3 +194,67 @@ class TestSpatialMap:
         result = spatial_map(test_img)
         assert result.shape[1] == 4
         assert len(result) == np.prod(test_data.shape)
+
+        np.testing.assert_almost_equal(
+            np.min(result[:, :3], axis=0), np.array([0, 0, 0])
+        )
+        np.testing.assert_almost_equal(
+            np.max(result[:, :3], axis=0), np.array([1, 1, 1])
+        )
+
+        # different origin point
+        test_img = ants.from_numpy(
+            data=test_data,
+            origin=(-1, -1, -1),
+            spacing=(2, 2, 2),
+            direction=np.eye(3),
+        )
+
+        result = spatial_map(test_img)
+        assert result.shape[1] == 4
+        assert len(result) == np.prod(test_data.shape)
+
+        np.testing.assert_almost_equal(
+            np.min(result[:, :3], axis=0), np.array([-1, -1, -1])
+        )
+        np.testing.assert_almost_equal(
+            np.max(result[:, :3], axis=0), np.array([1, 1, 1])
+        )
+
+        # larger image
+        test_data2 = np.ones((10, 10, 10))
+        test_img = ants.from_numpy(
+            data=test_data2,
+            origin=(-1, -1, -1),
+            spacing=(10, 10, 10),
+            direction=np.eye(3),
+        )
+
+        result = spatial_map(test_img)
+
+        np.testing.assert_almost_equal(
+            np.min(result[:, :3], axis=0), np.array([-1, -1, -1])
+        )
+        np.testing.assert_almost_equal(
+            np.max(result[:, :3], axis=0), np.array([89, 89, 89])
+        )
+
+
+class TestElementCentroids:
+    def test_centroids(self):
+        element = np.array([1, 1, 1, 2, 3, 4, 5, 5, 5, 5, 5, 5])
+        coords = np.array(
+            [
+                [1, 0.0, 0.0, 0.0],
+                [2, 1.0, 0.0, 0.0],
+                [3, 2.0, 0.0, 0.0],
+                [4, 3.0, 0.0, 0.0],
+                [5, 4.0, 0.0, 0.0],
+            ]
+        )
+
+        cx = element_centroids(element, node_coords=coords)
+
+        print(cx)
+
+        np.testing.assert_almost_equal(cx, (2.0, 0.0, 0.0))

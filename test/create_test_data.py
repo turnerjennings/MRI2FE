@@ -1,6 +1,8 @@
 import numpy as np
 from ants import from_numpy, image_write
 import os
+from MRI2FE.generate_mesh import mesh_from_nifti
+import meshio
 
 
 def create_test_nifti_MRI_files(output_dir: str = "test/test_data"):
@@ -89,6 +91,12 @@ def create_test_nifti_MRI_files(output_dir: str = "test/test_data"):
     with open(out_path, "wb") as temp_file:  # Note: 'wb' instead of 'w'
         temp_file.write(header.encode("ascii"))
         temp_file.write(data.tobytes(order="F"))
+
+    # generate mesh
+    mesh_obj: meshio.Mesh = mesh_from_nifti(
+        os.path.join(output_dir, "test_concentric_spheres.nii")
+    )
+    mesh_obj.write(os.path.join(output_dir, "test_mesh_out.mesh"))
 
 
 def create_test_nifti_MRE_files(output_dir: str = "test/test_data"):
@@ -205,6 +213,18 @@ def create_test_mesh_file(output_dir: str = "test/test_data"):
     return output_file
 
 
+def create_meshio_mesh(output_dir: str = "test/test_data"):
+    path = os.path.join(output_dir, "test_concentric_spheres.nii")
+
+    mesh = mesh_from_nifti(path, optimize=True)
+
+    out_path = os.path.join(output_dir, "test_mesh_out.mesh")
+
+    mesh.write(out_path)
+
+    return out_path
+
+
 def create_all_test_files(output_dir: str = "test/test_data"):
     """Create all test files needed for the MRE pipeline.
 
@@ -213,11 +233,13 @@ def create_all_test_files(output_dir: str = "test/test_data"):
     """
     stiffness_path, damping_path = create_test_nifti_MRE_files(output_dir)
     mesh_path = create_test_mesh_file(output_dir)
+    meshio_path = create_meshio_mesh(output_dir)
 
-    print(f"Created test files:")
+    print("Created test files:")
     print(f"Stiffness file: {stiffness_path}")
     print(f"Damping ratio file: {damping_path}")
-    print(f"Mesh file: {mesh_path}")
+    print(f"Keyword Mesh file: {mesh_path}")
+    print(f"Mesh file: {meshio_path}")
 
     return stiffness_path, damping_path, mesh_path
 

@@ -4,7 +4,7 @@ import os
 import pybind11
 import platform
 
-nox.options.reuse_venv = "yes"  # or "yes"
+#nox.options.reuse_venv = "yes"
 
 @nox.session(name="cpptest")
 def cpptest(session):
@@ -17,13 +17,35 @@ def cpptest(session):
     project_root = os.getcwd()
     build_dir = "build/test"
     is_macos = platform.system() == "Darwin"
+    is_linux = platform.system() == "Linux"
     
     if is_macos:
         vcpkg_toolchain = None
         cmake_args = []
+
+    elif is_linux:
+        try:
+            session.run("sudo", "apt", "update", external=True)
+            session.run("sudo", "apt", "install", "-y", 
+                       "libcgal-dev", "libeigen3-dev", "libgmp-dev", 
+                       "libmpfr-dev","catch2",
+                        "autoconf", "automake", "libtool", external=True)
+        except Exception as e:
+            print(f"Failed to install system packages: {e}")
+            print("Please run: sudo apt install -y libcgal-dev libeigen3-dev libgmp-dev libmpfr-dev")
+
+        vcpkg_toolchain = os.path.join(
+            project_root, "vcpkg/scripts/buildsystems/vcpkg.cmake")
+        
+        cmake_args = [
+            f"-DCMAKE_TOOLCHAIN_FILE={vcpkg_toolchain}",
+            f"-DVCPKG_MANIFEST_MODE=ON",
+            f"-DVCPKG_MANIFEST_DIR={project_root}"
+        ]
     else:
         vcpkg_toolchain = os.path.join(
             project_root, "vcpkg/scripts/buildsystems/vcpkg.cmake")
+
         cmake_args = [
             f"-DCMAKE_TOOLCHAIN_FILE={vcpkg_toolchain}",
             f"-DVCPKG_MANIFEST_MODE=ON",
@@ -31,8 +53,11 @@ def cpptest(session):
         ]
 
     # delete old build info
-    if os.path.exists(build_dir):
-        shutil.rmtree(build_dir)
+    try:
+        if os.path.exists(build_dir):
+            shutil.rmtree(build_dir)
+    except:
+        pass
 
     session.install("pybind11")
 
@@ -49,17 +74,10 @@ def cpptest(session):
         print("Test data does not exist, generating...")
         session.install("numpy")
         session.install("antspyx")
-        session.run("python", f"{os.path.join(project_root, 'test', 'generate_test_niftis.py')}")
-
-
-    if not os.path.exists(os.path.join(project_root,
-                                       "test",
-                                       "test_data",
-                                       "test_concentric_spheres.inr")):
-        print("Test data does not exist, generating...")
-        session.install("numpy")
-        session.install("antspyx")
-        session.run("python", f"{os.path.join(project_root, 'test', 'generate_test_niftis.py')}")
+        if is_linux:
+            session.run("python3", f"{os.path.join(project_root, 'test', 'generate_test_niftis.py')}")
+        else:
+            session.run("python", f"{os.path.join(project_root, 'test', 'generate_test_niftis.py')}")
     
     # Configure the build
     session.run(
@@ -105,8 +123,10 @@ def tests(session):
         session.install("antspyx")
         session.run("python", f"{os.path.join(project_root, 'test', 'create_test_data.py')}")
 
-    if is_macos:
+    if platform.system() == "Darwin":
         session.run("bash", "install_mac.sh")
+    elif platform.system() == "Linux":
+        session.run("bash", "install_linux.sh")
     else:
         vcpkg_toolchain = os.path.normpath(os.path.join(project_root, "vcpkg", "scripts", "buildsystems", "vcpkg.cmake"))
         

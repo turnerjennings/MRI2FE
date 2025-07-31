@@ -1,4 +1,4 @@
-from ..FEModel.femodel import FEModel
+from ..models.femodel import FEModel
 
 import numpy as np
 import os
@@ -90,63 +90,6 @@ def parse_k_file(fpath: str):
     node_array = np.array(node_data)
 
     return ect_array, node_array
-
-
-def element_centroids(elnodes, node_coords):
-    """Calculate the centroid of an element
-
-    Args:
-        elnodes (np.array): 1D array containing EID, PID, and connected nodes for arbitrary 10-node element
-        node_coords (np.array): 2D array containing NID, xyz coordinates
-
-    Raises:
-        TypeError: If inputs are not numpy arrays
-        ValueError: If array dimensions or contents are invalid
-
-    Returns:
-        centroid (np.array): (3,) array containing average coordinate of the element
-    """
-    # Validate input types
-    if not isinstance(elnodes, np.ndarray):
-        raise TypeError("elnodes must be a numpy array")
-    if not isinstance(node_coords, np.ndarray):
-        raise TypeError("node_coords must be a numpy array")
-
-    # Validate array dimensions
-    if len(elnodes.shape) != 1:
-        raise ValueError("elnodes must be a 1D array")
-    if len(node_coords.shape) != 2:
-        raise ValueError("node_coords must be a 2D array")
-
-    # Validate array sizes
-    if elnodes.shape[0] < 12:  # Must have at least EID, PID, and 10 nodes
-        raise ValueError(
-            "elnodes must contain at least 12 elements (EID, PID, and 10 nodes)"
-        )
-    if node_coords.shape[1] != 4:  # Must have NID and xyz coordinates
-        raise ValueError("node_coords must have 4 columns (NID, x, y, z)")
-
-    node_connections = elnodes[2:12]
-    node_connections = node_connections[node_connections > 0]
-
-    if len(node_connections) == 0:
-        raise ValueError("No valid node connections found in element")
-
-    if not np.all(node_connections > 0):
-        raise ValueError("Node indices must be positive")
-    if np.max(node_connections) > len(node_coords):
-        raise ValueError(
-            "Node indices exceed the number of nodes in node_coords"
-        )
-
-    node_coords_subset = node_coords[node_connections - 1, :]
-    centroid = np.mean(node_coords_subset[:, 1:], axis=0)
-    if centroid.shape != (3,):
-        raise ValueError(
-            f"Invalid centroid shape: {centroid.shape}, expected (3,)"
-        )
-
-    return centroid
 
 
 def write_head_k_file(fe_model: FEModel, fpath: str):

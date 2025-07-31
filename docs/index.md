@@ -20,11 +20,14 @@ cd MRI2FE
 
 #if on mac
 ./install_mac.sh
+
+#if on linux
+./install_linux.sh
 ```
 
 ## Getting Started
 
-Broadly, this toolkit encompasses functions to perform the following tasks:
+This toolkit encompasses functions to perform the following tasks:
 
 1. Generating a tetrahedral FE mesh from a segmented MRI image.
 2. Segmenting a MRE image or set of MRE images into discrete regions and calculating prony series material model parameters for each region.
