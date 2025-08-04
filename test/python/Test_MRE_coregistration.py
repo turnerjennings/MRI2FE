@@ -141,7 +141,7 @@ class TestMRECoreg:
         assert len(transforms) == 4
         assert len(images) == 4
 
-    def test_coreg_imgout(self,tmpdir):
+    def test_coreg_imgout(self, tmpdir):
         MRE_images = [(self.gp_path, self.gpp_path)]
 
         transforms, images = coregister_MRE_images(
@@ -150,12 +150,11 @@ class TestMRECoreg:
             MRE_geom=self.MRE_geom,
             MRE_mask=self.MRE_mask,
             MRE_to_transform=MRE_images,
-            imgout=tmpdir
+            imgout=tmpdir,
         )
 
         print(os.listdir(tmpdir))
-        assert os.path.exists(os.path.join(tmpdir,'MRE0_coreg.png'))
-
+        assert os.path.exists(os.path.join(tmpdir, "MRE0_coreg.png"))
 
     def test_raises(self):
         MRE_images = [
@@ -215,17 +214,16 @@ class TestMRECoreg:
 
 
 class TestMRESegmentation:
-    def test_seg_single(self,tmpdir):
+    def test_seg_single(self, tmpdir):
         ss = image_read("test/test_data/test_stiffness.nii")
 
         dr = image_read("test/test_data/test_damping_ratio.nii")
 
         img_list = [(ss, dr)]
 
-        test_img, test_dict = segment_MRE_regions(img_list=img_list, 
-                                                  n_segs=5,
-                                                  imgout = tmpdir)
-
+        test_img, test_dict = segment_MRE_regions(
+            img_list=img_list, n_segs=5, imgout=tmpdir
+        )
 
         print(os.listdir(tmpdir))
 
@@ -240,21 +238,18 @@ class TestMRESegmentation:
 
         assert test_img.max() == 5
 
-        assert os.path.exists(os.path.join(tmpdir,"MRE0_segmentation.png"))
+        assert os.path.exists(os.path.join(tmpdir, "MRE0_segmentation.png"))
 
-    
-    def test_seg_single_imgoutgeom(self,tmpdir):
+    def test_seg_single_imgoutgeom(self, tmpdir):
         ss = image_read("test/test_data/test_stiffness.nii")
 
         dr = image_read("test/test_data/test_damping_ratio.nii")
 
         img_list = [(ss, dr)]
 
-        test_img, test_dict = segment_MRE_regions(img_list=img_list, 
-                                                  n_segs=5,
-                                                  imgout = tmpdir,
-                                                  imgout_geom=ss)
-
+        test_img, test_dict = segment_MRE_regions(
+            img_list=img_list, n_segs=5, imgout=tmpdir, imgout_geom=ss
+        )
 
         print(os.listdir(tmpdir))
 
@@ -269,16 +264,18 @@ class TestMRESegmentation:
 
         assert test_img.max() == 5
 
-        assert os.path.exists(os.path.join(tmpdir,"MRE_segmentation.png"))
+        assert os.path.exists(os.path.join(tmpdir, "MRE_segmentation.png"))
 
-    def test_seg_multiple(self,tmpdir):
+    def test_seg_multiple(self, tmpdir):
         ss = image_read("test/test_data/test_stiffness.nii")
 
         dr = image_read("test/test_data/test_damping_ratio.nii")
 
         img_list = [(ss, dr), (ss, dr), (ss, dr)]
 
-        test_img, test_dict = segment_MRE_regions(img_list=img_list, n_segs=5,imgout=tmpdir)
+        test_img, test_dict = segment_MRE_regions(
+            img_list=img_list, n_segs=5, imgout=tmpdir
+        )
 
         print(os.listdir(tmpdir))
 
@@ -294,7 +291,9 @@ class TestMRESegmentation:
         assert test_img.max() == 5
 
         for i in range(3):
-            assert os.path.exists(os.path.join(tmpdir,f"MRE{i}_segmentation.png"))
+            assert os.path.exists(
+                os.path.join(tmpdir, f"MRE{i}_segmentation.png")
+            )
 
 
 class TestMREMapping:

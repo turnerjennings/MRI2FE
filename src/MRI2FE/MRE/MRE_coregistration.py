@@ -13,7 +13,8 @@ from sklearn.cluster import KMeans
 from typing import Union, List, Tuple
 import os
 
-def _create_min_max_mask(img:ANTsImage) -> ANTsImage:
+
+def _create_min_max_mask(img: ANTsImage) -> ANTsImage:
     """Create a binary mask encompassing the entire nonzero region of an ants image
 
     Args:
@@ -27,7 +28,6 @@ def _create_min_max_mask(img:ANTsImage) -> ANTsImage:
     img_max = np.max(img_arr)
     img_mask = threshold_image(img, img_min, img_max)
     return img_mask
-
 
 
 def _entry_to_list(entry):
@@ -139,9 +139,7 @@ def coregister_MRE_images(
             )
         segmented_geom = image_read(segmented_geom)
     elif not isinstance(segmented_geom, ANTsImage):
-        raise TypeError(
-            "geom must be a filepath string"
-        )
+        raise TypeError("geom must be a filepath string")
 
     # load MRE geometries
     MRE_geom_imgs = []
@@ -221,7 +219,7 @@ def coregister_MRE_images(
             if not os.path.exists(imgout):
                 raise ValueError("imgout directory does not exist")
             else:
-                base = os.path.join(imgout,f'MRE{idx}_coreg.png')
+                base = os.path.join(imgout, f"MRE{idx}_coreg.png")
                 plot(
                     segmented_geom,
                     overlay=tx["warpedmovout"],
@@ -240,10 +238,12 @@ def coregister_MRE_images(
         return transformations, transformed_images
 
 
-def segment_MRE_regions(img_list: List[Tuple[ANTsImage]], 
-                        n_segs: int = 5,
-                        imgout: str = None,
-                        imgout_geom: Union[str,ANTsImage] = None):
+def segment_MRE_regions(
+    img_list: List[Tuple[ANTsImage]],
+    n_segs: int = 5,
+    imgout: str = None,
+    imgout_geom: Union[str, ANTsImage] = None,
+):
     """Kmeans segmentation of MRE images
 
     Args:
@@ -301,13 +301,12 @@ def segment_MRE_regions(img_list: List[Tuple[ANTsImage]],
         km_avgs["1"].append(label_1)
         km_avgs["2"].append(label_2)
 
-    
     if imgout is not None:
         if not os.path.exists(imgout):
             raise ValueError("imgout directory does not exist")
         elif imgout_geom is None:
-            for idx,img in enumerate(img_list):
-                base = os.path.join(imgout,f'MRE{idx}_segmentation.png')
+            for idx, img in enumerate(img_list):
+                base = os.path.join(imgout, f"MRE{idx}_segmentation.png")
                 plot(
                     img[0],
                     overlay=km_label_ants,
@@ -316,19 +315,19 @@ def segment_MRE_regions(img_list: List[Tuple[ANTsImage]],
                     filename=base,
                     axis=0,
                 )
-        elif isinstance(imgout_geom,str):
-                img = image_read(imgout_geom)
-                base = os.path.join(imgout,f'MRE_segmentation.png')
-                plot(
-                    img,
-                    overlay=km_label_ants,
-                    overlay_cmap="tab10",
-                    overlay_alpha=0.5,
-                    filename=base,
-                    axis=0,
-                )
-        elif isinstance(imgout_geom,ANTsImage):
-            base = os.path.join(imgout,f'MRE_segmentation.png')
+        elif isinstance(imgout_geom, str):
+            img = image_read(imgout_geom)
+            base = os.path.join(imgout, "MRE_segmentation.png")
+            plot(
+                img,
+                overlay=km_label_ants,
+                overlay_cmap="tab10",
+                overlay_alpha=0.5,
+                filename=base,
+                axis=0,
+            )
+        elif isinstance(imgout_geom, ANTsImage):
+            base = os.path.join(imgout, "MRE_segmentation.png")
             plot(
                 imgout_geom,
                 overlay=km_label_ants,

@@ -5,9 +5,8 @@ import meshio
 
 
 class FEModel:
-    """Model object storing the generated FE model.
-    """
-    
+    """Model object storing the generated FE model."""
+
     def __init__(
         self,
         title: str = "",
@@ -39,9 +38,8 @@ class FEModel:
             "source": source,
             "num_nodes": 0,
             "num_elements": 0,
-            "imgout": imgout
+            "imgout": imgout,
         }
-
 
         self.centroid_table = None
 
@@ -197,7 +195,7 @@ class FEModel:
             force_insert (bool, optional): Whether to overwrite if element already exists with the same ID. Defaults to False.
 
         Raises:
-            ValueError: Wrong input type.  
+            ValueError: Wrong input type.
             ValueError: Input shape mismatch with element table.
             ValueError: Element ID already exists and force_insert is False.
         """
@@ -258,8 +256,7 @@ class FEModel:
             self.metadata["num_elements"] += element_array.shape[0]
 
     def update_centroids(self):
-        """Update the centroid table with all elements in the element table.
-        """
+        """Update the centroid table with all elements in the element table."""
         if self.element_table.size > 0:
             self.centroid_table = np.apply_along_axis(
                 element_centroids,
