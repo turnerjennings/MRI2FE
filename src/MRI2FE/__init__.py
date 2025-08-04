@@ -7,12 +7,6 @@ from .Postprocess.d3_to_nifti import (
     cloud_to_grid,
 )
 
-from .output.k_file_operations import (
-    parse_k_file,
-    write_head_k_file,
-    edit_control_keyword,
-)
-
 from .utilities import (
     COM_align,
     point_cloud_spacing,

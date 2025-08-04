@@ -12,6 +12,7 @@ class FEModel:
         self,
         title: str = "",
         source: str = "",
+        imgout: str = None,
         nodes: Union[list, np.ndarray] = None,
         elements: Union[list, np.ndarray] = None,
         parts: dict = None,
@@ -23,6 +24,7 @@ class FEModel:
         Args:
             title (str, optional): Name for model, will be inserted as solver deck title on output. Defaults to "".
             source (str, optional): Source file for model, optional. Defaults to "".
+            imgout (str, optional): Directory to save validation images to.  Defaults to None.
             nodes (Union[list, np.ndarray], optional): Array with shape (n,4) containing node ID, x, y, z coordinates. Defaults to None.
             elements (Union[list, np.ndarray], optional): Array with shape (n,m+2) containing element ID, part/group ID, and m connected nodes. Defaults to None.
             parts (dict, optional): Part definitions.  Dictionary keys are the part ID.  Each key is linked to a dictionary with entries "name" and "constants". Defaults to None.
@@ -37,7 +39,9 @@ class FEModel:
             "source": source,
             "num_nodes": 0,
             "num_elements": 0,
+            "imgout": imgout
         }
+
 
         self.centroid_table = None
 

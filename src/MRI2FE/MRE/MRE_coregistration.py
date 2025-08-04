@@ -216,12 +216,12 @@ def coregister_MRE_images(
             for img in img_tuple
         )
         transformed_images.append(transformed_tuple)
-
+        print(f"in MRE coregistration: {imgout}")
         if imgout is not None:
             if not os.path.exists(imgout):
                 raise ValueError("imgout directory does not exist")
             else:
-                base = f"{imgout + 'MRE{idx}_coreg.jpg'}"
+                base = os.path.join(imgout,f'MRE{idx}_coreg.png')
                 plot(
                     segmented_geom,
                     overlay=tx["warpedmovout"],
@@ -240,12 +240,16 @@ def coregister_MRE_images(
         return transformations, transformed_images
 
 
-def segment_MRE_regions(img_list: List[Tuple[ANTsImage]], n_segs: int = 5):
+def segment_MRE_regions(img_list: List[Tuple[ANTsImage]], 
+                        n_segs: int = 5,
+                        imgout: str = None,
+                        imgout_geom: Union[str,ANTsImage] = None):
     """Kmeans segmentation of MRE images
 
     Args:
         img_list (List[Tuple[ANTsImage]]): List of tuples of ANTsImage, each tuple representing the two images available for MRE at a given frequency.
         n_segs (int, optional): Number of segments to generate. Defaults to 5.
+        imgout (str, optional): optional directory path to save validation images.  Defaults ot None.
 
     Returns:
         Labels (ANTsImage): Image containing integer labels for each region of the MRE images.
@@ -296,5 +300,44 @@ def segment_MRE_regions(img_list: List[Tuple[ANTsImage]], n_segs: int = 5):
 
         km_avgs["1"].append(label_1)
         km_avgs["2"].append(label_2)
+
+    
+    if imgout is not None:
+        if not os.path.exists(imgout):
+            raise ValueError("imgout directory does not exist")
+        elif imgout_geom is None:
+            for idx,img in enumerate(img_list):
+                base = os.path.join(imgout,f'MRE{idx}_segmentation.png')
+                plot(
+                    img[0],
+                    overlay=km_label_ants,
+                    overlay_cmap="tab10",
+                    overlay_alpha=0.5,
+                    filename=base,
+                    axis=0,
+                )
+        elif isinstance(imgout_geom,str):
+                img = image_read(imgout_geom)
+                base = os.path.join(imgout,f'MRE_segmentation.png')
+                plot(
+                    img,
+                    overlay=km_label_ants,
+                    overlay_cmap="tab10",
+                    overlay_alpha=0.5,
+                    filename=base,
+                    axis=0,
+                )
+        elif isinstance(imgout_geom,ANTsImage):
+            base = os.path.join(imgout,f'MRE_segmentation.png')
+            plot(
+                imgout_geom,
+                overlay=km_label_ants,
+                overlay_cmap="tab10",
+                overlay_alpha=0.5,
+                filename=base,
+                axis=0,
+            )
+        else:
+            raise ValueError("imgout_geom must be a string or ANTsImage")
 
     return km_label_ants, km_avgs
