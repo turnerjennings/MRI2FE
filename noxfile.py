@@ -4,7 +4,7 @@ import os
 import pybind11
 import platform
 
-#nox.options.reuse_venv = "yes"
+nox.options.reuse_venv = "yes"
 
 @nox.session(name="cpptest")
 def cpptest(session):
