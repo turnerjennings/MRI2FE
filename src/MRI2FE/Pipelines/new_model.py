@@ -9,17 +9,14 @@ from typing import List, Tuple
 
 
 class FEModelbuilder:
-    def __init__(self,
-                 title:str="",
-                 source:str=""):
+    def __init__(self, title: str = "", source: str = "", imgout: str = None):
         """Initialize the FEModel object to store model data.
 
         Args:
             title (str, optional): Optional title for the model which will be written to output solver decks. Defaults to "".
             source (str, optional): Optional source folder for model for internal tracking. Defaults to "".
         """
-        self.model = FEModel(title=title,
-                             source=source)
+        self.model = FEModel(title=title, source=source, imgout=imgout)
 
     def mesh(
         self,
@@ -75,6 +72,7 @@ class FEModelbuilder:
             MRE_geom=MRE_geom,
             MRE_mask=MRE_mask,
             MRE_to_transform=MRE_to_transform,
+            imgout=self.model.metadata["imgout"],
             **kwargs,
         )
         # handle edge case if only one MRE frequency is used
@@ -84,7 +82,10 @@ class FEModelbuilder:
         self.transformed_mre = transformed
 
         labels, region_avgs = segment_MRE_regions(
-            img_list=transformed, n_segs=n_segs
+            img_list=transformed,
+            n_segs=n_segs,
+            imgout=self.model.metadata["imgout"],
+            imgout_geom=self.labeled_geom,
         )
 
         regions_props = []
@@ -139,6 +140,5 @@ class FEModelbuilder:
         return self
 
     def build(self):
-        """Return generated FEModel
-        """
+        """Return generated FEModel"""
         return self.model
