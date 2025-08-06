@@ -15,7 +15,7 @@ def map_MRE_to_mesh(
     target_region_id: int = 4,
     label_background_id: int = 0,
     region_prefix: Optional[str] = None,
-    imgout: str = None,
+    imgout: Optional[str] = None,
 ) -> FEModel:
     """Map MRE properties onto FE mesh and store associated material properties in the model material array
 

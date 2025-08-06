@@ -1,4 +1,4 @@
-from typing import Any, List, Literal, Optional, Tuple
+from typing import Any, List, Literal, Optional, Tuple, cast
 
 from ants import image_read
 
@@ -10,7 +10,9 @@ from ..MRE.MRE_mapping import map_MRE_to_mesh
 
 
 class FEModelbuilder:
-    def __init__(self, title: str = "", source: str = "", imgout: str = None):
+    def __init__(
+        self, title: str = "", source: str = "", imgout: Optional[str] = None
+    ):
         """Initialize the FEModel object to store model data.
 
         Args:
@@ -73,7 +75,7 @@ class FEModelbuilder:
             MRE_geom=MRE_geom,
             MRE_mask=MRE_mask,
             MRE_to_transform=MRE_to_transform,
-            imgout=self.model.metadata["imgout"],
+            imgout=cast(str, self.model.metadata["imgout"]),
             **kwargs,
         )
         # handle edge case if only one MRE frequency is used
@@ -85,7 +87,7 @@ class FEModelbuilder:
         labels, region_avgs = segment_MRE_regions(
             img_list=transformed,
             n_segs=n_segs,
-            imgout=self.model.metadata["imgout"],
+            imgout=cast(str, self.model.metadata["imgout"]),
             imgout_geom=self.labeled_geom,
         )
 

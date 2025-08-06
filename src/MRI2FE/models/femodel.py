@@ -4,8 +4,6 @@ import meshio
 import numpy as np
 from numpy.typing import ArrayLike
 
-from ..utilities import element_centroids
-
 
 class FEModel:
     """Model object storing the generated FE model."""
@@ -14,7 +12,7 @@ class FEModel:
         self,
         title: str = "",
         source: str = "",
-        imgout: str = None,
+        imgout: Optional[str] = None,
         nodes: Optional[ArrayLike] = None,
         elements: Optional[ArrayLike] = None,
         parts: Optional[dict] = None,

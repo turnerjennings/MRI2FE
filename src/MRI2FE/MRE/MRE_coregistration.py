@@ -233,12 +233,10 @@ def coregister_MRE_images(
 
 
 def segment_MRE_regions(
-    
     img_list: List[Tuple[ANTsImage, ANTsImage]],
     n_segs: int = 5,
-    imgout: str = None,
+    imgout: Optional[str] = None,
     imgout_geom: Union[str, ANTsImage] = None,
-
 ):
     """Kmeans segmentation of MRE images
 
