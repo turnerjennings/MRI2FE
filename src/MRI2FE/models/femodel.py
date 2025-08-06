@@ -1,8 +1,10 @@
+from typing import List, Literal, Optional, Union, cast
+
+import meshio
 import numpy as np
 from numpy.typing import ArrayLike
-from typing import Optional, List, Union, Literal
+
 from ..utilities import element_centroids
-import meshio
 
 
 class FEModel:
@@ -12,8 +14,8 @@ class FEModel:
         self,
         title: str = "",
         source: str = "",
-        nodes: Optional[Union[list, np.ndarray]] = None,
-        elements: Optional[Union[list, np.ndarray]] = None,
+        nodes: Optional[ArrayLike] = None,
+        elements: Optional[ArrayLike] = None,
         parts: Optional[dict] = None,
         materials: Optional[List[dict]] = None,
         sections: Optional[List[dict]] = None,
@@ -44,7 +46,7 @@ class FEModel:
         # create node table - array of shape (n,4) where each column has the format: [node_id, x, y, z]
         if nodes is not None:
             if isinstance(nodes, list):
-                self.node_table = np.array(nodes)
+                self.node_table:np.ndarray = np.array(nodes)
             elif isinstance(nodes, np.ndarray):
                 self.node_table = nodes
             else:
@@ -52,7 +54,8 @@ class FEModel:
 
             self.metadata["num_nodes"] = self.node_table.shape[0]
         else:
-            self.node_table = None
+            self.node_table = np.array([])
+            self.metadata["num_nodes"] = 0
 
         # create element table - array of shape (n,m+2) where m is the number of nodes in the element type: [element_id, part_id, node1, node2, node3, node4...]
         if elements is not None:
@@ -62,9 +65,10 @@ class FEModel:
                 self.element_table = np.array(elements)
             else:
                 raise ValueError("Elements must be a list or numpy array")
-            self.metadata["num_nodes"] = self.element_table.shape[0]
+            self.metadata["num_elements"] = self.element_table.shape[0]
         else:
-            self.element_table = None
+            self.element_table = np.array([])
+            self.metadata["num_elements"]=0
 
         # create centroid table - List of centroids: [x,y,z]
         self.centroid_table = None
@@ -135,6 +139,7 @@ class FEModel:
                 "Must provide either (node_id,x,y,z) or node_array"
             )
 
+        node_array = np.asarray(node_array)
         # check array dimensions match
         if (
             not indiv_input
@@ -171,10 +176,14 @@ class FEModel:
                 (self.node_table, np.array([node_id, x, y, z]))
             )
 
-            self.metadata["num_nodes"] += 1
+            current_count = cast(int,self.metadata.get("num_nodes", 0))
+            self.metadata["num_nodes"] = current_count + 1
         else:
+            assert node_array is not None
             self.node_table = np.row_stack((self.node_table, node_array))
-            self.metadata["num_nodes"] += node_array.shape[0]
+            
+            current_count = cast(int,self.metadata.get("num_nodes", 0))
+            self.metadata["num_nodes"] = current_count + node_array.shape[0]
 
     def add_elements(
         self,
@@ -207,7 +216,7 @@ class FEModel:
             indiv_input = False
 
             element_array = np.atleast_2d(element_array)
-            element_id_list = element_array[:, 0]
+            element_id_list = element_array[:, 0].tolist()
 
         else:
             raise ValueError(
@@ -217,6 +226,7 @@ class FEModel:
         # check if array dimensions match
         if (
             not indiv_input
+            and element_array is not None
             and not element_array.shape[1] == self.element_table.shape[1]
         ):
             raise ValueError(
@@ -228,7 +238,7 @@ class FEModel:
             # check if node already in the table
             element_table = np.atleast_2d(self.element_table)
             element_table = element_table[:, 0]
-            matches = np.intersect1d(element_id_list, element_table)
+            matches = np.intersect1d(np.array(element_id_list), element_table)
 
             if len(matches) > 0:
                 raise ValueError(
@@ -237,22 +247,30 @@ class FEModel:
 
         # if element array is none, inserted element becomes array
         if self.element_table is None and indiv_input:
+            assert nodes is not None
             self.element_table = np.array([element_id, part_id] + nodes)
             self.metadata["num_elements"] = 1
 
         elif self.element_table is None:
+            assert element_array is not None
+            
             self.element_table = element_array
             self.metadata["num_elements"] = element_array.shape[0]
 
-        elif indiv_input:
+        elif indiv_input and nodes is not None:
             row_insert = np.array([element_id, part_id] + nodes)
             self.element_table = np.row_stack((self.element_table, row_insert))
-            self.metadata["num_elements"] += 1
-        else:
+
+            current_count = cast(int,self.metadata.get("num_elements", 0))
+            self.metadata["num_elements"] = current_count +1
+        elif element_array is not None:
+
             self.element_table = np.row_stack(
                 (self.element_table, element_array)
             )
-            self.metadata["num_elements"] += element_array.shape[0]
+
+            current_count = cast(int,self.metadata.get("num_elements", 0))
+            self.metadata["num_elements"] = current_count + element_array.shape[0]
 
     def update_centroids(self):
         """Update the centroid table with all elements in the element table."""

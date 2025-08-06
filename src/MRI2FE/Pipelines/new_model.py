@@ -1,11 +1,12 @@
-from typing import Optional, Literal, Any
+from typing import Any, List, Literal, Optional, Tuple
+
 from ants import image_read
-from ..MRE.MRE_coregistration import coregister_MRE_images, segment_MRE_regions
-from ..MRE.calculate_prony import calculate_prony
-from ..MRE.MRE_mapping import map_MRE_to_mesh
-from ..models.femodel import FEModel
+
 from ..generate_mesh import mesh_from_nifti
-from typing import List, Tuple
+from ..models.femodel import FEModel
+from ..MRE.calculate_prony import calculate_prony
+from ..MRE.MRE_coregistration import coregister_MRE_images, segment_MRE_regions
+from ..MRE.MRE_mapping import map_MRE_to_mesh
 
 
 class FEModelbuilder:

@@ -1,10 +1,10 @@
-from lasso.dyna import D3plot
-import numpy as np
-from scipy.interpolate import griddata
-from ants.core.ants_image import ANTsImage
-from ants import from_numpy, apply_transforms, image_write
+from typing import Optional, Tuple
 
-from typing import Tuple, Optional
+import numpy as np
+from ants import apply_transforms, from_numpy, image_write
+from ants.core.ants_image import ANTsImage
+from lasso.dyna import D3plot
+from scipy.interpolate import griddata
 
 
 def d3_to_displacement(

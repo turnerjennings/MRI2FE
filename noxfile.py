@@ -4,7 +4,7 @@ import os
 import pybind11
 import platform
 
-#nox.options.reuse_venv = "yes"
+nox.options.reuse_venv = "yes"
 
 @nox.session(name="cpptest")
 def cpptest(session):
@@ -150,11 +150,10 @@ def tests(session):
 def format(session):
     start_time = time.time()
     session.install("ruff")
-    session.install("mypy")
     session.run("ruff","format","src")
     session.run("ruff","format","test")
 
-    session.run("mypy", "--ignore-missing-imports", "src/")
+    
 
     elapsed = time.time() - start_time
     print(f"Session 'format' completed in {elapsed:.2f} seconds")
@@ -162,6 +161,16 @@ def format(session):
 @nox.session(name="lint")
 def lint(session):
     start_time = time.time()
+    print("Type checking...")
+    session.install("mypy")
+    session.run("mypy", "--ignore-missing-imports", "src/")
+
+    print("import formatting...")
+    session.install("isort")
+    session.run("isort", "src")
+
+
+    print("Linting...")
     session.install("ruff")
     session.run('ruff','check','src')
 

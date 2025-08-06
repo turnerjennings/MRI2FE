@@ -1,7 +1,8 @@
+from typing import Optional, Union
+
+import ants
 import numpy as np
 from numpy.typing import ArrayLike
-import ants
-from typing import Optional, Union
 
 
 def COM_align(

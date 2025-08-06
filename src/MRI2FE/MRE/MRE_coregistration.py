@@ -1,17 +1,11 @@
-from ants import (
-    image_read,
-    resample_image,
-    threshold_image,
-    registration,
-    plot,
-    apply_transforms,
-    new_image_like,
-)
-from ants.core.ants_image import ANTsImage
-import numpy as np
-from sklearn.cluster import KMeans
-from typing import Optional, Union, List, Tuple
 import os
+from typing import List, Optional, Tuple, Union
+
+import numpy as np
+from ants import (apply_transforms, image_read, new_image_like, plot,
+                  registration, resample_image, threshold_image)
+from ants.core.ants_image import ANTsImage
+from sklearn.cluster import KMeans
 
 
 def _create_min_max_mask(img: ANTsImage) -> ANTsImage:
@@ -23,7 +17,7 @@ def _create_min_max_mask(img: ANTsImage) -> ANTsImage:
     Returns:
         ANTsImage: binary mask
     """
-    img_arr = np.nonzero(img.numpy())
+    img_arr: np.ndarray = img.numpy()
     img_min = np.min(img_arr[np.nonzero(img_arr)])
     img_max = np.max(img_arr)
     img_mask = threshold_image(img, img_min, img_max)
@@ -267,13 +261,13 @@ def segment_MRE_regions(
     n_features = len(img_list)
 
     # build kmeans array
-    samples = []
+    samples_list = []
     for tup in img_list:
-        samples.append(tup[0].numpy().flatten())
-        samples.append(tup[1].numpy().flatten())
+        samples_list.append(tup[0].numpy().flatten())
+        samples_list.append(tup[1].numpy().flatten())
 
     samples = np.array(
-        samples
+        samples_list
     ).T  # rows = samples (voxels), columns = features (MRE values)
 
     if not samples.shape == (ants_size, n_features * n_img):
