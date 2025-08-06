@@ -1,0 +1,157 @@
+name: Build Wheels
+
+on:
+  push:
+    tags:
+      - 'v*'
+      - 'release-*'
+  workflow_dispatch:  
+
+jobs:
+  build_wheels:
+    name: Build wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive  
+        fetch-depth: 0         
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    # Linux-specific dependencies
+    - name: Install Linux dependencies
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt update
+        sudo apt install -y \
+          libcgal-dev \
+          libeigen3-dev \
+          libgmp-dev \
+          libmpfr-dev \
+          catch2 \
+          autoconf \
+          automake \
+          libtool \
+          cmake \
+          ninja-build
+
+    # macOS-specific dependencies
+    - name: Install macOS dependencies
+      if: runner.os == 'macOS'
+      run: |
+        echo "Installing C++ dependencies via Homebrew..."
+        
+        if ! command -v brew &> /dev/null; then
+          echo "Installing Homebrew..."
+          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+        fi
+        brew install cgal eigen gmp mpfr catch2
+
+    # Optional: Cache vcpkg packages for faster builds
+    - name: Cache vcpkg packages
+      uses: actions/cache@v3
+      with:
+        path: |
+          vcpkg/buildtrees
+          vcpkg/packages
+          vcpkg/downloads
+        key: vcpkg-${{ runner.os }}-${{ hashFiles('vcpkg.json') }}
+        restore-keys: |
+          vcpkg-${{ runner.os }}-
+
+    # Bootstrap vcpkg (loaded as submodule)
+    - name: Bootstrap vcpkg
+      run: |
+        if [ "$RUNNER_OS" == "Windows" ]; then
+          ./vcpkg/bootstrap-vcpkg.bat
+        else
+          ./vcpkg/bootstrap-vcpkg.sh
+        fi
+      shell: bash
+
+    # Install Python dependencies
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+      shell: bash
+
+    # Set up environment variables
+    - name: Set up build environment
+      run: |
+        PROJECT_ROOT=$(pwd)
+        VCPKG_TOOLCHAIN="$PROJECT_ROOT/vcpkg/scripts/buildsystems/vcpkg.cmake"
+        PYBIND11_CMAKE_DIR=$(python -c "import pybind11; print(pybind11.get_cmake_dir())")
+        
+        if [ "$RUNNER_OS" == "Windows" ]; then
+          
+          VCPKG_TOOLCHAIN=$(echo "$VCPKG_TOOLCHAIN" | sed 's/\//\\/g')
+          echo "CMAKE_ARGS=-DCMAKE_TOOLCHAIN_FILE=\"$VCPKG_TOOLCHAIN\" -DCMAKE_PREFIX_PATH=\"$PYBIND11_CMAKE_DIR\" -DVCPKG_MANIFEST_MODE=ON -DVCPKG_MANIFEST_DIR=\"$PROJECT_ROOT\"" >> $GITHUB_ENV
+        else
+          echo "CMAKE_ARGS=-DCMAKE_TOOLCHAIN_FILE=$VCPKG_TOOLCHAIN -DCMAKE_PREFIX_PATH=$PYBIND11_CMAKE_DIR -DVCPKG_MANIFEST_MODE=ON -DVCPKG_MANIFEST_DIR=$PROJECT_ROOT" >> $GITHUB_ENV
+        fi
+      shell: bash
+
+    # Generate test data (as per your scripts)
+    - name: Generate test data
+      run: |
+        python test/create_test_data.py
+      shell: bash
+
+    # Build the wheel
+    - name: Build wheel
+      run: |
+        python -m build --wheel
+      env:
+        CMAKE_ARGS: ${{ env.CMAKE_ARGS }}
+
+    # Test the wheel (optional but recommended)
+    - name: Test wheel
+      run: |
+        pip install dist/*.whl
+        python -c "import your_package_name; print('Package imported successfully')"
+        # Test data generation was already done before the build
+        echo "MRI2FE wheel installation and testing complete!"
+      shell: bash
+
+    # Upload wheels as artifacts
+    - name: Upload wheels
+      uses: actions/upload-artifact@v3
+      with:
+        name: wheels-${{ matrix.os }}-py${{ matrix.python-version }}
+        path: dist/*.whl
+
+  # Job to create GitHub release
+  create_release:
+    needs: build_wheels
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v3
+      with:
+        path: dist-artifacts
+
+    - name: Flatten artifacts
+      run: |
+        mkdir -p dist
+        find dist-artifacts -name "*.whl" -exec cp {} dist/ \;
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: dist/*.whl
+        draft: true
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
