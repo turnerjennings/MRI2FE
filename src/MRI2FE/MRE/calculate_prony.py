@@ -1,8 +1,9 @@
 from math import sqrt
 from scipy.optimize import minimize
 import numpy as np
+from numpy.typing import ArrayLike
 
-from typing import Union
+from typing import Optional, Union
 
 
 def _is_array(obj):
@@ -14,11 +15,11 @@ def _is_array(obj):
 
 
 def calculate_prony(
-    gp: Union[float, list, tuple, np.ndarray] = None,
-    gpp: Union[float, list, tuple, np.ndarray] = None,
-    mu: Union[float, list, tuple, np.ndarray] = None,
-    xi: Union[float, list, tuple, np.ndarray] = None,
-    w: Union[float, list, tuple, np.ndarray] = None,
+    gp: Optional[ArrayLike] = None,
+    gpp: Optional[ArrayLike] = None,
+    mu: Optional[ArrayLike] = None,
+    xi: Optional[ArrayLike] = None,
+    w: Optional[ArrayLike] = None,
     tol=1.00e-3,
 ):
     """Calculate the 1st order prony series equivalent to the complex shear modulus representation of brain tissue viscoelasticity

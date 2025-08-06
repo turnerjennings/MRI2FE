@@ -1,22 +1,22 @@
 import numpy as np
-from typing import List, Union, Literal
+from numpy.typing import ArrayLike
+from typing import Optional, List, Union, Literal
 from ..utilities import element_centroids
 import meshio
 
 
 class FEModel:
-    """Model object storing the generated FE model.
-    """
-    
+    """Model object storing the generated FE model."""
+
     def __init__(
         self,
         title: str = "",
         source: str = "",
-        nodes: Union[list, np.ndarray] = None,
-        elements: Union[list, np.ndarray] = None,
-        parts: dict = None,
-        materials: List[dict] = None,
-        sections: List[dict] = None,
+        nodes: Optional[Union[list, np.ndarray]] = None,
+        elements: Optional[Union[list, np.ndarray]] = None,
+        parts: Optional[dict] = None,
+        materials: Optional[List[dict]] = None,
+        sections: Optional[List[dict]] = None,
     ):
         """Initialize the FE model
 
@@ -76,7 +76,7 @@ class FEModel:
             else:
                 raise ValueError("Parts must be a dictionary")
         else:
-            self.part_info: dict = {}
+            self.part_info = {}
 
         # create material info - List of Dictionaries with three entries: "type":str, "ID":int, and "constants":list[int,float]
         if materials is not None:
@@ -85,7 +85,7 @@ class FEModel:
             else:
                 raise ValueError("Materials must be a list of dictionaries")
         else:
-            self.material_info: List[dict] = []
+            self.material_info = []
 
         # create section info - List of Dictionaries with two entries: "ID": str and "constants":list[int, float]
         if sections is not None:
@@ -94,15 +94,15 @@ class FEModel:
             else:
                 raise ValueError("Sections must be a list of dictionaries")
         else:
-            self.section_info: List[dict] = []
+            self.section_info = []
 
     def add_nodes(
         self,
-        node_id: int = None,
-        x: float = None,
-        y: float = None,
-        z: float = None,
-        node_array: np.ndarray = None,
+        node_id: Optional[int] = None,
+        x: Optional[float] = None,
+        y: Optional[float] = None,
+        z: Optional[float] = None,
+        node_array: Optional[ArrayLike] = None,
         force_insert: bool = False,
     ):
         """Add a node to the node table
@@ -138,7 +138,8 @@ class FEModel:
         # check array dimensions match
         if (
             not indiv_input
-            and not node_array.shape[1] == self.node_table.shape[1]
+            and node_array is not None
+            and node_array.shape[1] != self.node_table.shape[1]
         ):
             raise ValueError(
                 "Node array dimensions do not match node table dimensions"
@@ -177,10 +178,10 @@ class FEModel:
 
     def add_elements(
         self,
-        element_id: int = None,
-        part_id: int = None,
-        nodes: list = None,
-        element_array: np.ndarray = None,
+        element_id: Optional[int] = None,
+        part_id: Optional[int] = None,
+        nodes: Optional[list] = None,
+        element_array: Optional[np.ndarray] = None,
         force_insert: bool = False,
     ):
         """Add an element to the element table.
@@ -193,7 +194,7 @@ class FEModel:
             force_insert (bool, optional): Whether to overwrite if element already exists with the same ID. Defaults to False.
 
         Raises:
-            ValueError: Wrong input type.  
+            ValueError: Wrong input type.
             ValueError: Input shape mismatch with element table.
             ValueError: Element ID already exists and force_insert is False.
         """
@@ -254,8 +255,7 @@ class FEModel:
             self.metadata["num_elements"] += element_array.shape[0]
 
     def update_centroids(self):
-        """Update the centroid table with all elements in the element table.
-        """
+        """Update the centroid table with all elements in the element table."""
         if self.element_table.size > 0:
             self.centroid_table = np.apply_along_axis(
                 element_centroids,
@@ -399,7 +399,7 @@ class FEModel:
         self,
         mesh: Union[meshio.Mesh, str],
         element_type: Literal["tetra"] = "tetra",
-        region_names: List[str] = None,
+        region_names: Optional[List[str]] = None,
     ):
         """Load a mesh from a meshio mesh object into the FEModel format
 

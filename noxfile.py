@@ -150,8 +150,11 @@ def tests(session):
 def format(session):
     start_time = time.time()
     session.install("ruff")
+    session.install("mypy")
     session.run("ruff","format","src")
     session.run("ruff","format","test")
+
+    session.run("mypy", "--ignore-missing-imports", "src/")
 
     elapsed = time.time() - start_time
     print(f"Session 'format' completed in {elapsed:.2f} seconds")

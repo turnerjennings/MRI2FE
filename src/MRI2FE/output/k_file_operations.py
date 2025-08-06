@@ -2,6 +2,7 @@ from ..models.femodel import FEModel
 
 import numpy as np
 import os
+from typing import Optional
 
 
 def parse_k_file(fpath: str):
@@ -188,7 +189,7 @@ def edit_control_keyword(
     fpath: str,
     matprops: dict,
     includepath: str,
-    title: str = None,
+    title: Optional[str] = None,
 ):
     """Create control keyword from template using a dictionary provided and save output
 

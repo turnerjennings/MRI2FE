@@ -1,13 +1,14 @@
 import numpy as np
+from numpy.typing import ArrayLike
 import ants
-from typing import Union
+from typing import Optional, Union
 
 
 def COM_align(
     fixed: np.ndarray,
     moving: np.ndarray,
-    fixed_mask: np.ndarray = None,
-    moving_mask: np.ndarray = None,
+    fixed_mask: Optional[np.ndarray] = None,
+    moving_mask: Optional[np.ndarray] = None,
 ) -> np.ndarray:
     """Align the centers of mass of two point clouds, operating either on the entire point cloud or on a masked region.
 
@@ -96,9 +97,9 @@ def COM_align(
 
 
 def point_cloud_spacing(
-    dims: Union[list, tuple, np.ndarray],
-    points: Union[list, tuple, np.ndarray] = None,
-    lims: Union[list, tuple, np.ndarray] = None,
+    dims: ArrayLike,
+    points: Optional[ArrayLike] = None,
+    lims: Optional[ArrayLike] = None,
 ) -> tuple:
     """Return the voxel spacing necessary to cover a point cloud with given voxel dimensions
     Can be called by either providing a point cloud or directly providing field limits.
@@ -142,12 +143,14 @@ def point_cloud_spacing(
         raise ValueError("dims must have the same dimension as lims")
 
     # find limits of point cloud if not provided
-    if lims is None:
+    if lims is None and points is not None:
         mins = np.min(points, axis=0)
         maxes = np.max(points, axis=0)
-    else:
+    elif lims is not None:
         mins = lims[:, 0]
         maxes = lims[:, 1]
+    else:
+        raise ValueError("Must provide lims or points")
 
     delta = maxes - mins
 

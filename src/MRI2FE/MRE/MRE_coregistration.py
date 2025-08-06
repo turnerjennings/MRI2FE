@@ -10,10 +10,11 @@ from ants import (
 from ants.core.ants_image import ANTsImage
 import numpy as np
 from sklearn.cluster import KMeans
-from typing import Union, List, Tuple
+from typing import Optional, Union, List, Tuple
 import os
 
-def _create_min_max_mask(img:ANTsImage) -> ANTsImage:
+
+def _create_min_max_mask(img: ANTsImage) -> ANTsImage:
     """Create a binary mask encompassing the entire nonzero region of an ants image
 
     Args:
@@ -27,85 +28,6 @@ def _create_min_max_mask(img:ANTsImage) -> ANTsImage:
     img_max = np.max(img_arr)
     img_mask = threshold_image(img, img_min, img_max)
     return img_mask
-
-
-
-def _segment_MRE_list(geom: ANTsImage, im1:List[str], im2:List[str]):
-        # load images
-
-        im1_list = []
-        for file in im1:
-            im1_list.append(image_read(file))
-
-        im2_list = []
-        for file in im2:
-            im2_list.append(image_read(file))
-
-
-
-        # find threshold limits and generate binary mask
-        im_thresh = im1_list[0]
-        
-
-        # generate transformation
-        geom_ants = resample_image_to_target(geom, gp)
-
-        if geom_mask is not None:
-            tx = registration(
-                fixed=geom_ants,
-                mask=geom_mask,
-                moving=gp,
-                moving_mask=gp_mask,
-                type_of_transform="Elastic",
-            )
-
-        else:
-            tx = registration(
-                fixed=geom_ants,
-                moving=gp,
-                moving_mask=gp_mask,
-                type_of_transform="Elastic",
-            )
-
-        gp_out = tx["warpedmovout"]
-
-        transform = tx["fwdtransforms"]
-
-        gpp_out = apply_transforms(
-            fixed=geom, moving=gpp, transformlist=transform
-        )
-
-        out_dict = {"gp": gp_out, "gpp": gpp_out, "transform": transform}
-
-        # write images to file if requested
-        if imgout is not None:
-            plot(
-                geom,
-                overlay=gp_out,
-                overlay_cmap="Dark2",
-                overlay_alpha=0.8,
-                filename=imgout + "_sagittal.jpg",
-                axis=0,
-            )
-            plot(
-                geom,
-                overlay=gp_out,
-                overlay_cmap="Dark2",
-                overlay_alpha=0.8,
-                filename=imgout + "_coronal.jpg",
-                axis=1,
-            )
-            plot(
-                geom,
-                overlay=gp_out,
-                overlay_cmap="Dark2",
-                overlay_alpha=0.8,
-                filename=imgout + "_transverse.jpg",
-                axis=2,
-            )
-
-        return out_dict
-
 
 
 def _entry_to_list(entry):
@@ -151,11 +73,11 @@ def _ensure_tuple(tup: Tuple[Union[str, ANTsImage]]):
 def coregister_MRE_images(
     segmented_geom: Union[str, ANTsImage],
     target_label: int = 4,
-    segmented_mask: Union[str, ANTsImage] = None,
-    MRE_geom: List[Union[str, ANTsImage]] = None,
-    MRE_mask: Union[str, ANTsImage] = None,
-    MRE_to_transform: List[Tuple[Union[str, ANTsImage]]] = None,
-    imgout: str = None,
+    segmented_mask: Optional[Union[str, ANTsImage]] = None,
+    MRE_geom: Optional[List[Union[str, ANTsImage]]] = None,
+    MRE_mask: Optional[Union[str, ANTsImage]] = None,
+    MRE_to_transform: Optional[List[Tuple[Union[str, ANTsImage]]]] = None,
+    imgout: Optional[str] = None,
     type_of_transform: str = "Affine",
 ):
     """Coregister MRE geometry image to segmented geometry image, and transform corresponding MRE images.
@@ -217,9 +139,7 @@ def coregister_MRE_images(
             )
         segmented_geom = image_read(segmented_geom)
     elif not isinstance(segmented_geom, ANTsImage):
-        raise TypeError(
-            "geom must be a filepath string"
-        )
+        raise TypeError("geom must be a filepath string")
 
     # load MRE geometries
     MRE_geom_imgs = []
@@ -318,7 +238,9 @@ def coregister_MRE_images(
         return transformations, transformed_images
 
 
-def segment_MRE_regions(img_list: List[Tuple[ANTsImage]], n_segs: int = 5):
+def segment_MRE_regions(
+    img_list: List[Tuple[ANTsImage, ANTsImage]], n_segs: int = 5
+):
     """Kmeans segmentation of MRE images
 
     Args:
@@ -367,7 +289,7 @@ def segment_MRE_regions(img_list: List[Tuple[ANTsImage]], n_segs: int = 5):
 
     # create region average properties
     print(kmeans.cluster_centers_.shape)
-    km_avgs = {"1": [], "2": []}
+    km_avgs: dict = {"1": [], "2": []}
     for row in kmeans.cluster_centers_:
         label_1 = row[::2].tolist()
         label_2 = row[1::2].tolist()
