@@ -46,7 +46,7 @@ class FEModel:
         # create node table - array of shape (n,4) where each column has the format: [node_id, x, y, z]
         if nodes is not None:
             if isinstance(nodes, list):
-                self.node_table:np.ndarray = np.array(nodes)
+                self.node_table: np.ndarray = np.array(nodes)
             elif isinstance(nodes, np.ndarray):
                 self.node_table = nodes
             else:
@@ -68,7 +68,7 @@ class FEModel:
             self.metadata["num_elements"] = self.element_table.shape[0]
         else:
             self.element_table = np.array([])
-            self.metadata["num_elements"]=0
+            self.metadata["num_elements"] = 0
 
         # create centroid table - List of centroids: [x,y,z]
         self.centroid_table = None
@@ -150,7 +150,7 @@ class FEModel:
                 "Node array dimensions do not match node table dimensions"
             )
 
-        if not force_insert and self.node_table is not None:
+        if not force_insert and self.node_table.size > 0:
             # check if node already in the table
             node_table = np.atleast_2d(self.node_table)
             node_table = node_table[:, 0]
@@ -162,11 +162,11 @@ class FEModel:
                 )
 
         # if node array is none, inserted nodes becomes array
-        if self.node_table is None and indiv_input:
+        if self.node_table.size == 0 and indiv_input:
             self.node_table = np.array([node_id, x, y, z])
             self.metadata["num_nodes"] = 1
 
-        elif self.node_table is None:
+        elif self.node_table.size == 0:
             self.node_table = node_array
             self.metadata["num_nodes"] = node_array.shape[0]
 
@@ -176,13 +176,13 @@ class FEModel:
                 (self.node_table, np.array([node_id, x, y, z]))
             )
 
-            current_count = cast(int,self.metadata.get("num_nodes", 0))
+            current_count = cast(int, self.metadata.get("num_nodes", 0))
             self.metadata["num_nodes"] = current_count + 1
         else:
             assert node_array is not None
             self.node_table = np.row_stack((self.node_table, node_array))
-            
-            current_count = cast(int,self.metadata.get("num_nodes", 0))
+
+            current_count = cast(int, self.metadata.get("num_nodes", 0))
             self.metadata["num_nodes"] = current_count + node_array.shape[0]
 
     def add_elements(
@@ -234,7 +234,7 @@ class FEModel:
             )
 
         # check if element already exists
-        if not force_insert and self.element_table is not None:
+        if not force_insert and self.element_table.size > 0:
             # check if node already in the table
             element_table = np.atleast_2d(self.element_table)
             element_table = element_table[:, 0]
@@ -246,14 +246,14 @@ class FEModel:
                 )
 
         # if element array is none, inserted element becomes array
-        if self.element_table is None and indiv_input:
+        if self.element_table.size == 0 and indiv_input:
             assert nodes is not None
             self.element_table = np.array([element_id, part_id] + nodes)
             self.metadata["num_elements"] = 1
 
-        elif self.element_table is None:
+        elif self.element_table.size == 0:
             assert element_array is not None
-            
+
             self.element_table = element_array
             self.metadata["num_elements"] = element_array.shape[0]
 
@@ -261,16 +261,17 @@ class FEModel:
             row_insert = np.array([element_id, part_id] + nodes)
             self.element_table = np.row_stack((self.element_table, row_insert))
 
-            current_count = cast(int,self.metadata.get("num_elements", 0))
-            self.metadata["num_elements"] = current_count +1
+            current_count = cast(int, self.metadata.get("num_elements", 0))
+            self.metadata["num_elements"] = current_count + 1
         elif element_array is not None:
-
             self.element_table = np.row_stack(
                 (self.element_table, element_array)
             )
 
-            current_count = cast(int,self.metadata.get("num_elements", 0))
-            self.metadata["num_elements"] = current_count + element_array.shape[0]
+            current_count = cast(int, self.metadata.get("num_elements", 0))
+            self.metadata["num_elements"] = (
+                current_count + element_array.shape[0]
+            )
 
     def update_centroids(self):
         """Update the centroid table with all elements in the element table."""

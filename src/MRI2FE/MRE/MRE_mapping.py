@@ -64,7 +64,6 @@ def map_MRE_to_mesh(
 
     elcentroids_ROI = mdl.centroid_table[ect_region_mask, :]
 
-
     # create KDTree
     physical_space_tree = sp.KDTree(
         label_img_long_nobackground[:, 0:3], leafsize=15

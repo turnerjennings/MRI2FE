@@ -80,7 +80,7 @@ def parse_k_file(fpath: str):
     node_data = []
     for line in node_lines:
         try:
-            node_values:List[float] = list(float(i) for i in line.split())
+            node_values: List[float] = list(float(i) for i in line.split())
             if len(node_values) == 4:
                 node_data.append(node_values)
         except ValueError:

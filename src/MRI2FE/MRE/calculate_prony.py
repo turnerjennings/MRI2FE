@@ -64,12 +64,11 @@ def calculate_prony(
     if second_set_type:
         mu = np.asarray(mu)
         xi = np.asarray(xi)
-    
+
     w = np.asarray(w)
 
     # calculate complex modulus from stiffness and damping ratio (array)
     if second_set_valid:
-        
         assert mu is not None, "mu must be provided if xi is provided"
         assert xi is not None, "xi must be provided if mu is provided"
 
@@ -78,9 +77,11 @@ def calculate_prony(
 
         a = np.sqrt(1.0 + 4.0 * np.square(xi))
 
-        gp_array:np.ndarray = ((1.0 + a) * mu) / (2.0 * np.square(a))
-        gpp_array:np.ndarray = 2.0 * xi * gp_array
-        gmag_array:np.ndarray = np.sqrt(np.square(gp_array) + np.square(gpp_array))
+        gp_array: np.ndarray = ((1.0 + a) * mu) / (2.0 * np.square(a))
+        gpp_array: np.ndarray = 2.0 * xi * gp_array
+        gmag_array: np.ndarray = np.sqrt(
+            np.square(gp_array) + np.square(gpp_array)
+        )
 
         # back-calculate mu and xi to check calculation, raise error if they don't match
         mu_bc = 2.0 * np.square(gmag_array) / (gp_array + gmag_array)
@@ -94,14 +95,13 @@ def calculate_prony(
             raise ValueError(
                 f"Error in xi back-calculation, xi = {xi}, xi_bc = {xi_bc}.."
             )
-        
+
     else:
         assert gp is not None, "gp must be provided if gpp is provided"
         assert gpp is not None, "gpp must be provided if gp is provided"
 
         gp_array = np.asarray(gp)
         gpp_array = np.asarray(gpp)
-
 
     # calculate te prony series constants
 
