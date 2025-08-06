@@ -1,0 +1,15 @@
+name: Deploy Documentation
+on:
+  push:
+    branches: [ main ]  # or master, depending on your default branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-python@v4
+      with:
+        python-version: 3.x
+    - run: pip install mkdocs mkdocs-material mkdocstrings bibtex  # add any other themes/plugins
+    - run: mkdocs gh-deploy --force
