@@ -257,31 +257,21 @@ class FEModel:
     def update_centroids(self):
         """Update the centroid table with all elements in the element table."""
         if self.element_table.size > 0:
-            # Create a dictionary for O(1) node ID lookup - only once
             node_dict = {
                 int(self.node_table[i, 0]): i
                 for i in range(len(self.node_table))
             }
-
-            # Initialize centroids array
             n_elements = len(self.element_table)
             centroids = np.zeros((n_elements, 3))
 
-            # Process each element efficiently
             for i, element in enumerate(self.element_table):
-                # Extract unique node IDs (skip EID and PID)
                 node_ids = np.unique(element[2:])
-
-                # Get node indices using the pre-computed dictionary
                 node_indices = [
                     node_dict[int(node_id)] for node_id in node_ids
                 ]
-
-                # Calculate centroid
                 centroids[i] = np.mean(
                     self.node_table[node_indices, 1:], axis=0
                 )
-
             self.centroid_table = centroids
 
     def add_part(self, part_id: int, name: str, material_constants: list):

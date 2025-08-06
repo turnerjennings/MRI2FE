@@ -316,15 +316,11 @@ def element_centroids(
 
     elnodes = np.asarray(elnodes)
 
-    # Extract unique node IDs from the element (skip EID and PID)
     node_ids = np.unique(elnodes[2:])
-
-    # Use optimized boolean indexing - create mask directly
     mask = np.zeros(len(node_coords), dtype=bool)
     for node_id in node_ids:
         mask |= node_coords[:, 0] == node_id
 
-    # Calculate centroid from the masked coordinates
     cx = np.mean(node_coords[mask, 1:], axis=0)
 
     return cx.tolist()
