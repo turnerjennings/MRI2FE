@@ -1,6 +1,10 @@
-import numpy as np
-from typing import List, Union, Literal
+from typing import List, Literal, Optional, Union, cast
+
 import meshio
+import numpy as np
+from numpy.typing import ArrayLike
+
+from ..utilities import element_centroids
 
 
 class FEModel:
@@ -11,11 +15,11 @@ class FEModel:
         title: str = "",
         source: str = "",
         imgout: str = None,
-        nodes: Union[list, np.ndarray] = None,
-        elements: Union[list, np.ndarray] = None,
-        parts: dict = None,
-        materials: List[dict] = None,
-        sections: List[dict] = None,
+        nodes: Optional[ArrayLike] = None,
+        elements: Optional[ArrayLike] = None,
+        parts: Optional[dict] = None,
+        materials: Optional[List[dict]] = None,
+        sections: Optional[List[dict]] = None,
     ):
         """Initialize the FE model
 
@@ -45,7 +49,7 @@ class FEModel:
         # create node table - array of shape (n,4) where each column has the format: [node_id, x, y, z]
         if nodes is not None:
             if isinstance(nodes, list):
-                self.node_table = np.array(nodes)
+                self.node_table: np.ndarray = np.array(nodes)
             elif isinstance(nodes, np.ndarray):
                 self.node_table = nodes
             else:
@@ -53,7 +57,8 @@ class FEModel:
 
             self.metadata["num_nodes"] = self.node_table.shape[0]
         else:
-            self.node_table = None
+            self.node_table = np.array([])
+            self.metadata["num_nodes"] = 0
 
         # create element table - array of shape (n,m+2) where m is the number of nodes in the element type: [element_id, part_id, node1, node2, node3, node4...]
         if elements is not None:
@@ -63,9 +68,10 @@ class FEModel:
                 self.element_table = np.array(elements)
             else:
                 raise ValueError("Elements must be a list or numpy array")
-            self.metadata["num_nodes"] = self.element_table.shape[0]
+            self.metadata["num_elements"] = self.element_table.shape[0]
         else:
-            self.element_table = None
+            self.element_table = np.array([])
+            self.metadata["num_elements"] = 0
 
         # create centroid table - List of centroids: [x,y,z]
         self.centroid_table = None
@@ -77,7 +83,7 @@ class FEModel:
             else:
                 raise ValueError("Parts must be a dictionary")
         else:
-            self.part_info: dict = {}
+            self.part_info = {}
 
         # create material info - List of Dictionaries with three entries: "type":str, "ID":int, and "constants":list[int,float]
         if materials is not None:
@@ -86,7 +92,7 @@ class FEModel:
             else:
                 raise ValueError("Materials must be a list of dictionaries")
         else:
-            self.material_info: List[dict] = []
+            self.material_info = []
 
         # create section info - List of Dictionaries with two entries: "ID": str and "constants":list[int, float]
         if sections is not None:
@@ -95,15 +101,15 @@ class FEModel:
             else:
                 raise ValueError("Sections must be a list of dictionaries")
         else:
-            self.section_info: List[dict] = []
+            self.section_info = []
 
     def add_nodes(
         self,
-        node_id: int = None,
-        x: float = None,
-        y: float = None,
-        z: float = None,
-        node_array: np.ndarray = None,
+        node_id: Optional[int] = None,
+        x: Optional[float] = None,
+        y: Optional[float] = None,
+        z: Optional[float] = None,
+        node_array: Optional[ArrayLike] = None,
         force_insert: bool = False,
     ):
         """Add a node to the node table
@@ -136,16 +142,18 @@ class FEModel:
                 "Must provide either (node_id,x,y,z) or node_array"
             )
 
+        node_array = np.asarray(node_array)
         # check array dimensions match
         if (
             not indiv_input
-            and not node_array.shape[1] == self.node_table.shape[1]
+            and node_array is not None
+            and node_array.shape[1] != self.node_table.shape[1]
         ):
             raise ValueError(
                 "Node array dimensions do not match node table dimensions"
             )
 
-        if not force_insert and self.node_table is not None:
+        if not force_insert and self.node_table.size > 0:
             # check if node already in the table
             node_table = np.atleast_2d(self.node_table)
             node_table = node_table[:, 0]
@@ -157,11 +165,11 @@ class FEModel:
                 )
 
         # if node array is none, inserted nodes becomes array
-        if self.node_table is None and indiv_input:
+        if self.node_table.size == 0 and indiv_input:
             self.node_table = np.array([node_id, x, y, z])
             self.metadata["num_nodes"] = 1
 
-        elif self.node_table is None:
+        elif self.node_table.size == 0:
             self.node_table = node_array
             self.metadata["num_nodes"] = node_array.shape[0]
 
@@ -171,17 +179,21 @@ class FEModel:
                 (self.node_table, np.array([node_id, x, y, z]))
             )
 
-            self.metadata["num_nodes"] += 1
+            current_count = cast(int, self.metadata.get("num_nodes", 0))
+            self.metadata["num_nodes"] = current_count + 1
         else:
+            assert node_array is not None
             self.node_table = np.row_stack((self.node_table, node_array))
-            self.metadata["num_nodes"] += node_array.shape[0]
+
+            current_count = cast(int, self.metadata.get("num_nodes", 0))
+            self.metadata["num_nodes"] = current_count + node_array.shape[0]
 
     def add_elements(
         self,
-        element_id: int = None,
-        part_id: int = None,
-        nodes: list = None,
-        element_array: np.ndarray = None,
+        element_id: Optional[int] = None,
+        part_id: Optional[int] = None,
+        nodes: Optional[list] = None,
+        element_array: Optional[np.ndarray] = None,
         force_insert: bool = False,
     ):
         """Add an element to the element table.
@@ -207,7 +219,7 @@ class FEModel:
             indiv_input = False
 
             element_array = np.atleast_2d(element_array)
-            element_id_list = element_array[:, 0]
+            element_id_list = element_array[:, 0].tolist()
 
         else:
             raise ValueError(
@@ -217,6 +229,7 @@ class FEModel:
         # check if array dimensions match
         if (
             not indiv_input
+            and element_array is not None
             and not element_array.shape[1] == self.element_table.shape[1]
         ):
             raise ValueError(
@@ -224,11 +237,11 @@ class FEModel:
             )
 
         # check if element already exists
-        if not force_insert and self.element_table is not None:
+        if not force_insert and self.element_table.size > 0:
             # check if node already in the table
             element_table = np.atleast_2d(self.element_table)
             element_table = element_table[:, 0]
-            matches = np.intersect1d(element_id_list, element_table)
+            matches = np.intersect1d(np.array(element_id_list), element_table)
 
             if len(matches) > 0:
                 raise ValueError(
@@ -236,23 +249,32 @@ class FEModel:
                 )
 
         # if element array is none, inserted element becomes array
-        if self.element_table is None and indiv_input:
+        if self.element_table.size == 0 and indiv_input:
+            assert nodes is not None
             self.element_table = np.array([element_id, part_id] + nodes)
             self.metadata["num_elements"] = 1
 
-        elif self.element_table is None:
+        elif self.element_table.size == 0:
+            assert element_array is not None
+
             self.element_table = element_array
             self.metadata["num_elements"] = element_array.shape[0]
 
-        elif indiv_input:
+        elif indiv_input and nodes is not None:
             row_insert = np.array([element_id, part_id] + nodes)
             self.element_table = np.row_stack((self.element_table, row_insert))
-            self.metadata["num_elements"] += 1
-        else:
+
+            current_count = cast(int, self.metadata.get("num_elements", 0))
+            self.metadata["num_elements"] = current_count + 1
+        elif element_array is not None:
             self.element_table = np.row_stack(
                 (self.element_table, element_array)
             )
-            self.metadata["num_elements"] += element_array.shape[0]
+
+            current_count = cast(int, self.metadata.get("num_elements", 0))
+            self.metadata["num_elements"] = (
+                current_count + element_array.shape[0]
+            )
 
     def update_centroids(self):
         """Update the centroid table with all elements in the element table."""
@@ -408,7 +430,7 @@ class FEModel:
         self,
         mesh: Union[meshio.Mesh, str],
         element_type: Literal["tetra"] = "tetra",
-        region_names: List[str] = None,
+        region_names: Optional[List[str]] = None,
     ):
         """Load a mesh from a meshio mesh object into the FEModel format
 

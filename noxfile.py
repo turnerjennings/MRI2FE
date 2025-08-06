@@ -153,12 +153,24 @@ def format(session):
     session.run("ruff","format","src")
     session.run("ruff","format","test")
 
+    
+
     elapsed = time.time() - start_time
     print(f"Session 'format' completed in {elapsed:.2f} seconds")
 
 @nox.session(name="lint")
 def lint(session):
     start_time = time.time()
+    print("Type checking...")
+    session.install("mypy")
+    session.run("mypy", "--ignore-missing-imports", "src/")
+
+    print("import formatting...")
+    session.install("isort")
+    session.run("isort", "src")
+
+
+    print("Linting...")
     session.install("ruff")
     session.run('ruff','check','src')
 

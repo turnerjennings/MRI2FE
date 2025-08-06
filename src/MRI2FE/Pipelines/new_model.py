@@ -1,11 +1,12 @@
-from typing import Literal, Any
+from typing import Any, List, Literal, Optional, Tuple
+
 from ants import image_read
-from ..MRE.MRE_coregistration import coregister_MRE_images, segment_MRE_regions
-from ..MRE.calculate_prony import calculate_prony
-from ..MRE.MRE_mapping import map_MRE_to_mesh
-from ..models.femodel import FEModel
+
 from ..generate_mesh import mesh_from_nifti
-from typing import List, Tuple
+from ..models.femodel import FEModel
+from ..MRE.calculate_prony import calculate_prony
+from ..MRE.MRE_coregistration import coregister_MRE_images, segment_MRE_regions
+from ..MRE.MRE_mapping import map_MRE_to_mesh
 
 
 class FEModelbuilder:
@@ -21,7 +22,7 @@ class FEModelbuilder:
     def mesh(
         self,
         img_path: str,
-        img_labels: List[str] = None,
+        img_labels: Optional[List[str]] = None,
         optimize: bool = False,
         **kwargs,
     ):
@@ -47,10 +48,10 @@ class FEModelbuilder:
         MRE_type: Literal[
             "stiffness_damping", "complex_shear"
         ] = "stiffness_damping",
-        MRE_geom: List[str | Any] = None,
-        MRE_mask: str | Any = None,
-        MRE_frequency: List[float] = None,
-        MRE_to_transform: List[Tuple[str | Any]] = None,
+        MRE_geom: Optional[List[str | Any]] = None,
+        MRE_mask: Optional[str | Any] = None,
+        MRE_frequency: Optional[List[float]] = None,
+        MRE_to_transform: Optional[List[Tuple[str | Any]]] = None,
         n_segs: int = 5,
         **kwargs,
     ):

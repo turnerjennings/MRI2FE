@@ -1,9 +1,11 @@
+from typing import List, Optional
+
 import numpy as np
-from ants.core.ants_image import ANTsImage
 import scipy.spatial as sp
-from ..utilities import spatial_map
+from ants.core.ants_image import ANTsImage
+
 from ..models.femodel import FEModel
-from typing import List
+from ..utilities import spatial_map
 
 
 def map_MRE_to_mesh(
@@ -12,7 +14,7 @@ def map_MRE_to_mesh(
     region_properties: List,
     target_region_id: int = 4,
     label_background_id: int = 0,
-    region_prefix: str = None,
+    region_prefix: Optional[str] = None,
     imgout: str = None,
 ) -> FEModel:
     """Map MRE properties onto FE mesh and store associated material properties in the model material array
@@ -46,6 +48,7 @@ def map_MRE_to_mesh(
     # check for centroids
     if mdl.centroid_table is None:
         mdl.update_centroids()
+        assert mdl.centroid_table is not None
 
     label_img_long = spatial_map(label_img)
 
@@ -59,6 +62,7 @@ def map_MRE_to_mesh(
 
     # find elements and centroids within target label region
     ect_region_mask = mdl.element_table[:, 1] == target_region_id
+
     elcentroids_ROI = mdl.centroid_table[ect_region_mask, :]
 
     # create KDTree
