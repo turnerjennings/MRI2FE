@@ -316,9 +316,10 @@ def element_centroids(
 
     elnodes = np.asarray(elnodes)
 
-    nodes = np.unique(elnodes[2:])
-
-    mask = np.isin(node_coords[:, 0], nodes)
+    node_ids = np.unique(elnodes[2:])
+    mask = np.zeros(len(node_coords), dtype=bool)
+    for node_id in node_ids:
+        mask |= node_coords[:, 0] == node_id
 
     cx = np.mean(node_coords[mask, 1:], axis=0)
 

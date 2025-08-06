@@ -1,6 +1,5 @@
 import numpy as np
 from typing import List, Union, Literal
-from ..utilities import element_centroids
 import meshio
 
 
@@ -258,13 +257,22 @@ class FEModel:
     def update_centroids(self):
         """Update the centroid table with all elements in the element table."""
         if self.element_table.size > 0:
-            self.centroid_table = np.apply_along_axis(
-                element_centroids,
-                1,
-                np.array(np.atleast_2d(self.element_table)),
-                np.array(np.atleast_2d(self.node_table)),
-            )
-            self.centroid_table = self.centroid_table
+            node_dict = {
+                int(self.node_table[i, 0]): i
+                for i in range(len(self.node_table))
+            }
+            n_elements = len(self.element_table)
+            centroids = np.zeros((n_elements, 3))
+
+            for i, element in enumerate(self.element_table):
+                node_ids = np.unique(element[2:])
+                node_indices = [
+                    node_dict[int(node_id)] for node_id in node_ids
+                ]
+                centroids[i] = np.mean(
+                    self.node_table[node_indices, 1:], axis=0
+                )
+            self.centroid_table = centroids
 
     def add_part(self, part_id: int, name: str, material_constants: list):
         """Add part information (e.g., material constants)."""
