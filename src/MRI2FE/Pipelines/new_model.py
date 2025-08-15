@@ -1,4 +1,4 @@
-from typing import Literal, Any
+from typing import Literal, Any, Union
 from ants import image_read
 from ..MRE.MRE_coregistration import coregister_MRE_images, segment_MRE_regions
 from ..MRE.calculate_prony import calculate_prony
@@ -47,10 +47,10 @@ class FEModelbuilder:
         MRE_type: Literal[
             "stiffness_damping", "complex_shear"
         ] = "stiffness_damping",
-        MRE_geom: List[str | Any] = None,
-        MRE_mask: str | Any = None,
+        MRE_geom: List[Union[str, Any]] = None,
+        MRE_mask: Union[str, Any] = None,
         MRE_frequency: List[float] = None,
-        MRE_to_transform: List[Tuple[str | Any]] = None,
+        MRE_to_transform: List[Tuple[Union[str, Any]]] = None,
         n_segs: int = 5,
         **kwargs,
     ):
