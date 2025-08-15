@@ -1,5 +1,5 @@
 [build-system]
-requires = ["scikit-build-core","pybind11"]
+requires = ["scikit-build-core","pybind11", "wheel"]
 build-backend = "scikit_build_core.build"
 
 [project]
@@ -37,6 +37,9 @@ dev = [
 Repository = "https://github.com/turnerjennings/MRI2FE.git"
 Documentation = "https://turnerjennings.github.io/MRI2FE/"
 Issues = "https://turnerjennings.github.io/MRI2FE/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = "test"
