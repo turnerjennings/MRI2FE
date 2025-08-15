@@ -1,7 +1,9 @@
-from ..models.femodel import FEModel
+import os
+from typing import List, Optional
 
 import numpy as np
-import os
+
+from ..models.femodel import FEModel
 
 
 def parse_k_file(fpath: str):
@@ -78,9 +80,9 @@ def parse_k_file(fpath: str):
     node_data = []
     for line in node_lines:
         try:
-            values = list(map(float, line.split()))
-            if len(values) == 4:
-                node_data.append(values)
+            node_values: List[float] = list(float(i) for i in line.split())
+            if len(node_values) == 4:
+                node_data.append(node_values)
         except ValueError:
             continue
 
@@ -120,8 +122,8 @@ def write_head_k_file(fe_model: FEModel, fpath: str):
     if output_dir and not os.path.exists(output_dir):
         raise ValueError(f"Output directory does not exist: {output_dir}")
 
-    node_table = fe_model.get_node_table()
-    element_table = fe_model.get_element_table()
+    node_table = fe_model.node_table
+    element_table = fe_model.element_table
 
     # format inputs
     k_file_boilerplate = [
@@ -188,7 +190,7 @@ def edit_control_keyword(
     fpath: str,
     matprops: dict,
     includepath: str,
-    title: str = None,
+    title: Optional[str] = None,
 ):
     """Create control keyword from template using a dictionary provided and save output
 

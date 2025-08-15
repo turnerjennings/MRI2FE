@@ -10,6 +10,7 @@ nav:
   - Home: index.md
   - Quick Start: quickstart.md
   - API Reference: api.md
+  - Contribution Guide: contributing.md
 
 theme:
   name: material

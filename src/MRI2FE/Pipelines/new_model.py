@@ -1,15 +1,17 @@
-from typing import Literal, Any, Union
+from typing import Any, List, Literal, Optional, Tuple, cast, Union
 from ants import image_read
-from ..MRE.MRE_coregistration import coregister_MRE_images, segment_MRE_regions
-from ..MRE.calculate_prony import calculate_prony
-from ..MRE.MRE_mapping import map_MRE_to_mesh
-from ..models.femodel import FEModel
+
 from ..generate_mesh import mesh_from_nifti
-from typing import List, Tuple
+from ..models.femodel import FEModel
+from ..MRE.calculate_prony import calculate_prony
+from ..MRE.MRE_coregistration import coregister_MRE_images, segment_MRE_regions
+from ..MRE.MRE_mapping import map_MRE_to_mesh
 
 
 class FEModelbuilder:
-    def __init__(self, title: str = "", source: str = "", imgout: str = None):
+    def __init__(
+        self, title: str = "", source: str = "", imgout: Optional[str] = None
+    ):
         """Initialize the FEModel object to store model data.
 
         Args:
@@ -21,7 +23,7 @@ class FEModelbuilder:
     def mesh(
         self,
         img_path: str,
-        img_labels: List[str] = None,
+        img_labels: Optional[List[str]] = None,
         optimize: bool = False,
         **kwargs,
     ):
@@ -72,7 +74,7 @@ class FEModelbuilder:
             MRE_geom=MRE_geom,
             MRE_mask=MRE_mask,
             MRE_to_transform=MRE_to_transform,
-            imgout=self.model.metadata["imgout"],
+            imgout=cast(str, self.model.metadata["imgout"]),
             **kwargs,
         )
         # handle edge case if only one MRE frequency is used
@@ -84,7 +86,7 @@ class FEModelbuilder:
         labels, region_avgs = segment_MRE_regions(
             img_list=transformed,
             n_segs=n_segs,
-            imgout=self.model.metadata["imgout"],
+            imgout=cast(str, self.model.metadata["imgout"]),
             imgout_geom=self.labeled_geom,
         )
 

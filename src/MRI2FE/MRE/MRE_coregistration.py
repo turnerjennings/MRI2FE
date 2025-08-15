@@ -1,17 +1,11 @@
-from ants import (
-    image_read,
-    resample_image,
-    threshold_image,
-    registration,
-    plot,
-    apply_transforms,
-    new_image_like,
-)
-from ants.core.ants_image import ANTsImage
-import numpy as np
-from sklearn.cluster import KMeans
-from typing import Union, List, Tuple
 import os
+from typing import List, Optional, Tuple, Union
+
+import numpy as np
+from ants import (apply_transforms, image_read, new_image_like, plot,
+                  registration, resample_image, threshold_image)
+from ants.core.ants_image import ANTsImage
+from sklearn.cluster import KMeans
 
 
 def _create_min_max_mask(img: ANTsImage) -> ANTsImage:
@@ -23,7 +17,7 @@ def _create_min_max_mask(img: ANTsImage) -> ANTsImage:
     Returns:
         ANTsImage: binary mask
     """
-    img_arr = np.nonzero(img.numpy())
+    img_arr: np.ndarray = img.numpy()
     img_min = np.min(img_arr[np.nonzero(img_arr)])
     img_max = np.max(img_arr)
     img_mask = threshold_image(img, img_min, img_max)
@@ -73,11 +67,11 @@ def _ensure_tuple(tup: Tuple[Union[str, ANTsImage]]):
 def coregister_MRE_images(
     segmented_geom: Union[str, ANTsImage],
     target_label: int = 4,
-    segmented_mask: Union[str, ANTsImage] = None,
-    MRE_geom: List[Union[str, ANTsImage]] = None,
-    MRE_mask: Union[str, ANTsImage] = None,
-    MRE_to_transform: List[Tuple[Union[str, ANTsImage]]] = None,
-    imgout: str = None,
+    segmented_mask: Optional[Union[str, ANTsImage]] = None,
+    MRE_geom: Optional[List[Union[str, ANTsImage]]] = None,
+    MRE_mask: Optional[Union[str, ANTsImage]] = None,
+    MRE_to_transform: Optional[List[Tuple[Union[str, ANTsImage]]]] = None,
+    imgout: Optional[str] = None,
     type_of_transform: str = "Affine",
 ):
     """Coregister MRE geometry image to segmented geometry image, and transform corresponding MRE images.
@@ -239,9 +233,9 @@ def coregister_MRE_images(
 
 
 def segment_MRE_regions(
-    img_list: List[Tuple[ANTsImage]],
+    img_list: List[Tuple[ANTsImage, ANTsImage]],
     n_segs: int = 5,
-    imgout: str = None,
+    imgout: Optional[str] = None,
     imgout_geom: Union[str, ANTsImage] = None,
 ):
     """Kmeans segmentation of MRE images
@@ -271,13 +265,13 @@ def segment_MRE_regions(
     n_features = len(img_list)
 
     # build kmeans array
-    samples = []
+    samples_list = []
     for tup in img_list:
-        samples.append(tup[0].numpy().flatten())
-        samples.append(tup[1].numpy().flatten())
+        samples_list.append(tup[0].numpy().flatten())
+        samples_list.append(tup[1].numpy().flatten())
 
     samples = np.array(
-        samples
+        samples_list
     ).T  # rows = samples (voxels), columns = features (MRE values)
 
     if not samples.shape == (ants_size, n_features * n_img):
@@ -293,7 +287,7 @@ def segment_MRE_regions(
 
     # create region average properties
     print(kmeans.cluster_centers_.shape)
-    km_avgs = {"1": [], "2": []}
+    km_avgs: dict = {"1": [], "2": []}
     for row in kmeans.cluster_centers_:
         label_1 = row[::2].tolist()
         label_2 = row[1::2].tolist()
