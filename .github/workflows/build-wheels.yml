@@ -80,38 +80,43 @@ jobs:
           ./vcpkg list
           cd ..
 
-      - name: Set up vcpkg (macOS)
-        if: matrix.os == 'macos-latest'
-        run: |
-          cd vcpkg
-          ./bootstrap-vcpkg.sh
-          ./vcpkg install
-          ./vcpkg list
-          cd ..
-
       - name: Set environment variables (Windows)
         if: matrix.os == 'windows-latest'
         run: |
           echo "VCPKG_TOOLCHAIN=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake" >> $GITHUB_ENV
           echo "CMAKE_ARGS=-DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_MANIFEST_MODE=ON -DVCPKG_MANIFEST_DIR=${{ github.workspace }}" >> $GITHUB_ENV
+          echo "VCPKG_MANIFEST_MODE=ON" >> $GITHUB_ENV
 
       - name: Set environment variables (Ubuntu)
         if: matrix.os == 'ubuntu-latest'
         run: |
           echo "VCPKG_TOOLCHAIN=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake" >> $GITHUB_ENV
           echo "CMAKE_ARGS=-DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_MANIFEST_MODE=ON -DVCPKG_MANIFEST_DIR=${{ github.workspace }}" >> $GITHUB_ENV
+          echo "VCPKG_MANIFEST_MODE=ON" >> $GITHUB_ENV
 
-      - name: Set environment variables (macOS)
-        if: matrix.os == 'macos-latest'
-        run: |
-          echo "VCPKG_TOOLCHAIN=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake" >> $GITHUB_ENV
-          echo "CMAKE_ARGS=-DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_MANIFEST_MODE=ON -DVCPKG_MANIFEST_DIR=${{ github.workspace }}" >> $GITHUB_ENV
-
-      - name: Build wheel
+      - name: Build wheel (Windows/Ubuntu)
+        if: matrix.os != 'macos-latest'
         env:
           VCPKG_TOOLCHAIN: ${{ env.VCPKG_TOOLCHAIN }}
           CMAKE_ARGS: ${{ env.CMAKE_ARGS }}
           GITHUB_WORKSPACE: ${{ github.workspace }}
+          VCPKG_MANIFEST_MODE: ${{ env.VCPKG_MANIFEST_MODE }}
+        run: |
+          python -m build --wheel
+
+      - name: Set environment variables (macOS)
+        if: matrix.os == 'macos-latest'
+        run: |
+          echo "VCPKG_TOOLCHAIN=" >> $GITHUB_ENV
+          echo "VCPKG_MANIFEST_MODE=" >> $GITHUB_ENV
+          echo "GITHUB_WORKSPACE=${{ github.workspace }}" >> $GITHUB_ENV
+
+      - name: Build wheel (macOS)
+        if: matrix.os == 'macos-latest'
+        env:
+          VCPKG_TOOLCHAIN: ${{ env.VCPKG_TOOLCHAIN }}
+          VCPKG_MANIFEST_MODE: ${{ env.VCPKG_MANIFEST_MODE }}
+          GITHUB_WORKSPACE: ${{ env.GITHUB_WORKSPACE }}
         run: |
           python -m build --wheel
 
