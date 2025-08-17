@@ -65,19 +65,28 @@ jobs:
       - name: Set up vcpkg (Windows)
         if: matrix.os == 'windows-latest'
         run: |
-          git clone https://github.com/Microsoft/vcpkg.git
           cd vcpkg
           ./bootstrap-vcpkg.bat
-          ./vcpkg install cgal eigen3 gmp mpfr catch2
+          ./vcpkg install
+          ./vcpkg list
           cd ..
 
       - name: Set up vcpkg (Ubuntu)
         if: matrix.os == 'ubuntu-latest'
         run: |
-          git clone https://github.com/Microsoft/vcpkg.git
           cd vcpkg
           ./bootstrap-vcpkg.sh
-          ./vcpkg install cgal eigen3 gmp mpfr catch2
+          ./vcpkg install
+          ./vcpkg list
+          cd ..
+
+      - name: Set up vcpkg (macOS)
+        if: matrix.os == 'macos-latest'
+        run: |
+          cd vcpkg
+          ./bootstrap-vcpkg.sh
+          ./vcpkg install
+          ./vcpkg list
           cd ..
 
       - name: Set environment variables (Windows)
@@ -92,10 +101,17 @@ jobs:
           echo "VCPKG_TOOLCHAIN=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake" >> $GITHUB_ENV
           echo "CMAKE_ARGS=-DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_MANIFEST_MODE=ON -DVCPKG_MANIFEST_DIR=${{ github.workspace }}" >> $GITHUB_ENV
 
+      - name: Set environment variables (macOS)
+        if: matrix.os == 'macos-latest'
+        run: |
+          echo "VCPKG_TOOLCHAIN=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake" >> $GITHUB_ENV
+          echo "CMAKE_ARGS=-DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_MANIFEST_MODE=ON -DVCPKG_MANIFEST_DIR=${{ github.workspace }}" >> $GITHUB_ENV
+
       - name: Build wheel
         env:
           VCPKG_TOOLCHAIN: ${{ env.VCPKG_TOOLCHAIN }}
           CMAKE_ARGS: ${{ env.CMAKE_ARGS }}
+          GITHUB_WORKSPACE: ${{ github.workspace }}
         run: |
           python -m build --wheel
 
