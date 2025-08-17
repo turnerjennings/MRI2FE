@@ -78,6 +78,12 @@ jobs:
           } else { 
             echo "installed directory does not exist" 
           }
+          if (Test-Path "packages") { 
+            echo "packages directory exists:"
+            dir packages
+          } else { 
+            echo "packages directory does not exist" 
+          }
           cd ..
 
       - name: Set up vcpkg (Ubuntu)
