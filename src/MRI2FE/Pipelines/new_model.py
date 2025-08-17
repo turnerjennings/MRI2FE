@@ -1,4 +1,5 @@
-from typing import Any, List, Literal, Optional, Tuple, cast, Union
+from typing import Any, List, Literal, Optional, Tuple, Union, cast
+
 from ants import image_read
 
 from ..generate_mesh import mesh_from_nifti
@@ -49,10 +50,10 @@ class FEModelbuilder:
         MRE_type: Literal[
             "stiffness_damping", "complex_shear"
         ] = "stiffness_damping",
-        MRE_geom: List[Union[str, Any]] = None,
-        MRE_mask: Union[str, Any] = None,
-        MRE_frequency: List[float] = None,
-        MRE_to_transform: List[Tuple[Union[str, Any]]] = None,
+        MRE_geom: Optional[List[Union[str, Any]]] = None,
+        MRE_mask: Optional[Union[str, Any]] = None,
+        MRE_frequency: Optional[List[float]] = None,
+        MRE_to_transform: Optional[List[Tuple[Union[str, Any]]]] = None,
         n_segs: int = 5,
         **kwargs,
     ):
