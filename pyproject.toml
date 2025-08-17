@@ -6,7 +6,7 @@ build-backend = "scikit_build_core.build"
 name = "MRI2FE"
 authors = [{ name = "Turner Jennings", email = "turner.jennings@outlook.com" }]
 description = "Workflows for automated FE head model generation from MRI/MRE data"
-readme = "README.md"
+readme = "readme.md"
 license = { file = "LICENSE" }
 version = "0.1.1"
 
