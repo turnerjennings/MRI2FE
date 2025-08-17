@@ -102,21 +102,10 @@ jobs:
           GITHUB_WORKSPACE: ${{ github.workspace }}
           VCPKG_MANIFEST_MODE: ${{ env.VCPKG_MANIFEST_MODE }}
         run: |
-          python -m build --wheel
-
-      - name: Set environment variables (macOS)
-        if: matrix.os == 'macos-latest'
-        run: |
-          echo "VCPKG_TOOLCHAIN=" >> $GITHUB_ENV
-          echo "VCPKG_MANIFEST_MODE=" >> $GITHUB_ENV
-          echo "GITHUB_WORKSPACE=${{ github.workspace }}" >> $GITHUB_ENV
+          python -m build --wheel --config-setting=cmake.args="-DCMAKE_TOOLCHAIN_FILE=${{ env.VCPKG_TOOLCHAIN }};-DVCPKG_MANIFEST_MODE=ON;-DVCPKG_MANIFEST_DIR=${{ github.workspace }}"
 
       - name: Build wheel (macOS)
         if: matrix.os == 'macos-latest'
-        env:
-          VCPKG_TOOLCHAIN: ${{ env.VCPKG_TOOLCHAIN }}
-          VCPKG_MANIFEST_MODE: ${{ env.VCPKG_MANIFEST_MODE }}
-          GITHUB_WORKSPACE: ${{ env.GITHUB_WORKSPACE }}
         run: |
           python -m build --wheel
 

@@ -66,8 +66,3 @@ indent-style = "space"
 
 # Automatically detect the appropriate line ending.
 line-ending = "auto"
-
-[tool.scikit-build.cmake.args]
-"-DCMAKE_TOOLCHAIN_FILE=${env:VCPKG_TOOLCHAIN}"
-"-DVCPKG_MANIFEST_MODE=${env:VCPKG_MANIFEST_MODE}"
-"-DVCPKG_MANIFEST_DIR=${env:GITHUB_WORKSPACE}"
