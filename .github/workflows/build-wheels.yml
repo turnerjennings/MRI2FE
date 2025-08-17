@@ -68,11 +68,16 @@ jobs:
           cd vcpkg
           ./bootstrap-vcpkg.bat
           ./vcpkg install
-          ./vcpkg list
           echo "Checking vcpkg installed packages:"
           ./vcpkg list
-          echo "Checking vcpkg installed directory:"
-          dir installed\x64-windows\
+          echo "Checking vcpkg directory structure:"
+          dir
+          if (Test-Path "installed") { 
+            echo "installed directory exists:"
+            dir installed
+          } else { 
+            echo "installed directory does not exist" 
+          }
           cd ..
 
       - name: Set up vcpkg (Ubuntu)

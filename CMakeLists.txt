@@ -28,25 +28,31 @@ find_package(pybind11 CONFIG REQUIRED)
 # Set up vcpkg paths if available
 if(DEFINED ENV{VCPKG_TOOLCHAIN_FILE})
     message(STATUS "Using vcpkg toolchain: $ENV{VCPKG_TOOLCHAIN_FILE}")
-    # Add vcpkg installed packages to CMAKE_PREFIX_PATH
-    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/installed/x64-windows")
-        list(APPEND CMAKE_PREFIX_PATH "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/installed/x64-windows")
-        message(STATUS "Added vcpkg x64-windows to CMAKE_PREFIX_PATH")
-    endif()
-    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/installed/x64-windows-static")
-        list(APPEND CMAKE_PREFIX_PATH "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/installed/x64-windows-static")
-        message(STATUS "Added vcpkg x64-windows-static to CMAKE_PREFIX_PATH")
-    endif()
     
-    # Also try to find packages in vcpkg installed directories
-    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/installed/x64-windows/share/cgal")
-        set(CGAL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/installed/x64-windows/share/cgal")
-        message(STATUS "Set CGAL_DIR to: ${CGAL_DIR}")
-    endif()
-    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/installed/x64-windows/share/eigen3")
-        set(Eigen3_DIR "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/installed/x64-windows/share/eigen3")
-        message(STATUS "Set Eigen3_DIR to: ${Eigen3_DIR}")
-    endif()
+    # Check for different possible vcpkg installed directories
+    set(VCPKG_INSTALLED_DIRS
+        "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/installed/x64-windows"
+        "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/installed/x64-windows-static"
+        "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/installed/x86-windows"
+        "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/installed/x86-windows-static"
+    )
+    
+    foreach(VCPKG_DIR ${VCPKG_INSTALLED_DIRS})
+        if(EXISTS "${VCPKG_DIR}")
+            list(APPEND CMAKE_PREFIX_PATH "${VCPKG_DIR}")
+            message(STATUS "Added vcpkg directory to CMAKE_PREFIX_PATH: ${VCPKG_DIR}")
+            
+            # Set package directories if they exist
+            if(EXISTS "${VCPKG_DIR}/share/cgal")
+                set(CGAL_DIR "${VCPKG_DIR}/share/cgal")
+                message(STATUS "Set CGAL_DIR to: ${CGAL_DIR}")
+            endif()
+            if(EXISTS "${VCPKG_DIR}/share/eigen3")
+                set(Eigen3_DIR "${VCPKG_DIR}/share/eigen3")
+                message(STATUS "Set Eigen3_DIR to: ${Eigen3_DIR}")
+            endif()
+        endif()
+    endforeach()
 endif()
 
 # Try to find CGAL with different methods
