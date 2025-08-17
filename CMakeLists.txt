@@ -24,10 +24,42 @@ INCLUDE_DIRECTORIES(include)
 #find required extensions
 find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
 find_package(pybind11 CONFIG REQUIRED)
-find_package(CGAL CONFIG REQUIRED)
-find_package(Eigen3 CONFIG REQUIRED)
-find_package(GMP REQUIRED)
-find_package(MPFR REQUIRED)
+
+# Try to find CGAL with different methods
+find_package(CGAL CONFIG QUIET)
+if(NOT CGAL_FOUND)
+    find_package(CGAL QUIET)
+endif()
+if(NOT CGAL_FOUND)
+    message(FATAL_ERROR "CGAL not found. Please install CGAL via vcpkg or system package manager.")
+endif()
+
+# Try to find Eigen3 with different methods
+find_package(Eigen3 CONFIG QUIET)
+if(NOT Eigen3_FOUND)
+    find_package(Eigen3 QUIET)
+endif()
+if(NOT Eigen3_FOUND)
+    message(FATAL_ERROR "Eigen3 not found. Please install Eigen3 via vcpkg or system package manager.")
+endif()
+
+# Try to find GMP and MPFR
+find_package(GMP QUIET)
+if(NOT GMP_FOUND)
+    message(FATAL_ERROR "GMP not found. Please install GMP via vcpkg or system package manager.")
+endif()
+
+find_package(MPFR QUIET)
+if(NOT MPFR_FOUND)
+    message(FATAL_ERROR "MPFR not found. Please install MPFR via vcpkg or system package manager.")
+endif()
+
+# Print debug information
+message(STATUS "CGAL_FOUND: ${CGAL_FOUND}")
+message(STATUS "Eigen3_FOUND: ${Eigen3_FOUND}")
+message(STATUS "GMP_FOUND: ${GMP_FOUND}")
+message(STATUS "MPFR_FOUND: ${MPFR_FOUND}")
+message(STATUS "CMAKE_PREFIX_PATH: ${CMAKE_PREFIX_PATH}")
 
 include(CGAL_Eigen3_support)
 if(NOT TARGET CGAL::Eigen3_support)
