@@ -25,6 +25,30 @@ INCLUDE_DIRECTORIES(include)
 find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
 find_package(pybind11 CONFIG REQUIRED)
 
+# Set up vcpkg paths if available
+if(DEFINED ENV{VCPKG_TOOLCHAIN_FILE})
+    message(STATUS "Using vcpkg toolchain: $ENV{VCPKG_TOOLCHAIN_FILE}")
+    # Add vcpkg installed packages to CMAKE_PREFIX_PATH
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/installed/x64-windows")
+        list(APPEND CMAKE_PREFIX_PATH "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/installed/x64-windows")
+        message(STATUS "Added vcpkg x64-windows to CMAKE_PREFIX_PATH")
+    endif()
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/installed/x64-windows-static")
+        list(APPEND CMAKE_PREFIX_PATH "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/installed/x64-windows-static")
+        message(STATUS "Added vcpkg x64-windows-static to CMAKE_PREFIX_PATH")
+    endif()
+    
+    # Also try to find packages in vcpkg installed directories
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/installed/x64-windows/share/cgal")
+        set(CGAL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/installed/x64-windows/share/cgal")
+        message(STATUS "Set CGAL_DIR to: ${CGAL_DIR}")
+    endif()
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/installed/x64-windows/share/eigen3")
+        set(Eigen3_DIR "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/installed/x64-windows/share/eigen3")
+        message(STATUS "Set Eigen3_DIR to: ${Eigen3_DIR}")
+    endif()
+endif()
+
 # Try to find CGAL with different methods
 find_package(CGAL CONFIG QUIET)
 if(NOT CGAL_FOUND)
