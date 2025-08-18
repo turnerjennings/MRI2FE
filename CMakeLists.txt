@@ -41,58 +41,40 @@ if(DEFINED ENV{VCPKG_TOOLCHAIN_FILE})
         "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/packages/mpfr_x64-windows"
     )
     
+    message(STATUS "Checking vcpkg directories:")
     foreach(VCPKG_DIR ${VCPKG_INSTALLED_DIRS})
         if(EXISTS "${VCPKG_DIR}")
             list(APPEND CMAKE_PREFIX_PATH "${VCPKG_DIR}")
-            message(STATUS "Added vcpkg directory to CMAKE_PREFIX_PATH: ${VCPKG_DIR}")
+            message(STATUS "  Found and added: ${VCPKG_DIR}")
             
             # Set package directories if they exist
             if(EXISTS "${VCPKG_DIR}/share/cgal")
                 set(CGAL_DIR "${VCPKG_DIR}/share/cgal")
-                message(STATUS "Set CGAL_DIR to: ${CGAL_DIR}")
+                message(STATUS "  Set CGAL_DIR to: ${CGAL_DIR}")
             endif()
             if(EXISTS "${VCPKG_DIR}/share/eigen3")
                 set(Eigen3_DIR "${VCPKG_DIR}/share/eigen3")
-                message(STATUS "Set Eigen3_DIR to: ${Eigen3_DIR}")
+                message(STATUS "  Set Eigen3_DIR to: ${Eigen3_DIR}")
             endif()
             
             # Also check for packages directory structure
             if(EXISTS "${VCPKG_DIR}/share/cgal/usage")
                 set(CGAL_DIR "${VCPKG_DIR}/share/cgal")
-                message(STATUS "Set CGAL_DIR to: ${CGAL_DIR} (from packages)")
+                message(STATUS "  Set CGAL_DIR to: ${CGAL_DIR} (from packages)")
             endif()
+        else()
+            message(STATUS "  Not found: ${VCPKG_DIR}")
         endif()
     endforeach()
+else()
+    message(STATUS "VCPKG_TOOLCHAIN_FILE not defined")
 endif()
 
-# Try to find CGAL with different methods
-find_package(CGAL CONFIG QUIET)
-if(NOT CGAL_FOUND)
-    find_package(CGAL QUIET)
-endif()
-if(NOT CGAL_FOUND)
-    message(FATAL_ERROR "CGAL not found. Please install CGAL via vcpkg or system package manager.")
-endif()
-
-# Try to find Eigen3 with different methods
-find_package(Eigen3 CONFIG QUIET)
-if(NOT Eigen3_FOUND)
-    find_package(Eigen3 QUIET)
-endif()
-if(NOT Eigen3_FOUND)
-    message(FATAL_ERROR "Eigen3 not found. Please install Eigen3 via vcpkg or system package manager.")
-endif()
-
-# Try to find GMP and MPFR
-find_package(GMP QUIET)
-if(NOT GMP_FOUND)
-    message(FATAL_ERROR "GMP not found. Please install GMP via vcpkg or system package manager.")
-endif()
-
-find_package(MPFR QUIET)
-if(NOT MPFR_FOUND)
-    message(FATAL_ERROR "MPFR not found. Please install MPFR via vcpkg or system package manager.")
-endif()
+# Try to find packages - let vcpkg handle the finding
+find_package(CGAL CONFIG REQUIRED)
+find_package(Eigen3 CONFIG REQUIRED)
+find_package(GMP REQUIRED)
+find_package(MPFR REQUIRED)
 
 # Print debug information
 message(STATUS "CGAL_FOUND: ${CGAL_FOUND}")
