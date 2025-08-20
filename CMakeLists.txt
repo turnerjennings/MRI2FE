@@ -28,44 +28,6 @@ find_package(pybind11 CONFIG REQUIRED)
 # Set up vcpkg paths if available
 if(DEFINED ENV{VCPKG_TOOLCHAIN_FILE})
     message(STATUS "Using vcpkg toolchain: $ENV{VCPKG_TOOLCHAIN_FILE}")
-    
-    # Check for different possible vcpkg directories (both installed and packages)
-    set(VCPKG_INSTALLED_DIRS
-        "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/installed/x64-windows"
-        "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/installed/x64-windows-static"
-        "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/installed/x86-windows"
-        "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/installed/x86-windows-static"
-        "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/packages/cgal_x64-windows"
-        "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/packages/eigen3_x64-windows"
-        "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/packages/gmp_x64-windows"
-        "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/packages/mpfr_x64-windows"
-    )
-    
-    message(STATUS "Checking vcpkg directories:")
-    foreach(VCPKG_DIR ${VCPKG_INSTALLED_DIRS})
-        if(EXISTS "${VCPKG_DIR}")
-            list(APPEND CMAKE_PREFIX_PATH "${VCPKG_DIR}")
-            message(STATUS "  Found and added: ${VCPKG_DIR}")
-            
-            # Set package directories if they exist
-            if(EXISTS "${VCPKG_DIR}/share/cgal")
-                set(CGAL_DIR "${VCPKG_DIR}/share/cgal")
-                message(STATUS "  Set CGAL_DIR to: ${CGAL_DIR}")
-            endif()
-            if(EXISTS "${VCPKG_DIR}/share/eigen3")
-                set(Eigen3_DIR "${VCPKG_DIR}/share/eigen3")
-                message(STATUS "  Set Eigen3_DIR to: ${Eigen3_DIR}")
-            endif()
-            
-            # Also check for packages directory structure
-            if(EXISTS "${VCPKG_DIR}/share/cgal/usage")
-                set(CGAL_DIR "${VCPKG_DIR}/share/cgal")
-                message(STATUS "  Set CGAL_DIR to: ${CGAL_DIR} (from packages)")
-            endif()
-        else()
-            message(STATUS "  Not found: ${VCPKG_DIR}")
-        endif()
-    endforeach()
 else()
     message(STATUS "VCPKG_TOOLCHAIN_FILE not defined")
 endif()

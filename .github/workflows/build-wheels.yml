@@ -67,7 +67,7 @@ jobs:
         run: |
           cd vcpkg
           ./bootstrap-vcpkg.bat
-          ./vcpkg install
+          ./vcpkg install --triplet=x64-windows
           echo "Checking vcpkg installed packages:"
           ./vcpkg list
           echo "Checking vcpkg directory structure:"
@@ -75,6 +75,10 @@ jobs:
           if (Test-Path "installed") { 
             echo "installed directory exists:"
             dir installed
+            if (Test-Path "installed\x64-windows") {
+              echo "x64-windows directory exists:"
+              dir installed\x64-windows
+            }
           } else { 
             echo "installed directory does not exist" 
           }
@@ -91,37 +95,51 @@ jobs:
         run: |
           cd vcpkg
           ./bootstrap-vcpkg.sh
-          ./vcpkg install
+          ./vcpkg install --triplet=x64-linux
           ./vcpkg list
           cd ..
 
       - name: Set environment variables (Windows)
         if: matrix.os == 'windows-latest'
         run: |
-          echo "VCPKG_TOOLCHAIN=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake" >> $GITHUB_ENV
-          echo "CMAKE_ARGS=-DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_MANIFEST_MODE=ON -DVCPKG_MANIFEST_DIR=${{ github.workspace }}" >> $GITHUB_ENV
-          echo "VCPKG_MANIFEST_MODE=ON" >> $GITHUB_ENV
+          echo "VCPKG_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake" >> $GITHUB_ENV
           echo "VCPKG_TARGET_TRIPLET=x64-windows" >> $GITHUB_ENV
+          echo "VCPKG_MANIFEST_MODE=ON" >> $GITHUB_ENV
+          echo "CMAKE_ARGS=-DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake;-DVCPKG_TARGET_TRIPLET=x64-windows;-DVCPKG_MANIFEST_MODE=ON;-DVCPKG_MANIFEST_DIR=${{ github.workspace }}" >> $GITHUB_ENV
           echo "Testing vcpkg toolchain:"
-          cmake -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake" -DVCPKG_MANIFEST_MODE=ON -DVCPKG_MANIFEST_DIR="${{ github.workspace }}" -P "${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake"
+          cmake -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x64-windows -DVCPKG_MANIFEST_MODE=ON -DVCPKG_MANIFEST_DIR="${{ github.workspace }}" -P "${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake"
+          echo "Checking CGAL installation:"
+          if (Test-Path "vcpkg\installed\x64-windows\share\cgal") {
+            echo "CGAL share directory exists:"
+            dir vcpkg\installed\x64-windows\share\cgal
+          } else {
+            echo "CGAL share directory does not exist"
+          }
 
       - name: Set environment variables (Ubuntu)
         if: matrix.os == 'ubuntu-latest'
         run: |
-          echo "VCPKG_TOOLCHAIN=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake" >> $GITHUB_ENV
-          echo "CMAKE_ARGS=-DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_MANIFEST_MODE=ON -DVCPKG_MANIFEST_DIR=${{ github.workspace }}" >> $GITHUB_ENV
+          echo "VCPKG_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake" >> $GITHUB_ENV
+          echo "VCPKG_TARGET_TRIPLET=x64-linux" >> $GITHUB_ENV
           echo "VCPKG_MANIFEST_MODE=ON" >> $GITHUB_ENV
+          echo "CMAKE_ARGS=-DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake;-DVCPKG_TARGET_TRIPLET=x64-linux;-DVCPKG_MANIFEST_MODE=ON;-DVCPKG_MANIFEST_DIR=${{ github.workspace }}" >> $GITHUB_ENV
 
       - name: Build wheel (Windows/Ubuntu)
         if: matrix.os != 'macos-latest'
         env:
-          VCPKG_TOOLCHAIN: ${{ env.VCPKG_TOOLCHAIN }}
+          VCPKG_TOOLCHAIN_FILE: ${{ env.VCPKG_TOOLCHAIN_FILE }}
           CMAKE_ARGS: ${{ env.CMAKE_ARGS }}
           GITHUB_WORKSPACE: ${{ github.workspace }}
           VCPKG_MANIFEST_MODE: ${{ env.VCPKG_MANIFEST_MODE }}
           VCPKG_TARGET_TRIPLET: ${{ env.VCPKG_TARGET_TRIPLET }}
         run: |
-          python -m build --wheel --config-setting=cmake.args="-DCMAKE_TOOLCHAIN_FILE=${{ env.VCPKG_TOOLCHAIN }};-DVCPKG_MANIFEST_MODE=ON;-DVCPKG_MANIFEST_DIR=${{ github.workspace }}"
+          echo "Environment variables:"
+          echo "VCPKG_TOOLCHAIN_FILE: ${{ env.VCPKG_TOOLCHAIN_FILE }}"
+          echo "CMAKE_ARGS: ${{ env.CMAKE_ARGS }}"
+          echo "VCPKG_MANIFEST_MODE: ${{ env.VCPKG_MANIFEST_MODE }}"
+          echo "VCPKG_TARGET_TRIPLET: ${{ env.VCPKG_TARGET_TRIPLET }}"
+          echo "Building wheel with vcpkg toolchain..."
+          python -m build --wheel --config-setting=cmake.args="${{ env.CMAKE_ARGS }}"
 
       - name: Build wheel (macOS)
         if: matrix.os == 'macos-latest'
