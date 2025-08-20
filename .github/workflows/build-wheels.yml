@@ -41,7 +41,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libcgal-dev libeigen3-dev libgmp-dev libmpfr-dev catch2 autoconf automake libtool
+          sudo apt-get install -y libcgal-dev libeigen3-dev libgmp-dev libmpfr-dev catch2 autoconf automake libtool cmake
 
       - name: Install system dependencies (macOS)
         if: matrix.os == 'macos-latest'
@@ -62,6 +62,12 @@ jobs:
       - name: Install build dependencies
         run: |
           pip install numpy antspyx pybind11 matplotlib lasso-python scipy meshio
+
+      - name: Install pybind11 for Ubuntu
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          pip install pybind11[global]
+          python -c "import pybind11; print('pybind11 location:', pybind11.get_cmake_dir())"
 
       - name: Set up vcpkg (Windows)
         if: matrix.os == 'windows-latest'
@@ -112,7 +118,9 @@ jobs:
       - name: Set environment variables (Ubuntu)
         if: matrix.os == 'ubuntu-latest'
         run: |
-          echo "CMAKE_ARGS=-DCMAKE_PREFIX_PATH=/usr/local" >> $GITHUB_ENV
+          PYBIND11_CMAKE_DIR=$(python -c "import pybind11; print(pybind11.get_cmake_dir())")
+          echo "PYBIND11_CMAKE_DIR: $PYBIND11_CMAKE_DIR"
+          echo "CMAKE_ARGS=-DCMAKE_PREFIX_PATH=/usr/local:$PYBIND11_CMAKE_DIR" >> $GITHUB_ENV
 
       - name: Build wheel (Windows/Ubuntu)
         if: matrix.os != 'macos-latest'
