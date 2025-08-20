@@ -66,9 +66,9 @@ jobs:
       - name: Set up vcpkg (Windows)
         if: matrix.os == 'windows-latest'
         run: |
+          git clone https://github.com/Microsoft/vcpkg.git
           cd vcpkg
           ./bootstrap-vcpkg.bat
-          ./vcpkg update
           ./vcpkg install --triplet=x64-windows
           echo "Checking vcpkg installed packages:"
           ./vcpkg list
@@ -92,16 +92,6 @@ jobs:
           }
           cd ..
 
-      - name: Set up vcpkg (Ubuntu)
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          cd vcpkg
-          ./bootstrap-vcpkg.sh
-          ./vcpkg update
-          ./vcpkg install --triplet=x64-linux
-          ./vcpkg list
-          cd ..
-
       - name: Set environment variables (Windows)
         if: matrix.os == 'windows-latest'
         run: |
@@ -122,10 +112,7 @@ jobs:
       - name: Set environment variables (Ubuntu)
         if: matrix.os == 'ubuntu-latest'
         run: |
-          echo "VCPKG_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake" >> $GITHUB_ENV
-          echo "VCPKG_TARGET_TRIPLET=x64-linux" >> $GITHUB_ENV
-          echo "VCPKG_MANIFEST_MODE=ON" >> $GITHUB_ENV
-          echo "CMAKE_ARGS=-DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake;-DVCPKG_TARGET_TRIPLET=x64-linux;-DVCPKG_MANIFEST_MODE=ON;-DVCPKG_MANIFEST_DIR=${{ github.workspace }}" >> $GITHUB_ENV
+          echo "CMAKE_ARGS=-DCMAKE_PREFIX_PATH=/usr/local" >> $GITHUB_ENV
 
       - name: Build wheel (Windows/Ubuntu)
         if: matrix.os != 'macos-latest'
@@ -141,7 +128,7 @@ jobs:
           echo "CMAKE_ARGS: ${{ env.CMAKE_ARGS }}"
           echo "VCPKG_MANIFEST_MODE: ${{ env.VCPKG_MANIFEST_MODE }}"
           echo "VCPKG_TARGET_TRIPLET: ${{ env.VCPKG_TARGET_TRIPLET }}"
-          echo "Building wheel with vcpkg toolchain..."
+          echo "Building wheel..."
           python -m build --wheel --config-setting=cmake.args="${{ env.CMAKE_ARGS }}"
 
       - name: Build wheel (macOS)
