@@ -105,21 +105,11 @@ jobs:
           echo "VCPKG_TARGET_TRIPLET=x64-windows" >> $GITHUB_ENV
           echo "VCPKG_MANIFEST_MODE=ON" >> $GITHUB_ENV
           echo "CMAKE_ARGS=-DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake;-DVCPKG_TARGET_TRIPLET=x64-windows;-DVCPKG_MANIFEST_MODE=ON;-DVCPKG_MANIFEST_DIR=${{ github.workspace }}" >> $GITHUB_ENV
-          echo "Testing vcpkg toolchain:"
-          cmake -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x64-windows -DVCPKG_MANIFEST_MODE=ON -DVCPKG_MANIFEST_DIR="${{ github.workspace }}" -P "${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake"
-          echo "Checking CGAL installation:"
-          if (Test-Path "vcpkg\installed\x64-windows\share\cgal") {
-            echo "CGAL share directory exists:"
-            dir vcpkg\installed\x64-windows\share\cgal
-          } else {
-            echo "CGAL share directory does not exist"
-          }
 
       - name: Set environment variables (Ubuntu)
         if: matrix.os == 'ubuntu-latest'
         run: |
           PYBIND11_CMAKE_DIR=$(python -c "import pybind11; print(pybind11.get_cmake_dir())")
-          echo "PYBIND11_CMAKE_DIR: $PYBIND11_CMAKE_DIR"
           echo "CMAKE_ARGS=-DCMAKE_PREFIX_PATH=/usr/local:$PYBIND11_CMAKE_DIR" >> $GITHUB_ENV
 
       - name: Build wheel (Windows/Ubuntu)
@@ -127,7 +117,6 @@ jobs:
         env:
           VCPKG_TOOLCHAIN_FILE: ${{ env.VCPKG_TOOLCHAIN_FILE }}
           CMAKE_ARGS: ${{ env.CMAKE_ARGS }}
-          GITHUB_WORKSPACE: ${{ github.workspace }}
           VCPKG_MANIFEST_MODE: ${{ env.VCPKG_MANIFEST_MODE }}
           VCPKG_TARGET_TRIPLET: ${{ env.VCPKG_TARGET_TRIPLET }}
         run: |
