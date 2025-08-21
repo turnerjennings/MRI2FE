@@ -101,10 +101,10 @@ jobs:
       - name: Set environment variables (Windows)
         if: matrix.os == 'windows-latest'
         run: |
-          echo "VCPKG_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake" >> $GITHUB_ENV
-          echo "VCPKG_TARGET_TRIPLET=x64-windows" >> $GITHUB_ENV
-          echo "VCPKG_MANIFEST_MODE=ON" >> $GITHUB_ENV
-          echo "CMAKE_ARGS=-DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake;-DVCPKG_TARGET_TRIPLET=x64-windows;-DVCPKG_MANIFEST_MODE=ON;-DVCPKG_MANIFEST_DIR=${{ github.workspace }}" >> $GITHUB_ENV
+          echo "${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake" > vcpkg_env.txt
+          echo "x64-windows" >> vcpkg_env.txt
+          echo "ON" >> vcpkg_env.txt
+          echo "-DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake;-DVCPKG_TARGET_TRIPLET=x64-windows;-DVCPKG_MANIFEST_MODE=ON;-DVCPKG_MANIFEST_DIR=${{ github.workspace }}" >> vcpkg_env.txt
 
       - name: Set environment variables (Ubuntu)
         if: matrix.os == 'ubuntu-latest'
@@ -120,13 +120,25 @@ jobs:
           VCPKG_MANIFEST_MODE: ${{ env.VCPKG_MANIFEST_MODE }}
           VCPKG_TARGET_TRIPLET: ${{ env.VCPKG_TARGET_TRIPLET }}
         run: |
+          if ("${{ matrix.os }}" -eq "windows-latest") {
+            echo "Reading Windows environment variables from file..."
+            $VCPKG_TOOLCHAIN_FILE = Get-Content "vcpkg_env.txt" -TotalCount 1
+            $VCPKG_TARGET_TRIPLET = Get-Content "vcpkg_env.txt" -TotalCount 1 | Select-Object -Skip 1 -First 1
+            $VCPKG_MANIFEST_MODE = Get-Content "vcpkg_env.txt" -TotalCount 1 | Select-Object -Skip 2 -First 1
+            $CMAKE_ARGS = Get-Content "vcpkg_env.txt" -TotalCount 1 | Select-Object -Skip 3 -First 1
+          }
+
           echo "Environment variables:"
-          echo "VCPKG_TOOLCHAIN_FILE: ${{ env.VCPKG_TOOLCHAIN_FILE }}"
-          echo "CMAKE_ARGS: ${{ env.CMAKE_ARGS }}"
-          echo "VCPKG_MANIFEST_MODE: ${{ env.VCPKG_MANIFEST_MODE }}"
-          echo "VCPKG_TARGET_TRIPLET: ${{ env.VCPKG_TARGET_TRIPLET }}"
+          echo "VCPKG_TOOLCHAIN_FILE: $VCPKG_TOOLCHAIN_FILE"
+          echo "CMAKE_ARGS: $CMAKE_ARGS"
+          echo "VCPKG_MANIFEST_MODE: $VCPKG_MANIFEST_MODE"
+          echo "VCPKG_TARGET_TRIPLET: $VCPKG_TARGET_TRIPLET"
           echo "Building wheel..."
-          python -m build --wheel --config-setting=cmake.args="${{ env.CMAKE_ARGS }}"
+          if ("${{ matrix.os }}" -eq "windows-latest") {
+            python -m build --wheel --config-setting=cmake.args="$CMAKE_ARGS"
+          } else {
+            python -m build --wheel --config-setting=cmake.args="${{ env.CMAKE_ARGS }}"
+          }
 
       - name: Build wheel (macOS)
         if: matrix.os == 'macos-latest'
