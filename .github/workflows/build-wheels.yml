@@ -75,9 +75,11 @@ jobs:
           git clone https://github.com/Microsoft/vcpkg.git
           cd vcpkg
           ./bootstrap-vcpkg.bat
-          ./vcpkg install --triplet=x64-windows
+          ./vcpkg install --triplet=x64-windows --recurse
           echo "Checking vcpkg installed packages:"
           ./vcpkg list
+          echo "Installing packages to installed directory..."
+          ./vcpkg install cgal eigen3 gmp mpfr catch2 --triplet=x64-windows
           echo "Checking vcpkg directory structure:"
           dir
           if (Test-Path "installed") { 
@@ -116,17 +118,32 @@ jobs:
         if: matrix.os == 'windows-latest'
         run: |
           echo "Reading Windows environment variables from file..."
-          $VCPKG_TOOLCHAIN_FILE = Get-Content "vcpkg_env.txt" -TotalCount 1
-          $VCPKG_TARGET_TRIPLET = Get-Content "vcpkg_env.txt" -TotalCount 1 | Select-Object -Skip 1 -First 1
-          $VCPKG_MANIFEST_MODE = Get-Content "vcpkg_env.txt" -TotalCount 1 | Select-Object -Skip 2 -First 1
-          $CMAKE_ARGS = Get-Content "vcpkg_env.txt" -TotalCount 1 | Select-Object -Skip 3 -First 1
+          $lines = Get-Content "vcpkg_env.txt"
+          $VCPKG_TOOLCHAIN_FILE = $lines[0]
+          $VCPKG_TARGET_TRIPLET = $lines[1]
+          $VCPKG_MANIFEST_MODE = $lines[2]
+          $CMAKE_ARGS = $lines[3]
+
+          # Set the environment variables that CMake needs
+          $env:VCPKG_TOOLCHAIN_FILE = $VCPKG_TOOLCHAIN_FILE
+          $env:VCPKG_TARGET_TRIPLET = $VCPKG_TARGET_TRIPLET
+          $env:VCPKG_MANIFEST_MODE = $VCPKG_MANIFEST_MODE
 
           echo "Environment variables:"
-          echo "VCPKG_TOOLCHAIN_FILE: $VCPKG_TOOLCHAIN_FILE"
+          echo "VCPKG_TOOLCHAIN_FILE: $env:VCPKG_TOOLCHAIN_FILE"
           echo "CMAKE_ARGS: $CMAKE_ARGS"
-          echo "VCPKG_MANIFEST_MODE: $VCPKG_MANIFEST_MODE"
-          echo "VCPKG_TARGET_TRIPLET: $VCPKG_TARGET_TRIPLET"
+          echo "VCPKG_MANIFEST_MODE: $env:VCPKG_MANIFEST_MODE"
+          echo "VCPKG_TARGET_TRIPLET: $env:VCPKG_TARGET_TRIPLET"
           echo "Building wheel..."
+          echo "Checking vcpkg installation:"
+          if (Test-Path "vcpkg\installed\x64-windows\share\cgal") {
+            echo "CGAL share directory exists:"
+            dir vcpkg\installed\x64-windows\share\cgal
+          } else {
+            echo "CGAL share directory does not exist"
+          }
+          echo "Running CMake test:"
+          cmake -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_TOOLCHAIN_FILE" -DVCPKG_TARGET_TRIPLET="$env:VCPKG_TARGET_TRIPLET" -DVCPKG_MANIFEST_MODE="$env:VCPKG_MANIFEST_MODE" -DVCPKG_MANIFEST_DIR="${{ github.workspace }}" -P "$env:VCPKG_TOOLCHAIN_FILE"
           python -m build --wheel --config-setting=cmake.args="$CMAKE_ARGS"
 
       - name: Build wheel (Ubuntu)
