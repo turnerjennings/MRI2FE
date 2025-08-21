@@ -75,11 +75,9 @@ jobs:
           git clone https://github.com/Microsoft/vcpkg.git
           cd vcpkg
           ./bootstrap-vcpkg.bat
-          ./vcpkg install --triplet=x64-windows --recurse
+          ./vcpkg install cgal eigen3 gmp mpfr catch2 boost --triplet=x64-windows
           echo "Checking vcpkg installed packages:"
           ./vcpkg list
-          echo "Installing packages to installed directory..."
-          ./vcpkg install cgal eigen3 gmp mpfr catch2 --triplet=x64-windows
           echo "Checking vcpkg directory structure:"
           dir
           if (Test-Path "installed") { 
@@ -105,8 +103,8 @@ jobs:
         run: |
           echo "${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake" > vcpkg_env.txt
           echo "x64-windows" >> vcpkg_env.txt
-          echo "ON" >> vcpkg_env.txt
-          echo "-DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake;-DVCPKG_TARGET_TRIPLET=x64-windows;-DVCPKG_MANIFEST_MODE=ON;-DVCPKG_MANIFEST_DIR=${{ github.workspace }}" >> vcpkg_env.txt
+          echo "OFF" >> vcpkg_env.txt
+          echo "-DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake;-DVCPKG_TARGET_TRIPLET=x64-windows" >> vcpkg_env.txt
 
       - name: Set environment variables (Ubuntu)
         if: matrix.os == 'ubuntu-latest'
