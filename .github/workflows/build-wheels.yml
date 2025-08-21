@@ -112,21 +112,14 @@ jobs:
           PYBIND11_CMAKE_DIR=$(python -c "import pybind11; print(pybind11.get_cmake_dir())")
           echo "CMAKE_ARGS=-DCMAKE_PREFIX_PATH=/usr/local:$PYBIND11_CMAKE_DIR" >> $GITHUB_ENV
 
-      - name: Build wheel (Windows/Ubuntu)
-        if: matrix.os != 'macos-latest'
-        env:
-          VCPKG_TOOLCHAIN_FILE: ${{ env.VCPKG_TOOLCHAIN_FILE }}
-          CMAKE_ARGS: ${{ env.CMAKE_ARGS }}
-          VCPKG_MANIFEST_MODE: ${{ env.VCPKG_MANIFEST_MODE }}
-          VCPKG_TARGET_TRIPLET: ${{ env.VCPKG_TARGET_TRIPLET }}
+      - name: Build wheel (Windows)
+        if: matrix.os == 'windows-latest'
         run: |
-          if ("${{ matrix.os }}" -eq "windows-latest") {
-            echo "Reading Windows environment variables from file..."
-            $VCPKG_TOOLCHAIN_FILE = Get-Content "vcpkg_env.txt" -TotalCount 1
-            $VCPKG_TARGET_TRIPLET = Get-Content "vcpkg_env.txt" -TotalCount 1 | Select-Object -Skip 1 -First 1
-            $VCPKG_MANIFEST_MODE = Get-Content "vcpkg_env.txt" -TotalCount 1 | Select-Object -Skip 2 -First 1
-            $CMAKE_ARGS = Get-Content "vcpkg_env.txt" -TotalCount 1 | Select-Object -Skip 3 -First 1
-          }
+          echo "Reading Windows environment variables from file..."
+          $VCPKG_TOOLCHAIN_FILE = Get-Content "vcpkg_env.txt" -TotalCount 1
+          $VCPKG_TARGET_TRIPLET = Get-Content "vcpkg_env.txt" -TotalCount 1 | Select-Object -Skip 1 -First 1
+          $VCPKG_MANIFEST_MODE = Get-Content "vcpkg_env.txt" -TotalCount 1 | Select-Object -Skip 2 -First 1
+          $CMAKE_ARGS = Get-Content "vcpkg_env.txt" -TotalCount 1 | Select-Object -Skip 3 -First 1
 
           echo "Environment variables:"
           echo "VCPKG_TOOLCHAIN_FILE: $VCPKG_TOOLCHAIN_FILE"
@@ -134,11 +127,17 @@ jobs:
           echo "VCPKG_MANIFEST_MODE: $VCPKG_MANIFEST_MODE"
           echo "VCPKG_TARGET_TRIPLET: $VCPKG_TARGET_TRIPLET"
           echo "Building wheel..."
-          if ("${{ matrix.os }}" -eq "windows-latest") {
-            python -m build --wheel --config-setting=cmake.args="$CMAKE_ARGS"
-          } else {
-            python -m build --wheel --config-setting=cmake.args="${{ env.CMAKE_ARGS }}"
-          }
+          python -m build --wheel --config-setting=cmake.args="$CMAKE_ARGS"
+
+      - name: Build wheel (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        env:
+          CMAKE_ARGS: ${{ env.CMAKE_ARGS }}
+        run: |
+          echo "Environment variables:"
+          echo "CMAKE_ARGS: ${{ env.CMAKE_ARGS }}"
+          echo "Building wheel..."
+          python -m build --wheel --config-setting=cmake.args="${{ env.CMAKE_ARGS }}"
 
       - name: Build wheel (macOS)
         if: matrix.os == 'macos-latest'
