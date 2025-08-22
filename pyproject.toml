@@ -1,12 +1,12 @@
 [build-system]
-requires = ["scikit-build-core","pybind11"]
+requires = ["scikit-build-core","pybind11", "wheel"]
 build-backend = "scikit_build_core.build"
 
 [project]
 name = "MRI2FE"
 authors = [{ name = "Turner Jennings", email = "turner.jennings@outlook.com" }]
 description = "Workflows for automated FE head model generation from MRI/MRE data"
-readme = "README.md"
+readme = "readme.md"
 license = { file = "LICENSE" }
 version = "0.1.1"
 
@@ -37,6 +37,9 @@ dev = [
 Repository = "https://github.com/turnerjennings/MRI2FE.git"
 Documentation = "https://turnerjennings.github.io/MRI2FE/"
 Issues = "https://turnerjennings.github.io/MRI2FE/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = "test"
