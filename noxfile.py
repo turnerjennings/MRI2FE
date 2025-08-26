@@ -121,6 +121,7 @@ def tests(session):
         
         session.install("numpy")
         session.install("antspyx")
+        session.install(".")
         session.run("python", f"{os.path.join(project_root, 'test', 'create_test_data.py')}")
 
     if platform.system() == "Darwin":
