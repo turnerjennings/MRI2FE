@@ -162,7 +162,7 @@ jobs:
       - name: Upload wheel artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: wheel-${{ matrix.os }}-py${{ matrix.python-version }}
+          name: wheels-${{ matrix.os }}-py${{ matrix.python-version }}
           path: dist/*.whl
           retention-days: 30
 
@@ -205,6 +205,75 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: dist/
+          pattern: wheels-*
+          merge-multiple: true
+
+      - name: Organize release files
+        run: |
+          echo "Organizing release files..."
+          ls -la dist/
+          echo "Creating organized directory structure..."
+          mkdir -p dist/wheels
+          if [ -d "dist/wheels-ubuntu-latest-py3.9" ]; then
+            cp dist/wheels-ubuntu-latest-py3.9/*.whl dist/wheels/
+          fi
+          if [ -d "dist/wheels-ubuntu-latest-py3.10" ]; then
+            cp dist/wheels-ubuntu-latest-py3.10/*.whl dist/wheels/
+          fi
+          if [ -d "dist/wheels-ubuntu-latest-py3.11" ]; then
+            cp dist/wheels-ubuntu-latest-py3.11/*.whl dist/wheels/
+          fi
+          if [ -d "dist/wheels-ubuntu-latest-py3.12" ]; then
+            cp dist/wheels-ubuntu-latest-py3.12/*.whl dist/wheels/
+          fi
+          if [ -d "dist/wheels-windows-latest-py3.10" ]; then
+            cp dist/wheels-windows-latest-py3.10/*.whl dist/wheels/
+          fi
+          if [ -d "dist/wheels-windows-latest-py3.11" ]; then
+            cp dist/wheels-windows-latest-py3.11/*.whl dist/wheels/
+          fi
+          if [ -d "dist/wheels-windows-latest-py3.12" ]; then
+            cp dist/wheels-windows-latest-py3.12/*.whl dist/wheels/
+          fi
+          if [ -d "dist/wheels-macos-latest-py3.9" ]; then
+            cp dist/wheels-macos-latest-py3.9/*.whl dist/wheels/
+          fi
+          if [ -d "dist/wheels-macos-latest-py3.10" ]; then
+            cp dist/wheels-macos-latest-py3.10/*.whl dist/wheels/
+          fi
+          if [ -d "dist/wheels-macos-latest-py3.11" ]; then
+            cp dist/wheels-macos-latest-py3.11/*.whl dist/wheels/
+          fi
+          if [ -d "dist/wheels-macos-latest-py3.12" ]; then
+            cp dist/wheels-macos-latest-py3.12/*.whl dist/wheels/
+          fi
+          echo "Final organized structure:"
+          ls -la dist/
+          ls -la dist/wheels/
+
+          echo "Creating wheel summary..."
+          echo "# Wheel Files for Release" > dist/WHEELS_SUMMARY.md
+          echo "" >> dist/WHEELS_SUMMARY.md
+          echo "## Available Wheels" >> dist/WHEELS_SUMMARY.md
+          echo "" >> dist/WHEELS_SUMMARY.md
+          echo "The following wheel files are included in this release:" >> dist/WHEELS_SUMMARY.md
+          echo "" >> dist/WHEELS_SUMMARY.md
+          for wheel in dist/wheels/*.whl; do
+            if [ -f "$wheel" ]; then
+              echo "- \`$(basename "$wheel")\`" >> dist/WHEELS_SUMMARY.md
+            fi
+          done
+          echo "" >> dist/WHEELS_SUMMARY.md
+          echo "## Installation" >> dist/WHEELS_SUMMARY.md
+          echo "" >> dist/WHEELS_SUMMARY.md
+          echo "Install the appropriate wheel for your platform and Python version:" >> dist/WHEELS_SUMMARY.md
+          echo "" >> dist/WHEELS_SUMMARY.md
+          echo "```bash" >> dist/WHEELS_SUMMARY.md
+          echo "pip install <wheel-file-name>" >> dist/WHEELS_SUMMARY.md
+          echo "```" >> dist/WHEELS_SUMMARY.md
+
+          echo "Wheel summary created:"
+          cat dist/WHEELS_SUMMARY.md
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
@@ -212,5 +281,6 @@ jobs:
           files: dist/*
           draft: false
           prerelease: false
+          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
