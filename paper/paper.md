@@ -9,6 +9,7 @@ authors:
   - name: Turner Jennings
     orcid: 0009-0003-3536-3645
     affiliation: '1'
+    corresponding: true
   - name: Anshul Shirude
     affiliation: '2'
   - name: Matteo Biggs
@@ -26,7 +27,7 @@ affiliations:
     index: 2
   - name: Department of Bioengineering, Northeastern University, Boston, MA
     index: 3
-date: 15th September 2017
+date: 12th September 2017
 bibliography: references.bib
 ---
 
@@ -34,7 +35,7 @@ bibliography: references.bib
 
 Computational models of the human head are powerful tools for non-invasive analysis of the biomechanics of conditions such as traumatic brain injury, hydrocephalus, and stroke.  MRI2FE is a toolkit to facilitate the creation of finite element (FE) models of the human head from large-sample-size medical imaging datasets.  It enables the creation of computational head models with unique geometry from anatomical magnetic resonance images (MRIs) as well as unique material characteristics measured using magnetic resonance elastography (MRE).  The toolkit is designed to make it easy to convert a large structured dataset into a series of FE models which can be used in computational biomechanics analyses. 
 
-The model generation process is shown in Figure \autoref{fig1}.  There are four core operations handled by the toolkit: Mesh generation from a segmented MRI volume, calculation of viscoelastic material model parameters from MRE data, mapping of MRE data onto the MRI-derived mesh, and export to a format compatible with commercial FE solvers.  There are built-in pipelines to automate all steps of model generation, or they can be run separately to integrate additional processing steps using other Python tools.  MRI2FE integrates functions from standard toolkits for mesh generation [@cgal] and MRI manipulation [@antsx] into a single integrated workflow.  It is designed to be used in conjunction with other FE preprocessing software and toolkits to enable patient-specific biomechanical analysis for a variety of neurodegenerative conditions.
+The model generation process is shown in \autoref{fig1}.  There are four core operations handled by the toolkit: Mesh generation from a segmented MRI volume, calculation of viscoelastic material model parameters from MRE data, mapping of MRE data onto the MRI-derived mesh, and export to a format compatible with commercial FE solvers.  There are built-in pipelines to automate all steps of model generation, or they can be run separately to integrate additional processing steps using other Python tools.  MRI2FE integrates functions from standard toolkits for mesh generation [@cgal] and MRI manipulation [@antsx] into a single integrated workflow.  It is designed to be used in conjunction with other FE preprocessing software and toolkits to enable patient-specific biomechanical analysis for a variety of neurodegenerative conditions.
 
 ![Workflow of FE model creation steps.\label{fig1}](figure.png)
 
