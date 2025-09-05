@@ -8,7 +8,19 @@ This package provides tools for the generation of patient-specific finite elemen
 
 ## Installation
 
-Package installation is confirmed working for Windows and MacOS.  To install the package, download or clone the repository to your local machine.  Run the appropriate installation script for your system, which will install all dependencies as well as the package.
+### Installing from wheel
+
+To install the package, download the appropriate wheel file from the most recent release, and then install on your local machine
+
+```python
+
+pip install ./name-of-wheel.whl
+
+```
+
+### Installing from source
+
+To install the package from source, download or clone the repository to your local machine.  Run the appropriate installation script for your system, which will install all dependencies as well as the package.
 
 ```shell
 git clone https://github.com/turnerjennings/MRI2FE
