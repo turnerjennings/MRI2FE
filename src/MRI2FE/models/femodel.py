@@ -46,7 +46,7 @@ class FEModel:
                 self.element_table = np.array(elements)
             else:
                 raise ValueError("Elements must be a list or numpy array")
-            self.metadata["num_nodes"] = self.element_table.shape[0]
+            self.metadata["num_elements"] = self.element_table.shape[0]
         else:
             self.element_table = None
 
@@ -358,10 +358,10 @@ class FEModel:
             f.write("*END\n")
 
     def from_meshio(
-            self,
-            mesh: Union[meshio.Mesh, str],
-            element_type: Literal["tetra"] = "tetra",
-            region_names: List[str] = None,
+        self,
+        mesh: Union[meshio.Mesh, str],
+        element_type: Literal["tetra"] = "tetra",
+        region_names: List[str] = None, # TODO: add support for other element types
     ):
         """Append mesh data from a meshio mesh object or file to the FEModel, offsetting IDs and
         updating metadata.
@@ -397,7 +397,8 @@ class FEModel:
         node_connectivity = None
         for idx, item in enumerate(mesh.cells):
             if item.type == element_type:
-                node_connectivity = item.data + max_node_id
+                # Map 0-based mesh indices to our new node IDs
+                node_connectivity = nids[item.data]
                 connectivity_index = idx
                 break
         if node_connectivity is None:
@@ -408,6 +409,9 @@ class FEModel:
         eids = np.arange(1, n_elements + 1) + max_elem_id
 
         # Offset part IDs
+        if "medit:ref" not in mesh.cell_data:
+            raise ValueError("Mesh must contain 'medit:ref' cell data for part IDs")
+        
         pid = mesh.cell_data["medit:ref"][connectivity_index]
         max_part_id = max([int(k) for k in self.part_info.keys()]) if self.part_info else 0
         pid_offset = max_part_id

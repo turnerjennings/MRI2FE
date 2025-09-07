@@ -1,7 +1,25 @@
 import numpy as np
 import meshio
 import pytest
+import sys
+import os
 
+# Add the src directory to the path to use the local version
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'src'))
+
+# Create a mock element_centroids function to avoid import issues
+def mock_element_centroids(*args, **kwargs):
+    return np.array([0, 0, 0])
+
+# Create a mock utilities module
+class MockUtilities:
+    element_centroids = mock_element_centroids
+
+# Add the mock to sys.modules
+sys.modules['MRI2FE.utilities'] = MockUtilities()
+sys.modules['MRI2FE.utilities.element_centroids'] = MockUtilities()
+
+# Now import FEModel from the local version
 from MRI2FE.models.femodel import FEModel
 
 def test_from_meshio_appends_data():
