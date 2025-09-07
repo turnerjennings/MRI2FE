@@ -450,12 +450,18 @@ class FEModel:
             # Assume all elements in self.element_table are of the same type
             num_nodes_per_elem = self.element_table.shape[1] - 2
             if element_type == "tetra" and num_nodes_per_elem != 4:
-                raise ValueError("Element type mismatch: existing elements are not tetrahedrons.")
+                raise ValueError(
+                    "Element type mismatch: existing elements are not tetrahedrons."
+                )
 
         mesh_nodes = mesh.points
         n_points = mesh_nodes.shape[0]
         # Offset node IDs
-        max_node_id = int(np.max(self.node_table[:, 0])) if self.node_table is not None else 0
+        max_node_id = (
+            int(np.max(self.node_table[:, 0]))
+            if self.node_table is not None
+            else 0
+        )
         nids = np.arange(1, n_points + 1) + max_node_id
         new_nodes = np.column_stack((nids, mesh_nodes))
 
@@ -469,18 +475,30 @@ class FEModel:
                 connectivity_index = idx
                 break
         if node_connectivity is None:
-            raise ValueError(f"Element type {element_type} not found in mesh cells")
+            raise ValueError(
+                f"Element type {element_type} not found in mesh cells"
+            )
 
         n_elements = node_connectivity.shape[0]
-        max_elem_id = int(np.max(self.element_table[:, 0])) if self.element_table is not None else 0
+        max_elem_id = (
+            int(np.max(self.element_table[:, 0]))
+            if self.element_table is not None
+            else 0
+        )
         eids = np.arange(1, n_elements + 1) + max_elem_id
 
         # Offset part IDs
         if "medit:ref" not in mesh.cell_data:
-            raise ValueError("Mesh must contain 'medit:ref' cell data for part IDs")
-        
+            raise ValueError(
+                "Mesh must contain 'medit:ref' cell data for part IDs"
+            )
+
         pid = mesh.cell_data["medit:ref"][connectivity_index]
-        max_part_id = max([int(k) for k in self.part_info.keys()]) if self.part_info else 0
+        max_part_id = (
+            max([int(k) for k in self.part_info.keys()])
+            if self.part_info
+            else 0
+        )
         pid_offset = max_part_id
 
         new_pid = pid + pid_offset
@@ -496,7 +514,10 @@ class FEModel:
         # Update part_info
         for idx, id in enumerate(np.unique(new_pid)):
             if region_names is not None and idx < len(region_names):
-                self.part_info[str(id)] = {"name": region_names[idx], "constants": []}
+                self.part_info[str(id)] = {
+                    "name": region_names[idx],
+                    "constants": [],
+                }
             else:
                 self.part_info[str(id)] = {"name": str(id), "constants": []}
 
@@ -507,7 +528,9 @@ class FEModel:
             self.node_table = new_nodes
 
         if self.element_table is not None:
-            self.element_table = np.row_stack((self.element_table, new_elements))
+            self.element_table = np.row_stack(
+                (self.element_table, new_elements)
+            )
         else:
             self.element_table = new_elements
 
@@ -515,6 +538,11 @@ class FEModel:
         self.metadata["num_nodes"] = self.node_table.shape[0]
         self.metadata["num_elements"] = self.element_table.shape[0]
         if "source" in self.metadata and self.metadata["source"]:
-            self.metadata["source"] = str(self.metadata["source"]) + f", meshio:{getattr(mesh, 'filename', 'unknown')}"
+            self.metadata["source"] = (
+                str(self.metadata["source"])
+                + f", meshio:{getattr(mesh, 'filename', 'unknown')}"
+            )
         else:
-            self.metadata["source"] = f"meshio:{getattr(mesh, 'filename', 'unknown')}"
+            self.metadata["source"] = (
+                f"meshio:{getattr(mesh, 'filename', 'unknown')}"
+            )

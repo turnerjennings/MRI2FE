@@ -4,25 +4,31 @@ import sys
 import os
 
 # Add the src directory to the path to use the local version
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..', 'src'))
+sys.path.insert(
+    0, os.path.join(os.path.dirname(__file__), "..", "..", "..", "src")
+)
 
 from MRI2FE.models.femodel import FEModel
+
 
 # Create a mock element_centroids function to avoid import issues
 def mock_element_centroids(*args, **kwargs):
     return np.array([0, 0, 0])
 
+
 # Create a mock utilities module
 class MockUtilities:
     element_centroids = mock_element_centroids
 
+
 # Add the mock to sys.modules
-sys.modules['MRI2FE.utilities'] = MockUtilities()
-sys.modules['MRI2FE.utilities.element_centroids'] = MockUtilities()
+sys.modules["MRI2FE.utilities"] = MockUtilities()
+sys.modules["MRI2FE.utilities.element_centroids"] = MockUtilities()
+
 
 def test_from_meshio_appends_data():
-    points = np.array([[0,0,0],[1,0,0],[0,1,0],[0,0,1]])
-    cells = [("tetra", np.array([[0,1,2,3]]))]
+    points = np.array([[0, 0, 0], [1, 0, 0], [0, 1, 0], [0, 0, 1]])
+    cells = [("tetra", np.array([[0, 1, 2, 3]]))]
     cell_data = {"medit:ref": [np.array([1])]}
     mesh = meshio.Mesh(points, cells, cell_data=cell_data)
 
