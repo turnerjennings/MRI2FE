@@ -1,27 +1,27 @@
-from lasso.dyna import D3plot
-import numpy as np
-
-from ants.core.ants_image import ANTsImage
-from ants import (
-    threshold_image,
-    registration,
-    image_write,
-    from_numpy,
-    apply_transforms,
-)
-
-
-from ..output.k_file_operations import parse_k_file, element_centroids
-from ..Postprocess.calculate_strain import MRI_strain
-from ..Postprocess.d3_to_nifti import (
-    d3_to_displacement,
-    save_field_variable,
-    cloud_to_grid,
-    grid_to_nifti,
-)
+from datetime import datetime
 from time import time
 from typing import Literal
-import datetime
+
+import numpy as np
+from ants import (
+    apply_transforms,
+    from_numpy,
+    image_write,
+    registration,
+    threshold_image,
+)
+from ants.core.ants_image import ANTsImage
+from lasso.dyna import D3plot
+
+from ..output.k_file_operations import parse_k_file
+from ..Postprocess.calculate_strain import MRI_strain
+from ..Postprocess.d3_to_nifti import (
+    cloud_to_grid,
+    d3_to_displacement,
+    grid_to_nifti,
+    save_field_variable,
+)
+from ..utilities import element_centroids
 
 
 def process_nifti(
@@ -128,7 +128,7 @@ def process_nifti(
     elif states_to_save == "max":
         disps_mag_avg = np.mean(disps_mag, axis=1)
         max_idx = np.argmax(disps_mag_avg)
-        states = [max_idx]
+        states = range(max_idx)
 
     # create x,y,z,mag nifti for each mode
     for i in states:
@@ -141,7 +141,7 @@ def process_nifti(
                 print(
                     f"{datetime.now()}\t\tmapping x-disp to nifti for mode {i + 1}..."
                 )
-                _ = save_field_variable(
+                save_field_variable(
                     coordinates=coords,
                     field_variable=disps[:, :, 0],
                     template=template,
@@ -157,7 +157,7 @@ def process_nifti(
                 print(
                     f"{datetime.now()}\t\tmapping y-disp to nifti for mode {i + 1}..."
                 )
-                _ = save_field_variable(
+                save_field_variable(
                     coordinates=coords,
                     field_variable=disps[:, :, 1],
                     template=template,
@@ -173,7 +173,7 @@ def process_nifti(
                 print(
                     f"{datetime.now()}\t\tmapping z-disp to nifti for mode {i + 1}..."
                 )
-                _ = save_field_variable(
+                save_field_variable(
                     coordinates=coords,
                     field_variable=disps[:, :, 2],
                     template=template,
@@ -189,7 +189,7 @@ def process_nifti(
                 print(
                     f"{datetime.now()}\t\tmapping mag-disp to nifti for mode {i + 1}..."
                 )
-                _ = save_field_variable(
+                save_field_variable(
                     coordinates=coords,
                     field_variable=disps_mag,
                     template=template,
@@ -253,9 +253,9 @@ def process_nifti(
             )
 
             strain_field = MRI_strain(
-                ux=ux_img,
-                uy=uy_img,
-                uz=uz_img,
+                img_1=ux_img,
+                img_2=uy_img,
+                img_3=uz_img,
             )
 
             strain_field = apply_transforms(

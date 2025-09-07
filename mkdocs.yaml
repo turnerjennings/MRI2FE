@@ -8,6 +8,9 @@ repo_url: https://github.com/turnerjennings/MRI2FE
 
 nav:
   - Home: index.md
+  - Quick Start: quickstart.md
+  - API Reference: api.md
+  - Contribution Guide: contributing.md
 
 theme:
   name: material
@@ -34,11 +37,25 @@ theme:
     - search.highlight
     - search.share
     - content.code.copy
+    - toc.follow
+    - toc.integrate
 
 plugins:
   - search
   - bibtex:
       bib_file: "docs/refs.bib"
-  - mkdocstrings
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]  
+          options:
+            docstring_style: google
+            show_source: true
+            show_root_heading: true
+            show_root_toc_entry: true
+            heading_level: 3
 markdown_extensions:
   - footnotes
+  - toc:
+      permalink: true
+      toc_depth: 2
