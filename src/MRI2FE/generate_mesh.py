@@ -1,12 +1,9 @@
-import meshio
-
-from ants import image_read
-
-from ants.core.ants_image import ANTsImage
-
 import os
 
+import meshio
 import numpy as np
+from ants import image_read
+from ants.core.ants_image import ANTsImage
 
 from ._MESHUTILS import mesh_wrapper
 

@@ -1,7 +1,7 @@
-from ants.core.ants_image import ANTsImage
-from ants import from_numpy
-
 import numpy as np
+from ants import from_numpy
+from ants.core.ants_image import ANTsImage
+
 from ..utilities import check_xyz
 
 

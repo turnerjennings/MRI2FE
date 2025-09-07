@@ -1,17 +1,34 @@
+import os
+from typing import List, Optional, Tuple, Union
+
+import numpy as np
 from ants import (
+    apply_transforms,
     image_read,
+    new_image_like,
+    plot,
+    registration,
     resample_image,
     threshold_image,
-    registration,
-    plot,
-    apply_transforms,
-    new_image_like,
 )
 from ants.core.ants_image import ANTsImage
-import numpy as np
 from sklearn.cluster import KMeans
-from typing import Union, List, Tuple
-import os
+
+
+def _create_min_max_mask(img: ANTsImage) -> ANTsImage:
+    """Create a binary mask encompassing the entire nonzero region of an ants image
+
+    Args:
+        img (ANTsImage): input image
+
+    Returns:
+        ANTsImage: binary mask
+    """
+    img_arr: np.ndarray = img.numpy()
+    img_min = np.min(img_arr[np.nonzero(img_arr)])
+    img_max = np.max(img_arr)
+    img_mask = threshold_image(img, img_min, img_max)
+    return img_mask
 
 
 def _entry_to_list(entry):
@@ -57,11 +74,11 @@ def _ensure_tuple(tup: Tuple[Union[str, ANTsImage]]):
 def coregister_MRE_images(
     segmented_geom: Union[str, ANTsImage],
     target_label: int = 4,
-    segmented_mask: Union[str, ANTsImage] = None,
-    MRE_geom: List[Union[str, ANTsImage]] = None,
-    MRE_mask: Union[str, ANTsImage] = None,
-    MRE_to_transform: List[Tuple[Union[str, ANTsImage]]] = None,
-    imgout: str = None,
+    segmented_mask: Optional[Union[str, ANTsImage]] = None,
+    MRE_geom: Optional[List[Union[str, ANTsImage]]] = None,
+    MRE_mask: Optional[Union[str, ANTsImage]] = None,
+    MRE_to_transform: Optional[List[Tuple[Union[str, ANTsImage]]]] = None,
+    imgout: Optional[str] = None,
     type_of_transform: str = "Affine",
 ):
     """Coregister MRE geometry image to segmented geometry image, and transform corresponding MRE images.
@@ -85,8 +102,8 @@ def coregister_MRE_images(
         ValueError: imgout path could not be found
 
     Returns:
-        List: list of transformations
-        List[tuple]: list of transformed image tuples
+        Transformations (List): list of transformations
+        Transformed_images (List): list of transformed image tuples
     """
     if segmented_geom is None:
         raise ValueError("Segmented geometry image is required")
@@ -123,9 +140,7 @@ def coregister_MRE_images(
             )
         segmented_geom = image_read(segmented_geom)
     elif not isinstance(segmented_geom, ANTsImage):
-        raise TypeError(
-            "geom must be either a filepath string or ANTsImage object"
-        )
+        raise TypeError("geom must be a filepath string")
 
     # load MRE geometries
     MRE_geom_imgs = []
@@ -200,12 +215,12 @@ def coregister_MRE_images(
             for img in img_tuple
         )
         transformed_images.append(transformed_tuple)
-
+        print(f"in MRE coregistration: {imgout}")
         if imgout is not None:
             if not os.path.exists(imgout):
                 raise ValueError("imgout directory does not exist")
             else:
-                base = f"{imgout + 'MRE{idx}_coreg.jpg'}"
+                base = os.path.join(imgout, f"MRE{idx}_coreg.png")
                 plot(
                     segmented_geom,
                     overlay=tx["warpedmovout"],
@@ -224,16 +239,22 @@ def coregister_MRE_images(
         return transformations, transformed_images
 
 
-def segment_MRE_regions(img_list: List[Tuple[ANTsImage]], n_segs: int = 5):
+def segment_MRE_regions(
+    img_list: List[Tuple[ANTsImage, ANTsImage]],
+    n_segs: int = 5,
+    imgout: Optional[str] = None,
+    imgout_geom: Union[str, ANTsImage] = None,
+):
     """Kmeans segmentation of MRE images
 
     Args:
         img_list (List[Tuple[ANTsImage]]): List of tuples of ANTsImage, each tuple representing the two images available for MRE at a given frequency.
         n_segs (int, optional): Number of segments to generate. Defaults to 5.
+        imgout (str, optional): optional directory path to save validation images.  Defaults ot None.
 
     Returns:
-        AntsImage: Image containing integer labels for each region of the MRE images.
-        dict: dictionary containing average properties for each region.  Keys are "1" and "2" for the two input images for each tuple, each key contains a list of length n_tuples which has the average properties for that cluster
+        Labels (ANTsImage): Image containing integer labels for each region of the MRE images.
+        km_ants (dict): Dictionary containing average properties for each region.  Keys are "1" and "2" for the two input images for each tuple, each key contains a list of length n_tuples which has the average properties for that cluster
     """
 
     # check image list contents:
@@ -251,13 +272,13 @@ def segment_MRE_regions(img_list: List[Tuple[ANTsImage]], n_segs: int = 5):
     n_features = len(img_list)
 
     # build kmeans array
-    samples = []
+    samples_list = []
     for tup in img_list:
-        samples.append(tup[0].numpy().flatten())
-        samples.append(tup[1].numpy().flatten())
+        samples_list.append(tup[0].numpy().flatten())
+        samples_list.append(tup[1].numpy().flatten())
 
     samples = np.array(
-        samples
+        samples_list
     ).T  # rows = samples (voxels), columns = features (MRE values)
 
     if not samples.shape == (ants_size, n_features * n_img):
@@ -273,12 +294,50 @@ def segment_MRE_regions(img_list: List[Tuple[ANTsImage]], n_segs: int = 5):
 
     # create region average properties
     print(kmeans.cluster_centers_.shape)
-    km_avgs = {"1": [], "2": []}
+    km_avgs: dict = {"1": [], "2": []}
     for row in kmeans.cluster_centers_:
         label_1 = row[::2].tolist()
         label_2 = row[1::2].tolist()
 
         km_avgs["1"].append(label_1)
         km_avgs["2"].append(label_2)
+
+    if imgout is not None:
+        if not os.path.exists(imgout):
+            raise ValueError("imgout directory does not exist")
+        elif imgout_geom is None:
+            for idx, img in enumerate(img_list):
+                base = os.path.join(imgout, f"MRE{idx}_segmentation.png")
+                plot(
+                    img[0],
+                    overlay=km_label_ants,
+                    overlay_cmap="tab10",
+                    overlay_alpha=0.5,
+                    filename=base,
+                    axis=0,
+                )
+        elif isinstance(imgout_geom, str):
+            img = image_read(imgout_geom)
+            base = os.path.join(imgout, "MRE_segmentation.png")
+            plot(
+                img,
+                overlay=km_label_ants,
+                overlay_cmap="tab10",
+                overlay_alpha=0.5,
+                filename=base,
+                axis=0,
+            )
+        elif isinstance(imgout_geom, ANTsImage):
+            base = os.path.join(imgout, "MRE_segmentation.png")
+            plot(
+                imgout_geom,
+                overlay=km_label_ants,
+                overlay_cmap="tab10",
+                overlay_alpha=0.5,
+                filename=base,
+                axis=0,
+            )
+        else:
+            raise ValueError("imgout_geom must be a string or ANTsImage")
 
     return km_label_ants, km_avgs
