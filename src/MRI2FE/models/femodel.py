@@ -515,6 +515,6 @@ class FEModel:
         self.metadata["num_nodes"] = self.node_table.shape[0]
         self.metadata["num_elements"] = self.element_table.shape[0]
         if "source" in self.metadata and self.metadata["source"]:
-            self.metadata["source"] += f", meshio:{getattr(mesh, 'filename', 'unknown')}"
+            self.metadata["source"] = str(self.metadata["source"]) + f", meshio:{getattr(mesh, 'filename', 'unknown')}"
         else:
             self.metadata["source"] = f"meshio:{getattr(mesh, 'filename', 'unknown')}"

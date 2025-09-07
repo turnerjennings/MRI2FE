@@ -3,24 +3,15 @@ from time import time
 from typing import Literal
 
 import numpy as np
-from ants import (
-    apply_transforms,
-    from_numpy,
-    image_write,
-    registration,
-    threshold_image,
-)
+from ants import (apply_transforms, from_numpy, image_write, registration,
+                  threshold_image)
 from ants.core.ants_image import ANTsImage
 from lasso.dyna import D3plot
 
 from ..output.k_file_operations import parse_k_file
 from ..Postprocess.calculate_strain import MRI_strain
-from ..Postprocess.d3_to_nifti import (
-    cloud_to_grid,
-    d3_to_displacement,
-    grid_to_nifti,
-    save_field_variable,
-)
+from ..Postprocess.d3_to_nifti import (cloud_to_grid, d3_to_displacement,
+                                       grid_to_nifti, save_field_variable)
 from ..utilities import element_centroids
 
 
