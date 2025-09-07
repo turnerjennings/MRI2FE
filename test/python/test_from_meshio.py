@@ -1,6 +1,5 @@
 import numpy as np
 import meshio
-import pytest
 import sys
 import os
 
