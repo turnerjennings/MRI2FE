@@ -24,10 +24,26 @@ INCLUDE_DIRECTORIES(include)
 #find required extensions
 find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
 find_package(pybind11 CONFIG REQUIRED)
+
+# Set up vcpkg paths if available
+if(DEFINED ENV{VCPKG_TOOLCHAIN_FILE})
+    message(STATUS "Using vcpkg toolchain: $ENV{VCPKG_TOOLCHAIN_FILE}")
+else()
+    message(STATUS "VCPKG_TOOLCHAIN_FILE not defined")
+endif()
+
+# Try to find packages - let vcpkg handle the finding
 find_package(CGAL CONFIG REQUIRED)
 find_package(Eigen3 CONFIG REQUIRED)
 find_package(GMP REQUIRED)
 find_package(MPFR REQUIRED)
+
+# Print debug information
+message(STATUS "CGAL_FOUND: ${CGAL_FOUND}")
+message(STATUS "Eigen3_FOUND: ${Eigen3_FOUND}")
+message(STATUS "GMP_FOUND: ${GMP_FOUND}")
+message(STATUS "MPFR_FOUND: ${MPFR_FOUND}")
+message(STATUS "CMAKE_PREFIX_PATH: ${CMAKE_PREFIX_PATH}")
 
 include(CGAL_Eigen3_support)
 if(NOT TARGET CGAL::Eigen3_support)

@@ -1,14 +1,14 @@
-from lasso.dyna import D3plot
-import numpy as np
-from scipy.interpolate import griddata
-from ants.core.ants_image import ANTsImage
-from ants import from_numpy, apply_transforms, image_write
+from typing import Optional, Tuple
 
-from typing import Tuple
+import numpy as np
+from ants import apply_transforms, from_numpy, image_write
+from ants.core.ants_image import ANTsImage
+from lasso.dyna import D3plot
+from scipy.interpolate import griddata
 
 
 def d3_to_displacement(
-    plot: D3plot, part_filter: list = None
+    plot: D3plot, part_filter: Optional[list] = None
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Take d3eigv file as input and output the node coordinates and displacements for relevant parameters
 
@@ -66,7 +66,7 @@ def d3_to_displacement(
 
 
 def cloud_to_grid(
-    data: np.ndarray, dims: tuple, lims: dict = None
+    data: np.ndarray, dims: tuple, lims: Optional[dict] = None
 ) -> np.ndarray:
     """Convert point cloud data (Lagrangian coordinates) to structured grid data (Eulerian coordinates)
 
@@ -202,7 +202,7 @@ def save_field_variable(
     fname: str,
     step: int = 0,
     limits: dict = {"max": [1, 1, 1], "min": [0, 0, 0]},
-    shape: Tuple = None,
+    shape: Optional[Tuple] = None,
     save_plot: bool = True,
 ) -> None:
     """Function to map a field variable to a 3d grid, transform into ICBM space, and save to file.

@@ -1,8 +1,8 @@
-from math import sqrt
-from scipy.optimize import minimize
-import numpy as np
+from typing import Optional, Union
 
-from typing import Union
+import numpy as np
+from numpy.typing import ArrayLike
+from scipy.optimize import minimize
 
 
 def _is_array(obj):
@@ -14,22 +14,26 @@ def _is_array(obj):
 
 
 def calculate_prony(
-    gp: Union[float, list, tuple, np.ndarray] = None,
-    gpp: Union[float, list, tuple, np.ndarray] = None,
-    mu: Union[float, list, tuple, np.ndarray] = None,
-    xi: Union[float, list, tuple, np.ndarray] = None,
-    w: Union[float, list, tuple, np.ndarray] = None,
+    gp: Optional[ArrayLike] = None,
+    gpp: Optional[ArrayLike] = None,
+    mu: Optional[ArrayLike] = None,
+    xi: Optional[ArrayLike] = None,
+    w: Optional[ArrayLike] = None,
     tol=1.00e-3,
 ):
     """Calculate the 1st order prony series equivalent to the complex shear modulus representation of brain tissue viscoelasticity
 
     Args:
-        mu (float or array): Shear stiffness [MPa]
-        xi (float): Damping ratio
-        w (float): vibration frequency [Hz]
+        gp (array-like): storage moduli at different frequencies. If gp is provided, gpp must also be provided.
+        gpp (array-like): loss moduli at different frequencies.  If gpp is provided, gp must also be provided.
+        mu (array-like): Shear stiffness at different frequencies.  If mu is provided, xi must also be provided.
+        xi (array-like): Damping ratio at different frequencies.  If xi, is provided, mu must also be provided.
+        w (array-like): MRE frequency for each gp/gpp or mu/xi value, must follow the same order.
         tol (float, optional): Back calculation tolerance check. Defaults to 1.00e-3.
 
     Raises:
+        ValueError: gp/gpp or mu/xi not provided
+        ValueError: number of inputs on each array do not match
         ValueError: Mu or Xi back-calculation out of range
 
     Returns:
@@ -57,55 +61,31 @@ def calculate_prony(
     if not (first_set_type or second_set_type):
         raise ValueError("Unmatched number of values for input parameters")
 
-    # convert to numpy array
-    if first_set_type:
-        gp = np.asarray(gp)
-        gpp = np.asarray(gpp)
-        w = np.asarray(w)
-
     if second_set_type:
         mu = np.asarray(mu)
         xi = np.asarray(xi)
-        w = np.asarray(w)
 
-    # calculate complex modulus from stiffness and damping ratio (single)
-    if second_set_valid and not second_set_type:
-        mu = abs(mu)
-        xi = abs(xi)
-
-        a = sqrt(1.0 + 4.0 * xi**2)
-
-        gp = ((1.0 + a) * mu) / (2.0 * a**2)
-        gpp = 2.0 * xi * gp
-        gmag = sqrt(gp**2 + gpp**2)
-
-        # back-calculate mu and xi to check calculation, raise error if they don't match
-        mu_bc = 2.0 * gmag**2 / (gp + gmag)
-        xi_bc = gpp / (2.0 * gp)
-
-        if (mu - mu_bc) ** 2 >= tol:
-            raise ValueError(
-                f"Error in mu back-calculation: mu = {mu}, mu_bc = {mu_bc}."
-            )
-        if (xi - xi_bc) ** 2 >= tol:
-            raise ValueError(
-                f"Error in xi back-calculation, xi = {xi}, xi_bc = {xi_bc}.."
-            )
+    w = np.asarray(w)
 
     # calculate complex modulus from stiffness and damping ratio (array)
-    elif second_set_valid:
+    if second_set_valid:
+        assert mu is not None, "mu must be provided if xi is provided"
+        assert xi is not None, "xi must be provided if mu is provided"
+
         mu = np.abs(mu)
         xi = np.abs(xi)
 
         a = np.sqrt(1.0 + 4.0 * np.square(xi))
 
-        gp = ((1.0 + a) * mu) / (2.0 * np.square(a))
-        gpp = 2.0 * xi * gp
-        gmag = np.sqrt(np.square(gp) + np.square(gpp))
+        gp_array: np.ndarray = ((1.0 + a) * mu) / (2.0 * np.square(a))
+        gpp_array: np.ndarray = 2.0 * xi * gp_array
+        gmag_array: np.ndarray = np.sqrt(
+            np.square(gp_array) + np.square(gpp_array)
+        )
 
         # back-calculate mu and xi to check calculation, raise error if they don't match
-        mu_bc = 2.0 * np.square(gmag) / (gp + gmag)
-        xi_bc = gpp / (2.0 * gp)
+        mu_bc = 2.0 * np.square(gmag_array) / (gp_array + gmag_array)
+        xi_bc = gpp_array / (2.0 * gp_array)
 
         if np.sum((mu - mu_bc) ** 2) >= tol:
             raise ValueError(
@@ -116,9 +96,16 @@ def calculate_prony(
                 f"Error in xi back-calculation, xi = {xi}, xi_bc = {xi_bc}.."
             )
 
+    else:
+        assert gp is not None, "gp must be provided if gpp is provided"
+        assert gpp is not None, "gpp must be provided if gp is provided"
+
+        gp_array = np.asarray(gp)
+        gpp_array = np.asarray(gpp)
+
     # calculate te prony series constants
 
-    Ginf, G1, tau = prony_series(gp, gpp, w)
+    Ginf, G1, tau = prony_series(gp_array, gpp_array, w)
 
     return Ginf, G1, tau
 
