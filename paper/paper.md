@@ -12,7 +12,8 @@ authors:
     corresponding: true
   - name: Anshul Shirude
     affiliation: '2'
-  - name: Matteo Biggs
+  - name: Mateo Biggs
+    orcid: 0009-0004-2895-5738
     affiliation: '2'
   - name: Sinan Müftü
     orcid: 0000-0002-3431-9461
