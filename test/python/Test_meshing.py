@@ -121,18 +121,75 @@ class TestMeshing:
         )
 
         for i in range(1, 5):
-            print(i)
             points_in_region = mdl.element_table[:, 1] == i
-            print(mdl.centroid_table[points_in_region, :])
-            print(center + origin)
-            print(mdl.centroid_table[points_in_region, :] - (center + origin))
-            print(center_dist_mesh[points_in_region])
 
             np.testing.assert_array_less(
                 center_dist_mesh[points_in_region], radii[i - 1] + 0.1
             )
 
         # check part ids
+        print(np.unique(mdl.element_table[:, 1]))
+        print(mdl.part_info.keys())
+        assert len(np.unique(mdl.element_table[:, 1])) == len(
+            mdl.part_info.keys()
+        )
+
+    def test_femodel_from_meshio_double(self):
+        root_dir = os.getcwd()
+
+        inpath = os.path.join(
+            root_dir, "test", "test_data", "test_mesh_out.mesh"
+        )
+
+        mesh: meshio.Mesh = meshio.read(inpath)
+
+        for idx, item in enumerate(mesh.cells):
+            if item.type == "tetra":
+                _ = item.data
+                connectivity_index = idx
+
+        pid = mesh.cell_data["medit:ref"][connectivity_index]
+        shp = np.count_nonzero(pid > 0)
+
+        mdl = FEModel(title="test", source="test")
+
+        mdl.from_meshio(mesh)
+
+        mdl.from_meshio(mesh)
+
+        assert mdl.node_table.shape[0] == mesh.points.shape[0] * 2
+
+        assert mdl.element_table.shape[0] == int(shp) * 2
+
+        # check for zero nodes and node range
+        assert np.min(mdl.node_table[:, 0]) > 0
+
+        assert np.min(mdl.element_table[:, 2:]) == np.min(mdl.node_table[:, 0])
+
+        assert np.max(mdl.element_table[:, 2:]) == np.max(mdl.node_table[:, 0])
+
+        # check mesh regions
+        shape = (64, 64, 64)
+        radii = [5, 10, 15, 20, 5, 10, 15, 20]  # Radii for spheres
+        center = np.array(shape) // 2
+        origin = (4.0, -1.0, 2.0)
+
+        mdl.update_centroids()
+
+        center_dist_mesh = np.linalg.norm(
+            mdl.centroid_table - (center + origin), axis=1
+        )
+
+        for i in range(1, 9):
+            points_in_region = mdl.element_table[:, 1] == i
+
+            np.testing.assert_array_less(
+                center_dist_mesh[points_in_region], radii[i - 1] + 0.1
+            )
+
+        # check part ids
+        print(np.unique(mdl.element_table[:, 1]))
+        print(mdl.part_info.keys())
         assert len(np.unique(mdl.element_table[:, 1])) == len(
             mdl.part_info.keys()
         )

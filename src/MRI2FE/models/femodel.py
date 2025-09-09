@@ -173,7 +173,7 @@ class FEModel:
 
         # add nodes to node table
         elif indiv_input:
-            self.node_table = np.row_stack(
+            self.node_table = np.vstack(
                 (self.node_table, np.array([node_id, x, y, z]))
             )
 
@@ -181,7 +181,7 @@ class FEModel:
             self.metadata["num_nodes"] = current_count + 1
         else:
             assert node_array is not None
-            self.node_table = np.row_stack((self.node_table, node_array))
+            self.node_table = np.vstack((self.node_table, node_array))
 
             current_count = cast(int, self.metadata.get("num_nodes", 0))
             self.metadata["num_nodes"] = current_count + node_array.shape[0]
@@ -260,14 +260,12 @@ class FEModel:
 
         elif indiv_input and nodes is not None:
             row_insert = np.array([element_id, part_id] + nodes)
-            self.element_table = np.row_stack((self.element_table, row_insert))
+            self.element_table = np.vstack((self.element_table, row_insert))
 
             current_count = cast(int, self.metadata.get("num_elements", 0))
             self.metadata["num_elements"] = current_count + 1
         elif element_array is not None:
-            self.element_table = np.row_stack(
-                (self.element_table, element_array)
-            )
+            self.element_table = np.vstack((self.element_table, element_array))
 
             current_count = cast(int, self.metadata.get("num_elements", 0))
             self.metadata["num_elements"] = (
@@ -446,7 +444,7 @@ class FEModel:
             mesh = meshio.read(mesh)
 
         # Check element type compatibility
-        if self.element_table is not None:
+        if self.element_table.size > 0:
             # Assume all elements in self.element_table are of the same type
             num_nodes_per_elem = self.element_table.shape[1] - 2
             if element_type == "tetra" and num_nodes_per_elem != 4:
@@ -459,7 +457,7 @@ class FEModel:
         # Offset node IDs
         max_node_id = (
             int(np.max(self.node_table[:, 0]))
-            if self.node_table is not None
+            if self.node_table.size > 0
             else 0
         )
         nids = np.arange(1, n_points + 1) + max_node_id
@@ -482,7 +480,7 @@ class FEModel:
         n_elements = node_connectivity.shape[0]
         max_elem_id = (
             int(np.max(self.element_table[:, 0]))
-            if self.element_table is not None
+            if self.element_table.size > 0
             else 0
         )
         eids = np.arange(1, n_elements + 1) + max_elem_id
@@ -505,7 +503,9 @@ class FEModel:
         new_elements = np.column_stack((eids, new_pid, node_connectivity))
 
         # Filter pid zero
-        mask = new_pid > 0
+        mask = pid > 0
+
+        new_pid = new_pid[mask]
         new_elements = new_elements[mask, :]
 
         # all nodes are used
@@ -522,15 +522,13 @@ class FEModel:
                 self.part_info[str(id)] = {"name": str(id), "constants": []}
 
         # Link node and element tables
-        if self.node_table is not None:
-            self.node_table = np.row_stack((self.node_table, new_nodes))
+        if self.node_table.size > 0:
+            self.node_table = np.vstack((self.node_table, new_nodes))
         else:
             self.node_table = new_nodes
 
-        if self.element_table is not None:
-            self.element_table = np.row_stack(
-                (self.element_table, new_elements)
-            )
+        if self.element_table.size > 0:
+            self.element_table = np.vstack((self.element_table, new_elements))
         else:
             self.element_table = new_elements
 
