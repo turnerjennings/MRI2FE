@@ -173,7 +173,7 @@ class FEModel:
 
         # add nodes to node table
         elif indiv_input:
-            self.node_table = np.row_stack(
+            self.node_table = np.vstack(
                 (self.node_table, np.array([node_id, x, y, z]))
             )
 
@@ -181,7 +181,7 @@ class FEModel:
             self.metadata["num_nodes"] = current_count + 1
         else:
             assert node_array is not None
-            self.node_table = np.row_stack((self.node_table, node_array))
+            self.node_table = np.vstack((self.node_table, node_array))
 
             current_count = cast(int, self.metadata.get("num_nodes", 0))
             self.metadata["num_nodes"] = current_count + node_array.shape[0]
@@ -260,14 +260,12 @@ class FEModel:
 
         elif indiv_input and nodes is not None:
             row_insert = np.array([element_id, part_id] + nodes)
-            self.element_table = np.row_stack((self.element_table, row_insert))
+            self.element_table = np.vstack((self.element_table, row_insert))
 
             current_count = cast(int, self.metadata.get("num_elements", 0))
             self.metadata["num_elements"] = current_count + 1
         elif element_array is not None:
-            self.element_table = np.row_stack(
-                (self.element_table, element_array)
-            )
+            self.element_table = np.vstack((self.element_table, element_array))
 
             current_count = cast(int, self.metadata.get("num_elements", 0))
             self.metadata["num_elements"] = (
@@ -430,67 +428,92 @@ class FEModel:
         element_type: Literal["tetra"] = "tetra",
         region_names: Optional[List[str]] = None,
     ):
-        """Load a mesh from a meshio mesh object into the FEModel format
+        """Append mesh data from a meshio mesh object or file to the FEModel, offsetting IDs and
+        updating metadata.
 
         Args:
-            mesh (meshio.Mesh, str): Mesh object or filepath to mesh object
-            element_type ("tetra", optional): Element type desired for mesh. Currently, only "tetra" is supported.
-            region_names (List[str], optional): Optional part names for each region to be stored in the model. Defaults to None.
+            mesh (meshio.Mesh, str): Mesh object or filepath to mesh file.
+            element_type ("tetra", optional): Element type to import. Only "tetra" is supported.
+            region_names (List[str], optional): Optional part names for each region. Defaults to None.
 
         Raises:
-            ValueError: No tetra elements found in the model
-            ValueError: Node connectivity does not share the same dimension as the part IDs
+            ValueError: If the element type of the new mesh does not match the existing FEModel.
+            ValueError: If no elements of the specified type are found in the mesh.
         """
         if isinstance(mesh, str):
             mesh = meshio.read(mesh)
 
-        # extract meshio points and create node numbering
-        mesh_nodes = mesh.points
-        n_points = mesh.points.shape[0]
-        self.metadata["num_nodes"] += n_points
+        # Check element type compatibility
+        if self.element_table.size > 0:
+            # Assume all elements in self.element_table are of the same type
+            num_nodes_per_elem = self.element_table.shape[1] - 2
+            if element_type == "tetra" and num_nodes_per_elem != 4:
+                raise ValueError(
+                    "Element type mismatch: existing elements are not tetrahedrons."
+                )
 
-        # apply offsets
-        nids = np.arange(1, n_points + 1)
+        mesh_nodes = mesh.points
+        n_points = mesh_nodes.shape[0]
+        # Offset node IDs
+        max_node_id = (
+            int(np.max(self.node_table[:, 0]))
+            if self.node_table.size > 0
+            else 0
+        )
+        nids = np.arange(1, n_points + 1) + max_node_id
         new_nodes = np.column_stack((nids, mesh_nodes))
 
-        # find element type in cells
-        connectivity_index = 0
-        found = False
+        # Find an element type in cells
+        connectivity_index = None
+        node_connectivity = None
         for idx, item in enumerate(mesh.cells):
             if item.type == element_type:
-                node_connectivity = item.data
-                node_connectivity = node_connectivity + 1
+                # Map 0-based mesh indices to our new node IDs
+                node_connectivity = nids[item.data]
                 connectivity_index = idx
-                found = True
-
-        if not found:
+                break
+        if node_connectivity is None:
             raise ValueError(
                 f"Element type {element_type} not found in mesh cells"
             )
 
         n_elements = node_connectivity.shape[0]
-        eids = np.arange(1, n_elements + 1)
+        max_elem_id = (
+            int(np.max(self.element_table[:, 0]))
+            if self.element_table.size > 0
+            else 0
+        )
+        eids = np.arange(1, n_elements + 1) + max_elem_id
 
-        self.metadata["num_elements"] += n_elements
-
-        # find pids
+        # Offset part IDs
+        if "medit:ref" not in mesh.cell_data:
+            raise ValueError(
+                "Mesh must contain 'medit:ref' cell data for part IDs"
+            )
 
         pid = mesh.cell_data["medit:ref"][connectivity_index]
+        max_part_id = (
+            max([int(k) for k in self.part_info.keys()])
+            if self.part_info
+            else 0
+        )
+        pid_offset = max_part_id
 
-        new_elements = np.column_stack((eids, pid, node_connectivity))
+        new_pid = pid + pid_offset
+        new_elements = np.column_stack((eids, new_pid, node_connectivity))
 
-        # filter pid zero
+        # Filter pid zero
         mask = pid > 0
 
+        new_pid = new_pid[mask]
         new_elements = new_elements[mask, :]
 
-        if not pid.shape[0] == node_connectivity.shape[0]:
-            raise ValueError("pid and node_connectivity lengths do not match")
+        # all nodes are used
+        new_nodes = new_nodes
 
-        # create parts
-        unique_pids = np.unique(new_elements[:, 1])
-        for idx, id in enumerate(unique_pids):
-            if region_names is not None:
+        # Update part_info
+        for idx, id in enumerate(np.unique(new_pid)):
+            if region_names is not None and idx < len(region_names):
                 self.part_info[str(id)] = {
                     "name": region_names[idx],
                     "constants": [],
@@ -498,6 +521,26 @@ class FEModel:
             else:
                 self.part_info[str(id)] = {"name": str(id), "constants": []}
 
-        # TODO enable appending new nodes and elements
-        self.node_table = new_nodes
-        self.element_table = new_elements
+        # Link node and element tables
+        if self.node_table.size > 0:
+            self.node_table = np.vstack((self.node_table, new_nodes))
+        else:
+            self.node_table = new_nodes
+
+        if self.element_table.size > 0:
+            self.element_table = np.vstack((self.element_table, new_elements))
+        else:
+            self.element_table = new_elements
+
+        # Update metadata
+        self.metadata["num_nodes"] = self.node_table.shape[0]
+        self.metadata["num_elements"] = self.element_table.shape[0]
+        if "source" in self.metadata and self.metadata["source"]:
+            self.metadata["source"] = (
+                str(self.metadata["source"])
+                + f", meshio:{getattr(mesh, 'filename', 'unknown')}"
+            )
+        else:
+            self.metadata["source"] = (
+                f"meshio:{getattr(mesh, 'filename', 'unknown')}"
+            )
