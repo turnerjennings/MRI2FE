@@ -2,15 +2,8 @@ import os
 from typing import List, Optional, Tuple, Union
 
 import numpy as np
-from ants import (
-    apply_transforms,
-    image_read,
-    new_image_like,
-    plot,
-    registration,
-    resample_image,
-    threshold_image,
-)
+from ants import (apply_transforms, image_read, new_image_like, plot,
+                  registration, resample_image, threshold_image)
 from ants.core.ants_image import ANTsImage
 from sklearn.cluster import KMeans
 
