@@ -1,5 +1,5 @@
 ---
-title: 'MRI2FE: Subject-specified Finite Element Model Generation from Medical Imaging Data'
+title: 'MRI2FE: Subject-specific Finite Element Model Generation from Medical Imaging Data'
 tags:
   - Python
   - Bioengineering
