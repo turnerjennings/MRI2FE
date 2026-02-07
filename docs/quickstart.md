@@ -5,7 +5,7 @@ Models can be generated quickly from medical imaging data using the built in hel
 1. Generating a tetrahedral mesh from a segmented, labeled MRI image.
 2. Segmented MRE data into similar regions and calculating prony series viscoelastic parameters for each region.
 3. Transforming the MRE data into the segmented MRI space and mapping the segmented MRE material assignments onto the FE mesh.
-4. Organizing and writing the data from steps 1-3 to a compatible file format.
+4. Organizing and writing the data from steps 1-3 to an LS-DYNA keyword (.k) file (mesh, parts, sections, materials only; boundary conditions and solver control must be added separately for a runnable deck).
 
 
 ## Examples

@@ -23,11 +23,11 @@ authors:
     orcid: 0000-0003-3632-6195
     affiliation: '1, 3'
 affiliations:
-  - name: Department of Mechanical and Industrial Engineering, Northeastern University, Boston, MA
+  - name: Department of Mechanical and Industrial Engineering, Northeastern University, Boston, MA, United States of America
     index: 1
-  - name: Khoury College of Computer Science, Northeastern University, Boston, MA
+  - name: Khoury College of Computer Science, Northeastern University, Boston, MA, United States of America
     index: 2
-  - name: Department of Bioengineering, Northeastern University, Boston, MA
+  - name: Department of Bioengineering, Northeastern University, Boston, MA, United States of America
     index: 3
 date: 12th September 2017
 bibliography: references.bib
@@ -37,7 +37,7 @@ bibliography: references.bib
 
 Computational models of the human head are powerful tools for non-invasive analysis of the biomechanics of conditions such as traumatic brain injury, hydrocephalus, and stroke.  MRI2FE is a toolkit to facilitate the creation of finite element (FE) models of the human head from large-sample-size medical imaging datasets.  It enables the creation of computational head models with unique geometry from anatomical magnetic resonance images (MRIs) as well as unique material characteristics measured using magnetic resonance elastography (MRE).  The toolkit is designed to make it easy to convert a large structured dataset into a series of FE models which can be used in computational biomechanics analyses. 
 
-The model generation process is shown in \autoref{fig1}.  There are four core operations handled by the toolkit: Mesh generation from a segmented MRI volume, calculation of viscoelastic material model parameters from MRE data, mapping of MRE data onto the MRI-derived mesh, and export to a format compatible with commercial FE solvers.  There are built-in pipelines to automate all steps of model generation, or they can be run separately to integrate additional processing steps using other Python tools.  MRI2FE integrates functions from standard toolkits for mesh generation [@cgal] and MRI manipulation [@antsx] into a single integrated workflow.  It is designed to be used in conjunction with other FE preprocessing software and toolkits to enable patient-specific biomechanical analysis for a variety of neurodegenerative conditions.  By combining these existing tools into a streamlined framework, MRI2FE lowers the barrier for new users in biomechanics to generate reliable models without needing to manually stitch together multiple software packages.
+The model generation process is shown in \autoref{fig1}.  There are four core operations handled by the toolkit: Mesh generation from a segmented MRI volume, calculation of viscoelastic material model parameters from MRE data, mapping of MRE data onto the MRI-derived mesh, and export of the mesh, parts, sections, and material definitions to file.  Export is currently supported only in LS-DYNA keyword (.k) format; the toolkit does not assign boundary conditions, loads, or solver control options—users must add these in a separate step to obtain a runnable input deck.  There are built-in pipelines to automate all steps of model generation, or they can be run separately to integrate additional processing steps using other Python tools.  MRI2FE integrates functions from standard toolkits for mesh generation [@cgal] and MRI manipulation [@antsx] into a single integrated workflow.  It is designed to be used in conjunction with other FE preprocessing software and toolkits to enable patient-specific biomechanical analysis for a variety of neurodegenerative conditions.  By combining these existing tools into a streamlined framework, MRI2FE lowers the barrier for new users in biomechanics to generate reliable models without needing to manually stitch together multiple software packages.
 
 ![Workflow of FE model creation steps.\label{fig1}](figure.png)
 
@@ -49,9 +49,21 @@ Efforts in open data sharing have produced large-sample-size MRI datasets for a 
 
 The principal advantage of MRI2FE is its ability to minimize the boilerplate and manual intervention typically required for model creation, particularly when processing large MRI datasets with consistent data structures and parameters. This automation not only accelerates research timelines but also enhances reproducibility by reducing user-to-user variability in preprocessing steps.
 
+# Output format and scope
+
+MRI2FE exports only to **LS-DYNA keyword (.k) format**. It does not set boundary 
+conditions and would need to be manually provided by yhe user.
+
+# Mesh scope and material regions
+
+The mesh is generated from a user-provided segmented, labeled MRI volume. The mesh extent is therefore whatever is in that segmentation: it may cover the full head (skull, brain, CSF, etc.), brain-only, or any subset of structures, depending on the labels present in the input image. 
+
+MRE-derived viscoelastic materials are applied to one target region at a time. Within that region, the pipeline does not segment by anatomy (e.g. gray matter, white matter, arachnoid, dura). Instead, it partitions the MRE ROI into a user-chosen number of segments using k-means clustering on the MRE property values (e.g. stiffness and damping ratio). Each resulting cluster is assigned a Prony-series viscoelastic material. Thus material subregions are property-based (stiffness/damping similarity), not anatomically named. 
+
+
 # Example Workflow
 
-All steps of the workflow can be executed at once using a single build script. The example below illustrates how MRI2FE can generate a FE model from MRI and MRE data, export it to a solver-ready format, and return a model object for further manipulation in Python:
+All steps of the workflow can be executed at once using a single build script. The example below illustrates how MRI2FE can generate a FE model from MRI and MRE data, write the geometry and materials to an LS-DYNA .k file (to which boundary conditions and control keywords must be added separately for a complete run), and return a model object for further manipulation in Python:
 
 ```python
 import MRI2FE
@@ -92,5 +104,19 @@ mdl = (
 )
 
 ```
+
+# Testing
+
+The project includes a Nox-based testing suite that runs the full pipeline and unit tests for each phase. Tests can be executed via `nox` (e.g. `nox -s test`) to run linting, formatting, and the full test suite. Test coverage by component is summarized in the following table.
+
+| Area | Test file |
+|------|-----------|
+| Pipeline (full workflow) | test_pipeline_with_generated_data.py |
+| Meshing | Test_meshing.py |
+| MRE (coregistration, segmentation, mapping) | Test_MRE_coregistration.py |
+| Prony (viscoelastic parameters) | Test_calculate_prony.py |
+| FEModel (model class and LS-DYNA export) | test_fea_exporters.py |
+| Utilities | Test_utilities.py |
+| Postprocess (strain) | Test_Postprocess_calculate_strain.py |
 
 # References
